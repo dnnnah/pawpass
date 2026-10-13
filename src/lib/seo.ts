@@ -4,8 +4,8 @@ import type { PetProfile } from "@/types/pet";
 
 export function getPetProfileSeoTitle(pet: PetProfile): string {
   return pet.emergencia.perdido
-    ? `${pet.mascota.nombre} está perdido | PetCarnet`
-    : `${pet.mascota.nombre} | PetCarnet`;
+    ? `${pet.mascota.nombre} está perdido | PawPass`
+    : `${pet.mascota.nombre} | PawPass`;
 }
 
 export function getPetProfileSeoDescription(pet: PetProfile): string {
@@ -34,7 +34,7 @@ export function buildPetProfileMetadata(pet: PetProfile): Metadata {
       description,
       url: publicProfileUrl ?? undefined,
       type: "website",
-      siteName: "PetCarnet",
+      siteName: "PawPass",
       locale: "es_MX",
       images: ogImage,
     },

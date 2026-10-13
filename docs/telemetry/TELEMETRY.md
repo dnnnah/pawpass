@@ -2,7 +2,7 @@
 
 Estado: **IMPLEMENTADO como núcleo local. NO hay envío de datos.**
 
-PetCarnet es un prototipo local: no existe backend, ni Supabase, ni Auth, ni
+PawPass es un prototipo local: no existe backend, ni Supabase, ni Auth, ni
 proveedor de analítica. Esta fase construye únicamente el contrato, la
 abstracción de medición y las funciones puras de KPI. Ningún evento sale de la
 aplicación.

@@ -22,7 +22,7 @@ import {
 export type UseInstallPromptResult = {
   /** Hay un diálogo nativo de instalación disponible. */
   canInstall: boolean;
-  /** PetCarnet ya se está ejecutando como app instalada. */
+  /** PawPass ya se está ejecutando como app instalada. */
   isInstalled: boolean;
   /** El navegador expone la API de instalación. */
   isSupported: boolean;

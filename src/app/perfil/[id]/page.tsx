@@ -46,7 +46,7 @@ export async function generateMetadata({ params }: ProfilePageProps): Promise<Me
 
   if (!pet) {
     return {
-      title: "Mascota no encontrada | PetCarnet",
+      title: "Mascota no encontrada | PawPass",
       robots: { index: false },
     };
   }

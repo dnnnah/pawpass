@@ -35,12 +35,12 @@ export async function generateMetadata({ params }: HealthPageProps): Promise<Met
 
   if (!pet) {
     return {
-      title: "Expediente de salud no encontrado | PetCarnet",
+      title: "Expediente de salud no encontrado | PawPass",
     };
   }
 
   return {
-    title: `Salud de ${pet.mascota.nombre} | PetCarnet`,
+    title: `Salud de ${pet.mascota.nombre} | PawPass`,
     description: `Expediente de salud de ${pet.mascota.nombre}: vacunas, desparasitación e historial médico.`,
   };
 }

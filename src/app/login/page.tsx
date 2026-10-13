@@ -3,8 +3,8 @@ import { AppShell } from "@/components/layout/AppShell";
 import { SubpageHeader } from "@/components/ui/SubpageHeader";
 
 export const metadata: Metadata = {
-  title: "Iniciar sesión | PetCarnet",
-  description: "Acceso al panel de PetCarnet.",
+  title: "Iniciar sesión | PawPass",
+  description: "Acceso al panel de PawPass.",
 };
 
 export default function LoginPage() {

@@ -49,7 +49,7 @@ export default async function Home() {
             Si la pierdes, que cualquiera pueda devolverla.
           </h1>
           <p className="mt-5 max-w-2xl text-lg leading-8 text-ink-2">
-            PetCarnet convierte los datos de tu mascota en un carnet público con QR: identidad,
+            PawPass convierte los datos de tu mascota en un carnet público con QR: identidad,
             salud y contacto de emergencia en un solo lugar, siempre a tu control.
           </p>
 

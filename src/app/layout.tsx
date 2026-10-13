@@ -37,20 +37,20 @@ const siteUrl = (() => {
 
 export const metadata: Metadata = {
   metadataBase: siteUrl,
-  title: "PetCarnet | Carnet Digital",
+  title: "PawPass | Carnet Digital",
   description: "Pasaporte digital público para mascotas con QR de emergencia.",
-  applicationName: "PetCarnet",
+  applicationName: "PawPass",
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "PetCarnet",
+    title: "PawPass",
   },
   formatDetection: {
     telephone: false,
   },
   openGraph: {
     type: "website",
-    siteName: "PetCarnet",
+    siteName: "PawPass",
     locale: "es_MX",
   },
   twitter: {
@@ -74,7 +74,7 @@ export default function RootLayout({
       <head>
         <script
           dangerouslySetInnerHTML={{
-            __html: `(function(){try{var k='petcarnet-theme:v1',v=localStorage.getItem(k)||localStorage.getItem('petcarnet-theme');var dark=v? v==='dark' : window.matchMedia('(prefers-color-scheme: dark)').matches;var d=document.documentElement;d.classList.toggle('dark',dark);d.style.colorScheme=dark?'dark':'light';}catch(e){}})();`,
+            __html: `(function(){try{var k='pawpass-theme:v1',v=localStorage.getItem(k)||localStorage.getItem('pawpass-theme');var dark=v? v==='dark' : window.matchMedia('(prefers-color-scheme: dark)').matches;var d=document.documentElement;d.classList.toggle('dark',dark);d.style.colorScheme=dark?'dark':'light';}catch(e){}})();`,
           }}
         />
       </head>

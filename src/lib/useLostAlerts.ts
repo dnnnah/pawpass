@@ -10,8 +10,8 @@ import type { LostAlert, LostAlertDraft } from "@/types/emergency";
 
 export type { LostAlert, LostAlertDraft };
 
-const PREFIX = "petcarnet-alerta:v1:";
-const EVENT = "petcarnet-lost-mode";
+const PREFIX = "pawpass-alerta:v1:";
+const EVENT = "pawpass-lost-mode";
 
 function keyOf(petId: string) {
   return `${PREFIX}${String(petId)}`;

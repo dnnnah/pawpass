@@ -7,7 +7,7 @@ import type { LostAlert } from "@/types/emergency";
 import type { PetGender, PetProfile, PetSize } from "@/types/pet";
 
 const TODAY = "2026-09-20";
-const APP_URL = "https://petcarnet.example";
+const APP_URL = "https://pawpass.example";
 
 afterEach(() => {
   vi.unstubAllEnvs();

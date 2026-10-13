@@ -1,9 +1,9 @@
-# Spec de diseño — Integración de Supabase en PetCarnet
+# Spec de diseño — Integración de Supabase en PawPass
 
 - **Fecha:** 2026-10-12
 - **Fase del roadmap:** FASE 10 (Backend + Base de Datos) y FASE 11 (Autenticación, roles y seguridad)
 - **Rama base auditada:** `feat/services-architecture-core` (`eea5036`)
-- **Documentos de referencia:** `PAWPASS-ESTRUCTURA-BASE-DE-DATOS.md`, `PetCarnet_Roadmap_Maestro.md`, `docs/fase-9-services-arquitectura.md`
+- **Documentos de referencia:** `PAWPASS-ESTRUCTURA-BASE-DE-DATOS.md`, `PawPass_Roadmap_Maestro.md`, `docs/fase-9-services-arquitectura.md`
 - **Estado:** borrador para revisión (no implementado)
 
 > Este spec **resuelve** las decisiones #3–#9 del informe de auditoría y fija el contrato
@@ -14,7 +14,7 @@
 
 ## 1. Contexto y objetivo
 
-PetCarnet es hoy un prototipo estático (JSON en `src/data/`, escrituras en `localStorage`),
+PawPass es hoy un prototipo estático (JSON en `src/data/`, escrituras en `localStorage`),
 sin Supabase, sin Auth y sin base de datos (`package.json` sin `@supabase/*`). La capa de
 Services y sus puertos ya existen y permiten cambiar la fuente de datos sin rehacer la UI
 (`docs/fase-9-services-arquitectura.md:30-34`).

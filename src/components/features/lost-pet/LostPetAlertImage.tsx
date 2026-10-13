@@ -139,7 +139,7 @@ export function LostPetAlertImage({
 
       {/* Footer */}
       <div className="bg-ink px-8 py-4 text-center">
-        <p className="text-xs font-medium text-canvas">PetCarnet · Carnet Digital para Mascotas</p>
+        <p className="text-xs font-medium text-canvas">PawPass · Carnet Digital para Mascotas</p>
         <p className="mt-1 text-[10px] text-canvas/70">
           Escanea el QR para ver el perfil completo
         </p>

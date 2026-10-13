@@ -7,8 +7,8 @@ import {
   useSyncExternalStore,
 } from "react";
 
-const THEME_KEY = "petcarnet-theme:v1";
-const LEGACY_THEME_KEY = "petcarnet-theme";
+const THEME_KEY = "pawpass-theme:v1";
+const LEGACY_THEME_KEY = "pawpass-theme";
 
 type Theme = "light" | "dark";
 

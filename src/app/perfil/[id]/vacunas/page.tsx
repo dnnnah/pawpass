@@ -29,12 +29,12 @@ export async function generateMetadata({ params }: VaccinesPageProps): Promise<M
 
   if (!pet) {
     return {
-      title: "Vacunas no encontradas | PetCarnet",
+      title: "Vacunas no encontradas | PawPass",
     };
   }
 
   return {
-    title: `Vacunas de ${pet.mascota.nombre} | PetCarnet`,
+    title: `Vacunas de ${pet.mascota.nombre} | PawPass`,
     description: `Cartilla de vacunación de ${pet.mascota.nombre}.`,
   };
 }

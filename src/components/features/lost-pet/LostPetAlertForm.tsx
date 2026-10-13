@@ -75,7 +75,7 @@ export function LostPetAlertForm({ pet }: LostPetAlertFormProps) {
       if (!dataUrl) return;
 
       const link = document.createElement("a");
-      link.download = `petcarnet-alerta-${pet.mascota.nombre.toLowerCase().replace(/\s+/g, "-")}.png`;
+      link.download = `pawpass-alerta-${pet.mascota.nombre.toLowerCase().replace(/\s+/g, "-")}.png`;
       link.href = dataUrl;
       link.click();
     } finally {
@@ -107,7 +107,7 @@ export function LostPetAlertForm({ pet }: LostPetAlertFormProps) {
       }
 
       const link = document.createElement("a");
-      link.download = `petcarnet-alerta-${pet.mascota.nombre.toLowerCase().replace(/\s+/g, "-")}.png`;
+      link.download = `pawpass-alerta-${pet.mascota.nombre.toLowerCase().replace(/\s+/g, "-")}.png`;
       link.href = URL.createObjectURL(blob);
       link.click();
     } finally {

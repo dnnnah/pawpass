@@ -201,7 +201,7 @@ describe("captura del evento de instalación", () => {
 
 describe("app ya instalada", () => {
   it("la detecta al arrancar, sin esperar a ningún evento", async () => {
-    // Quien ya tiene PetCarnet instalado y lo abre desde su pantalla de inicio
+    // Quien ya tiene PawPass instalado y lo abre desde su pantalla de inicio
     // no recibirá `appinstalled` en toda la sesión. Si no se lee el modo
     // standalone al arrancar, vería el aviso de instalar una app ya instalada.
     installFakeWindow({ standalone: true });

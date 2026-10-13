@@ -2,7 +2,7 @@
   {
     "id": "patitas-con-causa",
     "nombre": "Patitas con Causa",
-    "descripcion": "Refugio de demostración del prototipo de PetCarnet. Rescata, recupera y promueve la adopción responsable de perros y gatos en la zona de la Ciudad de México.",
+    "descripcion": "Refugio de demostración del prototipo de PawPass. Rescata, recupera y promueve la adopción responsable de perros y gatos en la zona de la Ciudad de México.",
     "ubicacion": "Colonia Roma Norte, Ciudad de México",
     "contacto": {
       "nombreResponsable": "Marta Gómez",
@@ -21,7 +21,7 @@
   {
     "id": "rincon-canino",
     "nombre": "Rincón Canino Ixtapaluca",
-    "descripcion": "Espacio de demostración del prototipo de PetCarnet dedicado al rescate canino en el oriente del Estado de México.",
+    "descripcion": "Espacio de demostración del prototipo de PawPass dedicado al rescate canino en el oriente del Estado de México.",
     "ubicacion": "Ixtapaluca, Estado de México",
     "contacto": {
       "nombreResponsable": "Luis Hernández",

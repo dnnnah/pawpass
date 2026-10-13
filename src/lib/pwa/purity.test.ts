@@ -134,16 +134,16 @@ describe("contrato de nombres de caché entre el worker y la capa", () => {
 
   it("la caché de documentos coincide con la del worker", () => {
     const cacheApiName = cacheApiSource.match(/const CACHE_NAME = "([^"]+)"/)?.[1];
-    const swName = swSource.match(/const CACHE_NAME = `petcarnet-\$\{VERSION\}`/)?.[0];
+    const swName = swSource.match(/const CACHE_NAME = `pawpass-\$\{VERSION\}`/)?.[0];
 
     expect(swName).toBeDefined();
-    expect(cacheApiName, "no se encontró CACHE_NAME en cacheApi.ts").toBe(`petcarnet-${swVersion}`);
+    expect(cacheApiName, "no se encontró CACHE_NAME en cacheApi.ts").toBe(`pawpass-${swVersion}`);
   });
 
   it("la caché de rutas RSC coincide con la del worker", () => {
     const cacheApiName = cacheApiSource.match(/const ROUTE_CACHE_NAME = "([^"]+)"/)?.[1];
     expect(cacheApiName, "no se encontró ROUTE_CACHE_NAME en cacheApi.ts").toBe(
-      `petcarnet-routes-${swVersion}`
+      `pawpass-routes-${swVersion}`
     );
   });
 

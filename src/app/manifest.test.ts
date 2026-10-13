@@ -12,8 +12,8 @@ describe("buildManifest", () => {
   const manifest = buildManifest();
 
   it("expone la identidad de la aplicación", () => {
-    expect(manifest.name).toContain("PetCarnet");
-    expect(manifest.short_name).toBe("PetCarnet");
+    expect(manifest.name).toContain("PawPass");
+    expect(manifest.short_name).toBe("PawPass");
     expect(manifest.description?.length).toBeGreaterThan(0);
     expect(manifest.lang).toBe("es");
   });

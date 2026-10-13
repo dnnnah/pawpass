@@ -40,14 +40,14 @@ export async function generateMetadata({ params }: ShelterPageProps): Promise<Me
 
   if (!shelter) {
     return {
-      title: "Refugio no encontrado | PetCarnet",
+      title: "Refugio no encontrado | PawPass",
       robots: { index: false },
     };
   }
 
   return {
-    title: `${shelter.nombre} | PetCarnet`,
-    description: `${shelter.nombre} · ${shelter.ubicacion}. Perfil de refugio de demostración dentro del prototipo de adopción de PetCarnet.`,
+    title: `${shelter.nombre} | PawPass`,
+    description: `${shelter.nombre} · ${shelter.ubicacion}. Perfil de refugio de demostración dentro del prototipo de adopción de PawPass.`,
   };
 }
 
@@ -64,7 +64,7 @@ export default async function ShelterPage({ params }: ShelterPageProps) {
   const adoptablePets = filterAdoptablePets(shelterPets);
   const otherPets = shelterPets.filter((pet) => !adoptablePets.some((adoptable) => adoptable.id === pet.id));
 
-  const whatsappMessage = `Hola, me interesa adoptar una mascota de ${shelter.nombre}. Vi su perfil en PetCarnet.`;
+  const whatsappMessage = `Hola, me interesa adoptar una mascota de ${shelter.nombre}. Vi su perfil en PawPass.`;
   const whatsappHref = buildWhatsAppHref(shelter.contacto.whatsapp, whatsappMessage);
   const phoneDigits = toE164Digits(shelter.contacto.telefono);
   const socialLinks = shelter.redes.map(normalizeSocialUrl).filter(Boolean);

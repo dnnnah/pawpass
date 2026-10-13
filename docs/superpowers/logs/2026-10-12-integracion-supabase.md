@@ -1,4 +1,4 @@
-# Registro de trabajo — Integración de Supabase en PetCarnet
+# Registro de trabajo — Integración de Supabase en PawPass
 
 - **Fecha:** 2026-10-12
 - **Rama:** `feat/services-architecture-core`
@@ -10,7 +10,7 @@ y qué sigue. Se actualiza a medida que avanza la integración.
 
 ## Contexto
 
-PetCarnet es un prototipo Next.js que hoy lee datos de JSON estáticos
+PawPass es un prototipo Next.js que hoy lee datos de JSON estáticos
 (`src/data/mascotas.json`, `adopciones.mock.json`, `shelters.mock.json`) a través de una
 arquitectura por capas (domain → infrastructure → services → app). El objetivo es migrar
 la fuente de datos a Supabase (Auth + Postgres + Storage) sin romper la demo estática ni
@@ -41,7 +41,7 @@ spec + plan. La ejecución avanza por tareas T1–T10.
 | --- | --- | --- |
 | T1 | Habilitar `@supabase` en guardas arquitectónicas | ✅ Hecha |
 | T2 | Puertos y services asíncronos | ✅ Hecha |
-| T3 | Cliente Supabase y entorno | ⛔ Bloqueada por P3 |
+| T3 | Cliente Supabase y entorno | 🟡 Scaffold hecho (cierre real pendiente de P3) |
 | T4 | Mappers DB↔dominio y ajustes de contrato (D5–D11) | ⏳ Siguiente |
 | T5 | Adaptadores Supabase de lectura + swap | ⛔ T3/T4/P4 |
 | T6 | Supabase Auth | ⛔ T3/P2 |
@@ -76,6 +76,32 @@ spec + plan. La ejecución avanza por tareas T1–T10.
   `domain/carnet.test.ts` (test 14).
 - Verificación: `typecheck` ✓ · `lint` ✓ · `test` → **712 passed (54 files)** ·
   `build` ✓ → **281 rutas SSG** (async `generateStaticParams` correcto).
+
+### T3 — Cliente Supabase y entorno 🟡
+
+- Dependencias: `@supabase/supabase-js@2.117.3`, `@supabase/ssr@0.12.7`.
+- `src/lib/infra/supabase/env.ts`: lee/valida `NEXT_PUBLIC_SUPABASE_URL` y
+  `NEXT_PUBLIC_SUPABASE_ANON_KEY` (`hasSupabaseEnv`, `getSupabaseEnv`).
+- `src/lib/infra/supabase/client.ts`: `createSupabaseBrowserClient()` (cookies, no
+  `localStorage`).
+- `src/lib/infra/supabase/server.ts`: `createSupabaseServerClient(cookieStore)` con la
+  tienda de cookies **inyectada** (la capa `infra` no importa `next`, respetando la guarda).
+- `.env.example` (documentado) y `.gitignore` con `!.env.example`.
+- Tests: `env.test.ts` (3). Verificación: `typecheck` ✓ · `lint` ✓ ·
+  `test` → **718 passed (55 files)** · `build` ✓ (281 rutas).
+- **Pendiente:** cerrar contra un proyecto real (P3) y añadir el middleware de sesión en T6.
+
+### Renombrado del producto: PetCarnet → PawPass ✅
+
+- Reemplazo global del nombre: marca (`PetCarnet`→`PawPass`), identificadores internos
+  (`petcarnet-*`→`pawpass-*`: claves de `localStorage`, eventos, cachés del service worker),
+  package (`petcarnet-app`→`pawpass-app`) y URLs de ejemplo (`petcarnet.example`→
+  `pawpass.example`).
+- Docs: texto y nombres de archivo (`PAWPASS-PROYECTO.md`, `PawPass_Roadmap_Maestro.md`).
+- **No tocado:** los 18 PDF binarios de `public/docs/**` (riesgo de corrupción) ni el
+  `remote` de git (el repositorio de GitHub conserva su slug `petCarnet`).
+- Verificación: `typecheck` ✓ · `lint` ✓ · `test` → **718 passed** · `build` ✓ ·
+  `validate:data` ✓ (26 avisos preexistentes).
 
 ## Puertas de verificación (cada tarea)
 

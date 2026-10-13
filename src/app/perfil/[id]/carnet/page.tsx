@@ -26,12 +26,12 @@ export async function generateMetadata({ params }: CarnetPageProps): Promise<Met
 
   if (!pet) {
     return {
-      title: "Carnet no encontrado | PetCarnet",
+      title: "Carnet no encontrado | PawPass",
     };
   }
 
   return {
-    title: `Carnet físico de ${pet.mascota.nombre} | PetCarnet`,
+    title: `Carnet físico de ${pet.mascota.nombre} | PawPass`,
     description: `Carnet físico de ${pet.mascota.nombre}: identidad, perfil público, contacto y salud para imprimir.`,
   };
 }

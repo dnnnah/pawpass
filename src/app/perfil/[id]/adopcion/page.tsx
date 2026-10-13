@@ -32,14 +32,14 @@ export async function generateMetadata({ params }: AdoptionPageProps): Promise<M
 
   if (!pet) {
     return {
-      title: "Solicitud no encontrada | PetCarnet",
+      title: "Solicitud no encontrada | PawPass",
       robots: { index: false },
     };
   }
 
   return {
-    title: `Solicitar adopción de ${pet.mascota.nombre} | PetCarnet`,
-    description: `Solicitud de adopción prototipo para ${pet.mascota.nombre} (${pet.mascota.especie}) en PetCarnet.`,
+    title: `Solicitar adopción de ${pet.mascota.nombre} | PawPass`,
+    description: `Solicitud de adopción prototipo para ${pet.mascota.nombre} (${pet.mascota.especie}) en PawPass.`,
   };
 }
 

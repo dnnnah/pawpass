@@ -104,7 +104,7 @@ export function PetHeader({ pet, statusBadge }: PetHeaderProps) {
 
           <div className="mt-6 flex flex-wrap items-center gap-2 border-y border-rule py-2.5">
             <span className="tnum text-[0.9375rem] font-semibold text-ink">
-              ID PetCarnet: {pet.id}
+              ID PawPass: {pet.id}
             </span>
             <CopyButton value={pet.id} label="Copiar ID" />
           </div>

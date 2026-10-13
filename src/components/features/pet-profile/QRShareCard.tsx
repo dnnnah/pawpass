@@ -104,7 +104,7 @@ export function QRShareCard({ petName, profileUrl, petCode, className }: QRShare
         ok
           ? kind === "url"
             ? "URL del perfil copiada"
-            : "ID PetCarnet copiado"
+            : "ID PawPass copiado"
           : "No se pudo copiar. Revisa los permisos del navegador."
       );
       if (!ok) {
@@ -148,7 +148,7 @@ export function QRShareCard({ petName, profileUrl, petCode, className }: QRShare
       const pngUrl = canvas.toDataURL("image/png");
       const link = document.createElement("a");
       link.href = pngUrl;
-      link.download = `petcarnet-qr-${fileName}.png`;
+      link.download = `pawpass-qr-${fileName}.png`;
       link.click();
 
       announce("QR descargado en PNG de alta resolución");
@@ -169,7 +169,7 @@ export function QRShareCard({ petName, profileUrl, petCode, className }: QRShare
     try {
       downloadBlob(
         new Blob([cleanQrSvg(svg)], { type: "image/svg+xml;charset=utf-8" }),
-        `petcarnet-qr-${fileName}.svg`
+        `pawpass-qr-${fileName}.svg`
       );
       announce("QR exportado en SVG");
     } catch {
@@ -242,7 +242,7 @@ export function QRShareCard({ petName, profileUrl, petCode, className }: QRShare
                 <Link2 size={12} aria-hidden="true" className="shrink-0" />
                 <span className="truncate [overflow-wrap:anywhere]">{profileUrl}</span>
               </p>
-              <p className="mt-1 w-full break-words text-center text-xs text-ink-2">ID PetCarnet: {petCode}</p>
+              <p className="mt-1 w-full break-words text-center text-xs text-ink-2">ID PawPass: {petCode}</p>
             </div>
 
             <div className="grid grid-cols-2 gap-2 [&>*]:min-w-0">
@@ -261,7 +261,7 @@ export function QRShareCard({ petName, profileUrl, petCode, className }: QRShare
                 type="button"
                 onClick={() => handleCopy("id")}
                 disabled={busy !== null}
-                aria-label="Copiar el ID PetCarnet"
+                aria-label="Copiar el ID PawPass"
                 className={buttonClasses}
               >
                 {copied === "id" ? <Check size={16} aria-hidden="true" /> : <BadgeCheck size={16} aria-hidden="true" />}

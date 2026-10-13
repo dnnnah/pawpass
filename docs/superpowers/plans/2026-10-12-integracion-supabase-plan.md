@@ -1,4 +1,4 @@
-# Plan de implementación — Integración de Supabase en PetCarnet
+# Plan de implementación — Integración de Supabase en PawPass
 
 - **Fecha:** 2026-10-12
 - **Spec base:** `docs/superpowers/specs/2026-10-12-integracion-supabase-design.md`
@@ -31,7 +31,7 @@ dominio ni de services.
 
 **Dependencias:** ninguna.
 
-**Archivos:** `src/lib/architecture.test.ts`, `src/lib/domain/purity.test.ts`, `PETCARNET-PROYECTO.md`
+**Archivos:** `src/lib/architecture.test.ts`, `src/lib/domain/purity.test.ts`, `PAWPASS-PROYECTO.md`
 (sección de reglas, opcional).
 
 **Pasos:**
