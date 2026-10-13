@@ -14,13 +14,15 @@ type CarnetPageProps = {
 
 const FORMATOS: PhysicalPetCardFormato[] = ["tarjeta_imprimible", "credencial", "placa_dije"];
 
-export function generateStaticParams() {
-  return getAllProfilePets().flatMap((pet) => [{ id: pet.id }, { id: pet.identificacion.codigoPublico }]);
+export async function generateStaticParams() {
+  const pets = await getAllProfilePets();
+
+  return pets.flatMap((pet) => [{ id: pet.id }, { id: pet.identificacion.codigoPublico }]);
 }
 
 export async function generateMetadata({ params }: CarnetPageProps): Promise<Metadata> {
   const { id } = await params;
-  const pet = getPetByIdAny(id);
+  const pet = await getPetByIdAny(id);
 
   if (!pet) {
     return {
@@ -36,7 +38,7 @@ export async function generateMetadata({ params }: CarnetPageProps): Promise<Met
 
 export default async function CarnetPage({ params }: CarnetPageProps) {
   const { id } = await params;
-  const pet = getPetByIdAny(id);
+  const pet = await getPetByIdAny(id);
 
   if (!pet) {
     notFound();

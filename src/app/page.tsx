@@ -25,8 +25,8 @@ const STEPS = [
   },
 ];
 
-export default function Home() {
-  const pets = getAllPets();
+export default async function Home() {
+  const pets = await getAllPets();
   const featuredPet = pets[0];
 
   return (

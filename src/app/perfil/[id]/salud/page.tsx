@@ -23,13 +23,15 @@ type HealthPageProps = {
   params: Promise<{ id: string }>;
 };
 
-export function generateStaticParams() {
-  return getAllProfilePets().flatMap((pet) => [{ id: pet.id }, { id: pet.identificacion.codigoPublico }]);
+export async function generateStaticParams() {
+  const pets = await getAllProfilePets();
+
+  return pets.flatMap((pet) => [{ id: pet.id }, { id: pet.identificacion.codigoPublico }]);
 }
 
 export async function generateMetadata({ params }: HealthPageProps): Promise<Metadata> {
   const { id } = await params;
-  const pet = getPetByIdAny(id);
+  const pet = await getPetByIdAny(id);
 
   if (!pet) {
     return {
@@ -45,7 +47,7 @@ export async function generateMetadata({ params }: HealthPageProps): Promise<Met
 
 export default async function SaludPage({ params }: HealthPageProps) {
   const { id } = await params;
-  const pet = getPetByIdAny(id);
+  const pet = await getPetByIdAny(id);
 
   if (!pet) {
     notFound();

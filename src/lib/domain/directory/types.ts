@@ -22,12 +22,12 @@ import type { Shelter } from "@/types/shelter";
  * de simplificar el puerto, no antes.
  */
 export type PetDirectory = {
-  listProfilePets(): PetProfile[];
-  listAdoptionPets(): PetProfile[];
-  findProfilePet(identifier: string): PetProfile | null;
-  findAdoptionPet(identifier: string): PetProfile | null;
+  listProfilePets(): Promise<PetProfile[]>;
+  listAdoptionPets(): Promise<PetProfile[]>;
+  findProfilePet(identifier: string): Promise<PetProfile | null>;
+  findAdoptionPet(identifier: string): Promise<PetProfile | null>;
 };
 
 export type ShelterDirectory = {
-  listShelters(): Shelter[];
+  listShelters(): Promise<Shelter[]>;
 };

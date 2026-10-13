@@ -458,9 +458,10 @@ describe("FASE 6 — carnet físico: identidad e identificación", () => {
     expect(card.emergencia.activo).toBe(false);
   });
 
-  it("14. compatibilidad con perfiles actuales: todos los perfiles reales y demo construyen su carnet", () => {
+  it("14. compatibilidad con perfiles actuales: todos los perfiles reales y demo construyen su carnet", async () => {
     vi.stubEnv("NEXT_PUBLIC_APP_URL", APP_URL);
-    const todos = [...getAllPets(), ...getAdoptionDemoPets()];
+    const [pets, demo] = await Promise.all([getAllPets(), getAdoptionDemoPets()]);
+    const todos = [...pets, ...demo];
     expect(todos.length).toBeGreaterThan(0);
 
     for (const pet of todos) {

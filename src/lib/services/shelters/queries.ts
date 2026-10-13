@@ -16,6 +16,6 @@ import type { Shelter } from "@/types/shelter";
 const directory: ShelterDirectory = staticShelterDirectory;
 
 /** Refugios disponibles en la fuente de datos. */
-export function getMockShelters(): Shelter[] {
+export async function getMockShelters(): Promise<Shelter[]> {
   return directory.listShelters();
 }

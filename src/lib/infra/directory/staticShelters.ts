@@ -15,5 +15,5 @@ assertValidShelters(shelters);
 const shelterList: Shelter[] = shelters;
 
 export const staticShelterDirectory: ShelterDirectory = {
-  listShelters: () => shelterList,
+  listShelters: async () => shelterList,
 };

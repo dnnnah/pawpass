@@ -36,8 +36,8 @@ function findByIdentifier(pets: PetProfile[], identifier: string): PetProfile | 
 }
 
 export const staticPetDirectory: PetDirectory = {
-  listProfilePets: () => registeredPets,
-  listAdoptionPets: () => adoptionDemoPets,
-  findProfilePet: (identifier) => findByIdentifier(registeredPets, identifier),
-  findAdoptionPet: (identifier) => findByIdentifier(adoptionDemoPets, identifier),
+  listProfilePets: async () => registeredPets,
+  listAdoptionPets: async () => adoptionDemoPets,
+  findProfilePet: async (identifier) => findByIdentifier(registeredPets, identifier),
+  findAdoptionPet: async (identifier) => findByIdentifier(adoptionDemoPets, identifier),
 };

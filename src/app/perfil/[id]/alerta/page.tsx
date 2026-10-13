@@ -11,13 +11,15 @@ type AlertPageProps = {
   params: Promise<{ id: string }>;
 };
 
-export function generateStaticParams() {
-  return getAllProfilePets().flatMap((pet) => [{ id: pet.id }, { id: pet.identificacion.codigoPublico }]);
+export async function generateStaticParams() {
+  const pets = await getAllProfilePets();
+
+  return pets.flatMap((pet) => [{ id: pet.id }, { id: pet.identificacion.codigoPublico }]);
 }
 
 export async function generateMetadata({ params }: AlertPageProps): Promise<Metadata> {
   const { id } = await params;
-  const pet = getPetByIdAny(id);
+  const pet = await getPetByIdAny(id);
 
   if (!pet) {
     return {
@@ -39,7 +41,7 @@ export async function generateMetadata({ params }: AlertPageProps): Promise<Meta
 
 export default async function AlertPage({ params }: AlertPageProps) {
   const { id } = await params;
-  const pet = getPetByIdAny(id);
+  const pet = await getPetByIdAny(id);
 
   if (!pet) {
     notFound();

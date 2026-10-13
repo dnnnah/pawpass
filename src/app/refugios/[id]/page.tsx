@@ -28,13 +28,15 @@ type ShelterPageProps = {
   params: Promise<{ id: string }>;
 };
 
-export function generateStaticParams() {
-  return getMockShelters().map((shelter) => ({ id: shelter.id }));
+export async function generateStaticParams() {
+  const shelters = await getMockShelters();
+
+  return shelters.map((shelter) => ({ id: shelter.id }));
 }
 
 export async function generateMetadata({ params }: ShelterPageProps): Promise<Metadata> {
   const { id } = await params;
-  const shelter = findShelterById(getMockShelters(), id);
+  const shelter = findShelterById(await getMockShelters(), id);
 
   if (!shelter) {
     return {
@@ -51,13 +53,13 @@ export async function generateMetadata({ params }: ShelterPageProps): Promise<Me
 
 export default async function ShelterPage({ params }: ShelterPageProps) {
   const { id } = await params;
-  const shelter = findShelterById(getMockShelters(), id);
+  const [shelters, allPets] = await Promise.all([getMockShelters(), getAdoptionDemoPets()]);
+  const shelter = findShelterById(shelters, id);
 
   if (!shelter) {
     notFound();
   }
 
-  const allPets = getAdoptionDemoPets();
   const shelterPets = allPets.filter((pet) => shelter.mascotas.includes(pet.id));
   const adoptablePets = filterAdoptablePets(shelterPets);
   const otherPets = shelterPets.filter((pet) => !adoptablePets.some((adoptable) => adoptable.id === pet.id));

@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { beforeAll, describe, expect, it } from "vitest";
 import { buildAdoptionCatalogEntry, filterAdoptablePets } from "@/lib/domain/adoption";
 import { findShelterForPet } from "@/lib/domain/shelter";
 import {
@@ -8,18 +8,22 @@ import {
 } from "@/lib/mapping/adoptionPresentation";
 import { getAdoptionDemoPets } from "@/lib/services/pets/queries";
 import { getMockShelters } from "@/lib/services/shelters/queries";
+import type { PetProfile } from "@/types/pet";
 
 describe("buildCatalogCard", () => {
-  const pets = getAdoptionDemoPets();
-  const shelters = getMockShelters();
-  const mila = pets.find((pet) => pet.id === "mila");
+  let card: ReturnType<typeof buildCatalogCard>;
 
-  if (!mila) {
-    throw new Error("Falta la mascota mock 'mila'");
-  }
+  beforeAll(async () => {
+    const pets = await getAdoptionDemoPets();
+    const shelters = await getMockShelters();
+    const mila = pets.find((pet) => pet.id === "mila");
 
-  const entry = buildAdoptionCatalogEntry(mila, findShelterForPet(mila.id, shelters));
-  const card = buildCatalogCard(entry);
+    if (!mila) {
+      throw new Error("Falta la mascota mock 'mila'");
+    }
+
+    card = buildCatalogCard(buildAdoptionCatalogEntry(mila, findShelterForPet(mila.id, shelters)));
+  });
 
   it("mapea los campos del catálogo", () => {
     expect(card.petId).toBe("mila");
@@ -45,7 +49,11 @@ describe("buildCatalogCard", () => {
 });
 
 describe("buildShelterPetCard", () => {
-  const pets = getAdoptionDemoPets();
+  let pets: PetProfile[];
+
+  beforeAll(async () => {
+    pets = await getAdoptionDemoPets();
+  });
 
   it("marca como adoptable a una mascota en adopción", () => {
     const mila = pets.find((pet) => pet.id === "mila");
@@ -77,8 +85,8 @@ describe("buildShelterPetCard", () => {
 });
 
 describe("filterAdoptablePets sobre los mocks", () => {
-  it("solo deja disponibles a las mascotas en adopción sin modo perdido ni estado terminal", () => {
-    const adoptable = filterAdoptablePets(getAdoptionDemoPets());
+  it("solo deja disponibles a las mascotas en adopción sin modo perdido ni estado terminal", async () => {
+    const adoptable = filterAdoptablePets(await getAdoptionDemoPets());
     const ids = adoptable.map((pet) => pet.id).sort();
     expect(ids).toEqual(["luna", "mila", "rocky", "simba", "toby"]);
   });

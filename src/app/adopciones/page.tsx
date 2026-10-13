@@ -17,9 +17,9 @@ export const metadata: Metadata = {
     "Encuentra mascotas en adopción a través del prototipo de PetCarnet: conoce sus perfiles y envía una solicitud de demostración.",
 };
 
-export default function AdopcionesPage() {
-  const pets = getAdoptionDemoPets();
-  const shelters = getMockShelters();
+export default async function AdopcionesPage() {
+  const pets = await getAdoptionDemoPets();
+  const shelters = await getMockShelters();
   const adoptablePets = filterAdoptablePets(pets);
   const entries = adoptablePets.map((pet) =>
     buildAdoptionCatalogEntry(pet, findShelterForPet(pet.id, shelters)),

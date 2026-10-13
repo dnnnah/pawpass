@@ -17,8 +17,10 @@ type AdoptionPageProps = {
   params: Promise<{ id: string }>;
 };
 
-export function generateStaticParams() {
-  return getAdoptionDemoPets().flatMap((pet) => [
+export async function generateStaticParams() {
+  const pets = await getAdoptionDemoPets();
+
+  return pets.flatMap((pet) => [
     { id: pet.id },
     { id: pet.identificacion.codigoPublico },
   ]);
@@ -26,7 +28,7 @@ export function generateStaticParams() {
 
 export async function generateMetadata({ params }: AdoptionPageProps): Promise<Metadata> {
   const { id } = await params;
-  const pet = getPetByIdAny(id);
+  const pet = await getPetByIdAny(id);
 
   if (!pet) {
     return {
@@ -43,13 +45,13 @@ export async function generateMetadata({ params }: AdoptionPageProps): Promise<M
 
 export default async function AdoptionRequestPage({ params }: AdoptionPageProps) {
   const { id } = await params;
-  const pet = getPetByIdAny(id);
+  const [pet, shelters] = await Promise.all([getPetByIdAny(id), getMockShelters()]);
 
   if (!pet) {
     notFound();
   }
 
-  const shelter = findShelterForPet(pet.id, getMockShelters());
+  const shelter = findShelterForPet(pet.id, shelters);
   const availability = resolveAdoptionAvailability({
     estado: pet.estado,
     emergencia: pet.emergencia,
