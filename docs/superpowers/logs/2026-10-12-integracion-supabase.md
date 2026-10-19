@@ -114,7 +114,7 @@ spec + plan. La ejecución avanza por tareas T1–T10.
   privada sigue sin permisos de ejecución para `anon` y `authenticated`.
 - `/cuenta` valida la sesión en servidor, consulta `pet_ownerships` con RLS y muestra
   las mascotas asociadas; el menú reconoce la sesión y ofrece cerrar sesión.
-- Verificación actual: `typecheck` ✓ · `lint` ✓ · **742 tests (60 archivos)** ✓ ·
+- Verificación actual: `typecheck` ✓ · `lint` ✓ · **873 tests (65 archivos)** ✓ ·
   `build` ✓ (283 rutas) · `validate:data` ✓ (26 avisos preexistentes).
 - El advisor de Supabase conserva dos avisos informativos preexistentes sobre tablas
   privadas sin políticas. También marca el wrapper QR como `security definer`: es
