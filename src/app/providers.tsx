@@ -6,6 +6,12 @@ import {
   useContext,
   useSyncExternalStore,
 } from "react";
+import {
+  getBrowserStorage,
+  safeGetItem,
+  safeRemoveItem,
+  safeSetItem,
+} from "@/lib/pwa/storage";
 
 const THEME_KEY = "pawpass-theme:v1";
 const LEGACY_THEME_KEY = "pawpass-theme";
@@ -22,25 +28,26 @@ const ThemeContext = createContext<ThemeContextValue | null>(null);
 const storageCache = new Map<string, string | null>();
 
 function getStoredTheme(): Theme | null {
+  const storage = getBrowserStorage();
+  if (!storage) {
+    return null;
+  }
+
   let stored: string | null = null;
-  try {
-    if (storageCache.has(THEME_KEY)) {
-      stored = storageCache.get(THEME_KEY) as Theme | null;
-    } else {
-      stored = localStorage.getItem(THEME_KEY);
-      // Migración desde la clave anterior sin versión
-      if (!stored) {
-        const legacy = localStorage.getItem(LEGACY_THEME_KEY);
-        if (legacy === "light" || legacy === "dark") {
-          stored = legacy;
-          localStorage.setItem(THEME_KEY, legacy);
-          localStorage.removeItem(LEGACY_THEME_KEY);
-        }
+  if (storageCache.has(THEME_KEY)) {
+    stored = storageCache.get(THEME_KEY) as Theme | null;
+  } else {
+    stored = safeGetItem(storage, THEME_KEY);
+    // Migración desde la clave anterior sin versión
+    if (!stored) {
+      const legacy = safeGetItem(storage, LEGACY_THEME_KEY);
+      if (legacy === "light" || legacy === "dark") {
+        stored = legacy;
+        safeSetItem(storage, THEME_KEY, legacy);
+        safeRemoveItem(storage, LEGACY_THEME_KEY);
       }
-      storageCache.set(THEME_KEY, stored);
     }
-  } catch {
-    stored = null;
+    storageCache.set(THEME_KEY, stored);
   }
 
   return stored === "light" || stored === "dark" ? (stored as Theme) : null;
@@ -49,6 +56,8 @@ function getStoredTheme(): Theme | null {
 function resolveTheme(): Theme {
   const stored = getStoredTheme();
   if (stored) return stored;
+
+  if (typeof window === "undefined") return "light";
 
   return window.matchMedia("(prefers-color-scheme: dark)").matches
     ? "dark"
@@ -78,8 +87,10 @@ function getServerSnapshot(): Theme {
 }
 
 function applyToDocument(theme: Theme) {
-  document.documentElement.classList.toggle("dark", theme === "dark");
-  document.documentElement.style.colorScheme = theme;
+  if (typeof document !== "undefined") {
+    document.documentElement.classList.toggle("dark", theme === "dark");
+    document.documentElement.style.colorScheme = theme;
+  }
 }
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
@@ -87,12 +98,11 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
   const toggleTheme = useCallback(() => {
     const next: Theme = theme === "dark" ? "light" : "dark";
-    try {
-      localStorage.setItem(THEME_KEY, next);
-      localStorage.removeItem(LEGACY_THEME_KEY);
+    const storage = getBrowserStorage();
+    if (storage) {
+      safeSetItem(storage, THEME_KEY, next);
+      safeRemoveItem(storage, LEGACY_THEME_KEY);
       storageCache.set(THEME_KEY, next);
-    } catch {
-      // almacenamiento no disponible
     }
     applyToDocument(next);
     emitChange();

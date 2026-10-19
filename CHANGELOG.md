@@ -20,6 +20,50 @@ Skills de agente disponibles en este proyecto (`.agents/skills/`):
 
 ---
 
+## FIX & CLEANUP — Corrección de bugs y deuda técnica (PR `fix/core-bugs-and-cleanups`)
+
+**Estado:** completada  
+**Fecha:** 2026-10-19
+
+Corrige bugs sutiles en la presentación de vacunas, elimina deuda técnica
+heredada en la capa de dominio purificándola al 100%, refactoriza el almacenamiento
+de tema para usar `StorageLike` y añade la ruta `/refugios` para evitar errores 404.
+
+### Correcciones implementadas
+
+1. **Bug en el badge de vacunas del Header (`src/lib/mapping/profile.ts`)**:
+   - Anteriormente evaluaba `pet.vacunas.some((v) => v.estatus === "vencida")`,
+     confiando en el valor estático del dato y permitiendo que vacunas con
+     próxima dosis ya pasada aparecieran como "Al día" en el encabezado.
+   - Ahora delega en `resolveVaccineNextDoseAlert(vaccine)` de la capa de dominio,
+     evaluando la expiración calendárica real frente a la fecha actual y marcando
+     "Revisar" de forma consistente con el timeline.
+   - Añadidas pruebas en `src/lib/mapping/profile.test.ts`.
+
+2. **Purificación total de la capa Domain (`src/lib/domain/`)**:
+   - `vaccineStatus.ts` y `documentCategory.ts` se trasladaron a `src/lib/mapping/`
+     dado que son metadatos puramente de presentación (íconos Lucide, labels y filtros).
+   - Eliminada la lista blanca de excepciones `UI_LEGACY_ALLOWLIST` en
+     `src/lib/domain/purity.test.ts`. La capa de dominio ahora es 100% pura sin
+     dependencias de UI ni iconos.
+   - Actualizadas todas las referencias en componentes y mappers sin regresión.
+
+3. **Refactorización de persistencia en `ThemeProvider` (`src/app/providers.tsx`)**:
+   - Reemplazado el acceso directo a `localStorage` por la capa SSR-safe y tolerante
+     a fallos `StorageLike` (`getBrowserStorage`, `safeGetItem`, `safeSetItem`, `safeRemoveItem`).
+
+4. **Directorio accesible de refugios (`src/app/refugios/page.tsx`)**:
+   - Creada la página de índice `/refugios` con listado de organizaciones aliadas,
+     insignia de verificación y conteo de mascotas para eliminar el error 404.
+
+### Verificación
+
+- `npm test`: 55 archivos, 718 pruebas en verde (0 fallos).
+- `npm run lint` y `npm run typecheck`: 0 errores.
+- `npm run validate:data`: 11 perfiles reales + 10 mocks de adopción + 2 mocks de refugio válidos.
+
+---
+
 ## FASE 9A — Services / ARQUITECTURA: puertos y adapters (PR `feat/services-architecture-core`)
 
 **Estado:** completada

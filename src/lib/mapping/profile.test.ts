@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { toProfileViewModel } from "@/lib/mapping/profile";
-import type { PetProfile } from "@/types/pet";
+import type { PetProfile, PetVaccine } from "@/types/pet";
 
-function buildPet(status: PetProfile["estado"]): PetProfile {
+function buildPet(status: PetProfile["estado"], vacunas: PetVaccine[] = []): PetProfile {
   return {
     id: "test-1",
     estado: status,
@@ -53,7 +53,7 @@ function buildPet(status: PetProfile["estado"]): PetProfile {
       direccion: "Calle 1",
       horario: "L-V 9-18",
     },
-    vacunas: [],
+    vacunas,
     documentos: [],
     configuracionPublica: {
       mostrarEmail: false,
@@ -96,5 +96,66 @@ describe("toProfileViewModel", () => {
       expect(vm.status).toBe(status);
       expect(vm.header.name).toBe("Prueba");
     }
+  });
+
+  describe("evaluación calendárica del estatus de vacunas en el header", () => {
+    it("reporta 'Al día' cuando no hay vacunas registradas", () => {
+      const vm = toProfileViewModel(buildPet("en_casa", []));
+      expect(vm.header.status.vaccines).toBe("Al día");
+    });
+
+    it("reporta 'Al día' cuando todas las próximas dosis son futuras", () => {
+      const vm = toProfileViewModel(
+        buildPet("en_casa", [
+          {
+            id: "v-1",
+            nombre: "Rabia",
+            fechaAplicacion: "2026-01-01",
+            proximaDosis: "2099-01-01",
+            estatus: "al_dia",
+            lote: "L-1",
+            veterinario: "Vet",
+            documentoUrl: "/doc.pdf",
+          },
+        ]),
+      );
+      expect(vm.header.status.vaccines).toBe("Al día");
+    });
+
+    it("reporta 'Revisar' cuando una vacuna está vencida por estatus explícito", () => {
+      const vm = toProfileViewModel(
+        buildPet("en_casa", [
+          {
+            id: "v-1",
+            nombre: "Rabia",
+            fechaAplicacion: "2024-01-01",
+            proximaDosis: "2099-01-01",
+            estatus: "vencida",
+            lote: "L-1",
+            veterinario: "Vet",
+            documentoUrl: "/doc.pdf",
+          },
+        ]),
+      );
+      expect(vm.header.status.vaccines).toBe("Revisar");
+    });
+
+    it("reporta 'Revisar' cuando la próxima dosis ya pasó, aunque el estatus diga 'al_dia'", () => {
+      const vm = toProfileViewModel(
+        buildPet("en_casa", [
+          {
+            id: "v-1",
+            nombre: "Rabia",
+            fechaAplicacion: "2024-01-01",
+            proximaDosis: "2024-06-01",
+            estatus: "al_dia", // dato estático desactualizado
+            lote: "L-1",
+            veterinario: "Vet",
+            documentoUrl: "/doc.pdf",
+          },
+        ]),
+      );
+      expect(vm.header.status.vaccines).toBe("Revisar");
+    });
   });
 });

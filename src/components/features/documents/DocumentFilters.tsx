@@ -1,8 +1,10 @@
 "use client";
 
 import { SegmentedControl } from "@/components/ui/SegmentedControl";
-import { getDocumentFilterList } from "@/lib/domain/documentCategory";
-import type { DocumentFilterValue } from "@/lib/domain/documentCategory";
+import {
+  getDocumentFilterList,
+  type DocumentFilterValue,
+} from "@/lib/mapping/documentCategory";
 
 export type DocumentFilter = DocumentFilterValue;
 
