@@ -154,8 +154,8 @@ describe("SSR: renderizar en el servidor no emite nada", () => {
     expect(track).not.toHaveBeenCalled();
   });
 
-  it("el formulario de adopción se renderiza sin emitir", () => {
-    const pet = getPetByIdAny("lucca");
+  it("el formulario de adopción se renderiza sin emitir", async () => {
+    const pet = await getPetByIdAny("lucca");
     if (!pet) throw new Error("falta la mascota de prueba");
 
     const html = renderToStaticMarkup(createElement(AdoptionRequestForm, { pet }));
