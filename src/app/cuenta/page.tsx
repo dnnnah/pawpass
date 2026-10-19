@@ -10,6 +10,7 @@ import { hasSupabaseEnv } from "@/lib/infra/supabase/env";
 import { createSupabaseServerClient } from "@/lib/infra/supabase/server";
 import { normalizeAccountPetRow, type AccountPet } from "@/lib/account/pets";
 import { LogoutButton } from "./LogoutButton";
+import { CreatePetForm } from "./CreatePetForm";
 
 export const metadata: Metadata = {
   title: "Mi cuenta | PawPass",
@@ -85,76 +86,80 @@ export default async function CuentaPage() {
             action={<LogoutButton />}
           />
 
-          {error ? (
-            <Surface variant="accent" tone="danger" size="md" rest={{ role: "alert" }}>
-              <h2 className="font-semibold text-ink">No pudimos cargar la cuenta</h2>
-              <p className="mt-1 text-sm leading-6 text-ink-2">{error}</p>
-            </Surface>
-          ) : pets.length === 0 ? (
-            <Surface variant="outline" size="lg" className="text-center">
-              <PawPrint className="mx-auto text-brand" size={26} aria-hidden="true" />
-              <h2 className="mt-4 font-display text-2xl text-ink">Aún no tienes mascotas asociadas</h2>
-              <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-ink-2">
-                Cuando una mascota tenga una relación de tutor con tu cuenta aparecerá aquí, junto con su código público y su ficha de emergencia.
-              </p>
-              <Button href="/" variant="secondary" className="mt-5">
-                Volver al inicio
-              </Button>
-            </Surface>
-          ) : (
-            <section aria-labelledby="mascotas-cuenta-titulo">
-              <h2 id="mascotas-cuenta-titulo" className="sr-only">
-                Mascotas asociadas
-              </h2>
-              <div className="grid gap-4 md:grid-cols-2">
-                {pets.map((pet) => (
-                  <Surface key={pet.id} as="article" size="md" className="flex flex-col">
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="flex min-w-0 items-start gap-3">
-                        <span className="grid size-11 shrink-0 place-items-center rounded-md bg-brand-soft text-brand">
-                          <PawPrint size={20} aria-hidden="true" />
-                        </span>
-                        <div className="min-w-0">
-                          <h3 className="truncate font-display text-xl text-ink">{pet.name}</h3>
-                          <p className="mt-1 text-sm text-ink-2">
-                            {pet.species === "perro" ? "Perro" : "Gato"}
-                            {pet.breed ? ` · ${pet.breed}` : ""}
-                          </p>
+          <div className="grid gap-6 lg:grid-cols-[minmax(0,20rem)_minmax(0,1fr)] lg:items-start">
+            <CreatePetForm />
+
+            {error ? (
+              <Surface variant="accent" tone="danger" size="md" rest={{ role: "alert" }}>
+                <h2 className="font-semibold text-ink">No pudimos cargar la cuenta</h2>
+                <p className="mt-1 text-sm leading-6 text-ink-2">{error}</p>
+              </Surface>
+            ) : pets.length === 0 ? (
+              <Surface variant="outline" size="lg" className="text-center">
+                <PawPrint className="mx-auto text-brand" size={26} aria-hidden="true" />
+                <h2 className="mt-4 font-display text-2xl text-ink">Aún no tienes mascotas asociadas</h2>
+                <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-ink-2">
+                  Cuando registres una mascota aparecerá aquí, junto con su código público y su ficha de emergencia.
+                </p>
+                <Button href="/" variant="secondary" className="mt-5">
+                  Volver al inicio
+                </Button>
+              </Surface>
+            ) : (
+              <section aria-labelledby="mascotas-cuenta-titulo">
+                <h2 id="mascotas-cuenta-titulo" className="sr-only">
+                  Mascotas asociadas
+                </h2>
+                <div className="grid gap-4 md:grid-cols-2">
+                  {pets.map((pet) => (
+                    <Surface key={pet.id} as="article" size="md" className="flex flex-col">
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="flex min-w-0 items-start gap-3">
+                          <span className="grid size-11 shrink-0 place-items-center rounded-md bg-brand-soft text-brand">
+                            <PawPrint size={20} aria-hidden="true" />
+                          </span>
+                          <div className="min-w-0">
+                            <h3 className="truncate font-display text-xl text-ink">{pet.name}</h3>
+                            <p className="mt-1 text-sm text-ink-2">
+                              {pet.species === "perro" ? "Perro" : "Gato"}
+                              {pet.breed ? ` · ${pet.breed}` : ""}
+                            </p>
+                          </div>
                         </div>
+                        <span className="shrink-0 rounded-full bg-brand-soft px-2.5 py-1 text-xs font-semibold text-brand-ink">
+                          {statusLabels[pet.status]}
+                        </span>
                       </div>
-                      <span className="shrink-0 rounded-full bg-brand-soft px-2.5 py-1 text-xs font-semibold text-brand-ink">
-                        {statusLabels[pet.status]}
-                      </span>
-                    </div>
 
-                    <dl className="mt-5 grid grid-cols-2 gap-3 border-t border-rule pt-4 text-sm">
-                      <div>
-                        <dt className="text-ink-3">Código público</dt>
-                        <dd className="mt-1 font-semibold text-ink">{pet.publicCode}</dd>
-                      </div>
-                      <div>
-                        <dt className="text-ink-3">Asociada desde</dt>
-                        <dd className="mt-1 flex items-center gap-1.5 font-semibold text-ink">
-                          <CalendarDays size={14} aria-hidden="true" />
-                          {formatDate(pet.startedAt)}
-                        </dd>
-                      </div>
-                    </dl>
+                      <dl className="mt-5 grid grid-cols-2 gap-3 border-t border-rule pt-4 text-sm">
+                        <div>
+                          <dt className="text-ink-3">Código público</dt>
+                          <dd className="mt-1 font-semibold text-ink">{pet.publicCode}</dd>
+                        </div>
+                        <div>
+                          <dt className="text-ink-3">Asociada desde</dt>
+                          <dd className="mt-1 flex items-center gap-1.5 font-semibold text-ink">
+                            <CalendarDays size={14} aria-hidden="true" />
+                            {formatDate(pet.startedAt)}
+                          </dd>
+                        </div>
+                      </dl>
 
-                    <div className="mt-5 flex flex-wrap items-center gap-2 border-t border-rule pt-4">
-                      <Button href={`/p/${pet.publicCode}`} size="sm" iconEnd={<ArrowUpRight size={15} />}>
-                        Abrir ficha pública
-                      </Button>
-                      <span className="inline-flex items-center gap-1.5 text-xs text-ink-3">
-                        <ShieldCheck size={14} aria-hidden="true" />
-                        Rol: {pet.role}
-                      </span>
-                    </div>
-                  </Surface>
-                ))}
-              </div>
-            </section>
-          )}
+                      <div className="mt-5 flex flex-wrap items-center gap-2 border-t border-rule pt-4">
+                        <Button href={`/p/${pet.publicCode}`} size="sm" iconEnd={<ArrowUpRight size={15} />}>
+                          Abrir ficha pública
+                        </Button>
+                        <span className="inline-flex items-center gap-1.5 text-xs text-ink-3">
+                          <ShieldCheck size={14} aria-hidden="true" />
+                          Rol: {pet.role}
+                        </span>
+                      </div>
+                    </Surface>
+                  ))}
+                </div>
+              </section>
+            )}
+          </div>
         </div>
       </div>
     </AppShell>
