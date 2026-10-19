@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { AppShell } from "@/components/layout/AppShell";
 import { SubpageHeader } from "@/components/ui/SubpageHeader";
+import { LoginForm } from "./LoginForm";
 
 export const metadata: Metadata = {
   title: "Iniciar sesión | PawPass",
@@ -14,8 +15,11 @@ export default function LoginPage() {
         <SubpageHeader
           eyebrow="Cuenta de familia"
           title="Iniciar sesión"
-          description="El panel con tus mascotas estará disponible próximamente. Por ahora puedes explorar los perfiles públicos."
+          description="Administra la identidad y la información pública de tus mascotas con una cuenta PawPass."
         />
+        <div className="mt-6 max-w-xl">
+          <LoginForm />
+        </div>
       </div>
     </AppShell>
   );

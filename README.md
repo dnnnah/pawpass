@@ -30,25 +30,28 @@ perdida y la adopcion.
 
 ## Caracteristicas
 
-- **Perfil publico** por mascota: identidad, salud, vacunas, documentos y
-  contactos de emergencia
-- **QR por mascota** que lleva a su perfil publico
+- **Ficha pública mínima** por mascota: identidad, estado y contacto de rescate
+- **QR por mascota** que lleva a `/p/<codigo>` sin pedir una cuenta
 - **Alerta de perdida** con imagen descargable para compartir, y ficha para
   reportar a una mascota encontrada
 - **Estado de mascota** que cambia lo que el perfil ofrece: perdida, adopcion
   o cerrada
 - **Carnet fisico y digital** con el QR impreso
 - **Expediente imprimible** de vacunas, medico y documentos
+- **Cuenta de tutor** con sesión por correo y mascotas asociadas
 - **Adopciones y refugios** con solicitud de adopcion
 - **Galeria de fotos** tipo stories con lightbox
 - **Tema claro y oscuro**, **PWA** con service worker y soporte offline
-- **Generacion estatica** (SSG) para maximo rendimiento
+- **Renderizado híbrido**: SSG para la demo y rutas dinámicas para QR y cuenta
 - **Diseno responsive** para movil, tablet y escritorio
+- **Supabase opcional** para Auth, Postgres y el contrato anónimo del QR; el
+  adaptador estático permite explorar el proyecto sin credenciales
 
 ## Stack tecnico
 
-- **Framework:** Next.js 16 (App Router, SSG)
+- **Framework:** Next.js 16 (App Router, SSG/SSR)
 - **UI:** React 19, TypeScript, Tailwind CSS v4, framer-motion
+- **Datos y Auth:** Supabase (`@supabase/ssr`, Postgres, RLS)
 - **Iconografia:** Lucide React
 - **QR:** qrcode.react
 - **Imagen de la alerta:** html-to-image
@@ -62,7 +65,10 @@ src/
 │   ├── page.tsx                    # Landing
 │   ├── adopciones/                 # Animales en adopcion
 │   ├── refugios/[id]/              # Ficha de refugio
-│   ├── login/                      # Pantalla de acceso (prototipo)
+│   ├── login/                      # Acceso y registro por correo
+│   ├── auth/callback/              # Intercambio de sesión de Supabase
+│   ├── cuenta/                     # Mascotas asociadas a la cuenta autenticada
+│   ├── p/[codigo]/                 # Ficha pública que abre el QR
 │   └── perfil/[id]/
 │       ├── page.tsx                # Perfil de la mascota
 │       ├── salud/                  # Historial medico
@@ -81,6 +87,7 @@ src/
 ├── lib/
 │   ├── domain/                     # Reglas puras: estado, vacunas, salud,
 │   │                               # carnet, adopcion, refugio
+│   ├── infra/                      # Supabase y adapters estáticos
 │   ├── mapping/  services/  ui/  pwa/
 │   └── *.test.ts                   # Tests junto al modulo
 └── types/                          # Interfaces TypeScript
@@ -98,6 +105,29 @@ npm run dev
 ```
 
 Abre [http://localhost:3000](http://localhost:3000) en tu navegador.
+
+### Supabase
+
+El proyecto funciona con los datos estáticos si no configuras Supabase. Para
+activar Auth y la ficha QR conectada a Postgres, copia `.env.example` a
+`.env.local` y añade la URL y una clave pública del proyecto:
+
+```bash
+cp .env.example .env.local
+```
+
+Usa `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` en proyectos nuevos o la clave
+`NEXT_PUBLIC_SUPABASE_ANON_KEY` en proyectos existentes. Nunca pongas una
+`service_role` en variables `NEXT_PUBLIC_*`.
+
+El esquema incluye la función `public.obtener_ficha_publica(text)`, que solo
+devuelve los campos consentidos para el QR. La ruta `/cuenta` protege la vista
+de mascotas asociadas con la sesión de Supabase. La semilla reproducible desde los
+JSON de demo se genera con:
+
+```bash
+node scripts/seed-from-json.mts
+```
 
 ## Comandos
 

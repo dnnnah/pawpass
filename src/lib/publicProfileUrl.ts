@@ -1,4 +1,4 @@
-export const PUBLIC_PROFILE_ROUTE = "/perfil";
+export const PUBLIC_PROFILE_ROUTE = "/p";
 
 export type PublicProfileSource =
   | string

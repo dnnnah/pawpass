@@ -1,13 +1,14 @@
 import type { PetProfile } from "@/types/pet";
 import type { Shelter } from "@/types/shelter";
+import type { PublicPetCard } from "@/types/publicPet";
 
 /**
  * Puertos de datos de directorio (FASE 9A).
  *
  * Describen QUÉ necesita la aplicación del catálogo de mascotas y refugios,
- * nunca de dónde vienen los datos. La implementación actual vive en
- * `src/lib/infra/directory/` (JSON estático); una futura implementación
- * Supabase/DB debe superar este mismo contrato sin tocar UI ni servicios.
+ * nunca de dónde vienen los datos. Las implementaciones viven en
+ * `src/lib/infra/directory/` (JSON estático y Supabase) y superan este mismo
+ * contrato sin tocar UI ni servicios.
  *
  * Convenciones (alineadas con `domain/shelter.ts`):
  * - Los identificadores se reciben trimmed y comparan contra `id` o
@@ -30,4 +31,8 @@ export type PetDirectory = {
 
 export type ShelterDirectory = {
   listShelters(): Promise<Shelter[]>;
+};
+
+export type PublicPetDirectory = {
+  findPublicPet(publicCode: string): Promise<PublicPetCard | null>;
 };

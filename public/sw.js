@@ -33,7 +33,7 @@
    dejando la página en blanco. Con la separación y con el fallback limitado a
    la caché de documentos, ambos fallos desaparecen. Al subir de versión, las
    cachés de la v2 se borran y se reprecargan al navegar. */
-const VERSION = "v3";
+const VERSION = "v4";
 const CACHE_NAME = `pawpass-${VERSION}`;
 
 /* Los payloads RSC van a una caché APARTE, y no es un detalle menor.
@@ -66,7 +66,7 @@ const CACHEABLE_URLS = [
 
 /* Rutas que son páginas del producto. La lista es explícita y no un comodín:
    cachear de más significaría servir contenido que no se ha verificado. */
-const DOCUMENT_PREFIXES = ["/perfil/", "/refugios/"];
+const DOCUMENT_PREFIXES = ["/perfil/", "/p/", "/refugios/"];
 const DOCUMENT_PATHS = ["/adopciones", "/login"];
 
 function isDocumentPath(pathname) {

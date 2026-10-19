@@ -15,8 +15,8 @@ import {
  */
 
 const ORIGIN = "https://pawpass.example";
-const CACHE_NAME = "pawpass-v3";
-const ROUTE_CACHE_NAME = "pawpass-routes-v3";
+const CACHE_NAME = "pawpass-v4";
+const ROUTE_CACHE_NAME = "pawpass-routes-v4";
 
 type MatchOptions = { ignoreSearch?: boolean; ignoreVary?: boolean };
 
