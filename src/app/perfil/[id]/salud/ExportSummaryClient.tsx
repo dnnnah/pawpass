@@ -210,7 +210,7 @@ export function ExportSummaryClient({ petName, summary }: ExportSummaryClientPro
             </PrintSection>
 
             <footer className="mt-6 border-t border-rule pt-4 text-center text-xs text-ink-3">
-              Documento informativo generado desde PetCarnet. No sustituye la consulta veterinaria.
+              Documento informativo generado desde PawPass. No sustituye la consulta veterinaria.
             </footer>
           </div>
         </div>

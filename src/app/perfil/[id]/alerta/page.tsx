@@ -11,17 +11,19 @@ type AlertPageProps = {
   params: Promise<{ id: string }>;
 };
 
-export function generateStaticParams() {
-  return getAllProfilePets().flatMap((pet) => [{ id: pet.id }, { id: pet.identificacion.codigoPublico }]);
+export async function generateStaticParams() {
+  const pets = await getAllProfilePets();
+
+  return pets.flatMap((pet) => [{ id: pet.id }, { id: pet.identificacion.codigoPublico }]);
 }
 
 export async function generateMetadata({ params }: AlertPageProps): Promise<Metadata> {
   const { id } = await params;
-  const pet = getPetByIdAny(id);
+  const pet = await getPetByIdAny(id);
 
   if (!pet) {
     return {
-      title: "Alerta no encontrada | PetCarnet",
+      title: "Alerta no encontrada | PawPass",
     };
   }
 
@@ -29,17 +31,17 @@ export async function generateMetadata({ params }: AlertPageProps): Promise<Meta
 
   return {
     title: isTerminal
-      ? `En memoria de ${pet.mascota.nombre} | PetCarnet`
-      : `Generar alerta de ${pet.mascota.nombre} | PetCarnet`,
+      ? `En memoria de ${pet.mascota.nombre} | PawPass`
+      : `Generar alerta de ${pet.mascota.nombre} | PawPass`,
     description: isTerminal
-      ? `El perfil de ${pet.mascota.nombre} se conserva como recuerdo en PetCarnet.`
+      ? `El perfil de ${pet.mascota.nombre} se conserva como recuerdo en PawPass.`
       : `Genera una imagen de alerta para compartir cuando ${pet.mascota.nombre} está perdido.`,
   };
 }
 
 export default async function AlertPage({ params }: AlertPageProps) {
   const { id } = await params;
-  const pet = getPetByIdAny(id);
+  const pet = await getPetByIdAny(id);
 
   if (!pet) {
     notFound();

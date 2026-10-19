@@ -48,13 +48,13 @@ describe("getPublicProfileUrl", () => {
   });
 
   it("compone la URL completa cuando existe NEXT_PUBLIC_APP_URL", () => {
-    vi.stubEnv("NEXT_PUBLIC_APP_URL", "https://petcarnet.example");
-    expect(getPublicProfileUrl(pet)).toBe("https://petcarnet.example/perfil/PC-LUCCA-001");
+    vi.stubEnv("NEXT_PUBLIC_APP_URL", "https://pawpass.example");
+    expect(getPublicProfileUrl(pet)).toBe("https://pawpass.example/perfil/PC-LUCCA-001");
   });
 
   it("normaliza la base URL sin barra final", () => {
-    vi.stubEnv("NEXT_PUBLIC_APP_URL", "https://petcarnet.example///");
-    expect(getPublicProfileUrl(pet)).toBe("https://petcarnet.example/perfil/PC-LUCCA-001");
+    vi.stubEnv("NEXT_PUBLIC_APP_URL", "https://pawpass.example///");
+    expect(getPublicProfileUrl(pet)).toBe("https://pawpass.example/perfil/PC-LUCCA-001");
   });
 
   it("colapsa a ruta relativa si la base URL está vacía", () => {

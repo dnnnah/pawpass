@@ -24,29 +24,31 @@ type HealthPageProps = {
   params: Promise<{ id: string }>;
 };
 
-export function generateStaticParams() {
-  return getAllProfilePets().flatMap((pet) => [{ id: pet.id }, { id: pet.identificacion.codigoPublico }]);
+export async function generateStaticParams() {
+  const pets = await getAllProfilePets();
+
+  return pets.flatMap((pet) => [{ id: pet.id }, { id: pet.identificacion.codigoPublico }]);
 }
 
 export async function generateMetadata({ params }: HealthPageProps): Promise<Metadata> {
   const { id } = await params;
-  const pet = getPetByIdAny(id);
+  const pet = await getPetByIdAny(id);
 
   if (!pet) {
     return {
-      title: "Expediente de salud no encontrado | PetCarnet",
+      title: "Expediente de salud no encontrado | PawPass",
     };
   }
 
   return {
-    title: `Salud de ${pet.mascota.nombre} | PetCarnet`,
+    title: `Salud de ${pet.mascota.nombre} | PawPass`,
     description: `Expediente de salud de ${pet.mascota.nombre}: vacunas, desparasitación e historial médico.`,
   };
 }
 
 export default async function SaludPage({ params }: HealthPageProps) {
   const { id } = await params;
-  const pet = getPetByIdAny(id);
+  const pet = await getPetByIdAny(id);
 
   if (!pet) {
     notFound();

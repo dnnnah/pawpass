@@ -19,8 +19,8 @@ export const PWA_ICON_SRC = "/icon.svg";
 export function buildManifest(): MetadataRoute.Manifest {
   return {
     id: "/",
-    name: "PetCarnet | Carnet Digital",
-    short_name: "PetCarnet",
+    name: "PawPass | Carnet Digital",
+    short_name: "PawPass",
     description:
       "Pasaporte digital público para mascotas con QR de emergencia.",
     lang: "es",

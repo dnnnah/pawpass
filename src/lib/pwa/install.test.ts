@@ -305,6 +305,6 @@ describe("BeforeInstallPromptEvent", () => {
 
 describe("INSTALL_DISMISS_KEY", () => {
   it("está versionado para no chocar con una versión anterior del esquema", () => {
-    expect(INSTALL_DISMISS_KEY).toBe("petcarnet-pwa-install-dismissed:v1");
+    expect(INSTALL_DISMISS_KEY).toBe("pawpass-pwa-install-dismissed:v1");
   });
 });

@@ -38,7 +38,7 @@ import {
   type ConsultationsSummary,
   type DewormingDueKind,
 } from "@/lib/domain/health";
-import { getVaccineStatusMeta, type VaccineStatusLabel } from "@/lib/domain/vaccineStatus";
+import { getVaccineStatusMeta, type VaccineStatusLabel } from "@/lib/mapping/vaccineStatus";
 import type { HealthConsultation, HealthDeworming, HealthDocumentRef } from "@/types/health";
 import type { PetProfile } from "@/types/pet";
 import type { HealthCompletenessItem } from "@/lib/domain/health";

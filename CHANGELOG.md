@@ -1,4 +1,4 @@
-# PetCarnet — Registro de Fases
+# PawPass — Registro de Fases
 
 Registro de avances, cambios y decisiones tomadas durante el desarrollo.
 
@@ -17,6 +17,50 @@ Skills de agente disponibles en este proyecto (`.agents/skills/`):
 | `typescript-pro` | https://github.com/jeffallan/claude-skills |
 
 **Fecha de instalación:** 2026-08-28
+
+---
+
+## FIX & CLEANUP — Corrección de bugs y deuda técnica (PR `fix/core-bugs-and-cleanups`)
+
+**Estado:** completada  
+**Fecha:** 2026-10-19
+
+Corrige bugs sutiles en la presentación de vacunas, elimina deuda técnica
+heredada en la capa de dominio purificándola al 100%, refactoriza el almacenamiento
+de tema para usar `StorageLike` y añade la ruta `/refugios` para evitar errores 404.
+
+### Correcciones implementadas
+
+1. **Bug en el badge de vacunas del Header (`src/lib/mapping/profile.ts`)**:
+   - Anteriormente evaluaba `pet.vacunas.some((v) => v.estatus === "vencida")`,
+     confiando en el valor estático del dato y permitiendo que vacunas con
+     próxima dosis ya pasada aparecieran como "Al día" en el encabezado.
+   - Ahora delega en `resolveVaccineNextDoseAlert(vaccine)` de la capa de dominio,
+     evaluando la expiración calendárica real frente a la fecha actual y marcando
+     "Revisar" de forma consistente con el timeline.
+   - Añadidas pruebas en `src/lib/mapping/profile.test.ts`.
+
+2. **Purificación total de la capa Domain (`src/lib/domain/`)**:
+   - `vaccineStatus.ts` y `documentCategory.ts` se trasladaron a `src/lib/mapping/`
+     dado que son metadatos puramente de presentación (íconos Lucide, labels y filtros).
+   - Eliminada la lista blanca de excepciones `UI_LEGACY_ALLOWLIST` en
+     `src/lib/domain/purity.test.ts`. La capa de dominio ahora es 100% pura sin
+     dependencias de UI ni iconos.
+   - Actualizadas todas las referencias en componentes y mappers sin regresión.
+
+3. **Refactorización de persistencia en `ThemeProvider` (`src/app/providers.tsx`)**:
+   - Reemplazado el acceso directo a `localStorage` por la capa SSR-safe y tolerante
+     a fallos `StorageLike` (`getBrowserStorage`, `safeGetItem`, `safeSetItem`, `safeRemoveItem`).
+
+4. **Directorio accesible de refugios (`src/app/refugios/page.tsx`)**:
+   - Creada la página de índice `/refugios` con listado de organizaciones aliadas,
+     insignia de verificación y conteo de mascotas para eliminar el error 404.
+
+### Verificación
+
+- `npm test`: 55 archivos, 718 pruebas en verde (0 fallos).
+- `npm run lint` y `npm run typecheck`: 0 errores.
+- `npm run validate:data`: 11 perfiles reales + 10 mocks de adopción + 2 mocks de refugio válidos.
 
 ---
 
@@ -161,8 +205,8 @@ clave al resolverse por `pathname`. De ahí salieron dos fallos reales:
   esa ruta y lo servía como HTML, dejando la página en blanco con datos de
   vuelo en el `<body>` y sin banner de estado.
 
-Corrección: **dos cachés** (`petcarnet-<VERSION>` para documentos y estáticos,
-`petcarnet-routes-<VERSION>` para payloads RSC) y **ningún handler usa
+Corrección: **dos cachés** (`pawpass-<VERSION>` para documentos y estáticos,
+`pawpass-routes-<VERSION>` para payloads RSC) y **ningún handler usa
 `caches.match()`**; cada uno abre y consulta la suya. `hasShellCache()` tenía el
 mismo defecto y ahora consulta la caché de documentos. `VERSION` sube a `v3`.
 Un test de contrato en `purity.test.ts` lee `public/sw.js` y falla si reaparece
@@ -203,7 +247,7 @@ un match global o si los nombres de versión divergen de los de `cacheApi.ts`.
 **Estado:** Base PWA/offline completada (infraestructura Core)
 **Fecha:** 2026-09-21
 
-Prepara técnicamente PetCarnet para uso en campo desde móvil: Web App
+Prepara técnicamente PawPass para uso en campo desde móvil: Web App
 Manifest, service worker conservador, estrategia offline explícita, capa de
 almacenamiento local robusta y contratos de conectividad. No incluye la UI
 de instalación/offline ni rediseño visual (bloque B posterior).
@@ -499,7 +543,7 @@ Auth/RLS, adopciones reales, ni necesidades/transparencia (§4.5 → FASE 14).
   foco al primer campo inválido.
 - Envío simulado → confirmación que muestra folio, fecha, mascota, estado `Enviada` y
   enlace de regreso. Persistencia **prototipo** en `localStorage`
-  (`petcarnet-adopcion:v1:<petId>`) con `adoptionRequestStorage.ts` (mismo patrón
+  (`pawpass-adopcion:v1:<petId>`) con `adoptionRequestStorage.ts` (mismo patrón
   `StorageLike` + fallback en memoria que `lostAlertStorage`) y hook
   `useAdoptionRequests`. La UI y el CHANGELOG lo documentan: no llega a ningún servidor.
 
@@ -1054,7 +1098,7 @@ Resuelve el hallazgo **M5** de `AUDITORIA.md` / **§3.10** de `UX_AUDIT.md` (met
 ### 16.1 `metadataBase` global en `src/app/layout.tsx`
 
 - `metadataBase` derivado de `NEXT_PUBLIC_APP_URL` (misma fuente que el servicio de URLs), con fallback a `http://localhost:3000` en desarrollo.
-- `openGraph` base (`type: website`, `siteName: PetCarnet`, `locale: es_MX`) y `twitter.card: summary` por defecto.
+- `openGraph` base (`type: website`, `siteName: PawPass`, `locale: es_MX`) y `twitter.card: summary` por defecto.
 - Corrige el typo «publico» → «público» en la description del layout.
 
 ### 16.2 Metadata por perfil (`src/lib/seo.ts` + `generateMetadata`)
@@ -1190,7 +1234,7 @@ Nuevo servicio `src/lib/services/publicProfileUrl.ts`:
 
 ### 13.3 Consumidores migrados al contrato
 
-- `QRShareCard` recibe `profileUrl` ya resuelto (elimina el `https://petcarnet.app` hardcodeado y deja de construir URLs).
+- `QRShareCard` recibe `profileUrl` ya resuelto (elimina el `https://pawpass.app` hardcodeado y deja de construir URLs).
 - `LostPetAlertForm` usa `getPublicProfileUrl(pet)` para el texto compartido y el QR de la imagen de alerta.
 - Campo `qr` (muerto: `urlPublica`/`texto`) eliminado de `PetProfile` y de `mascotas.json` (11 mascotas).
 
@@ -1211,7 +1255,7 @@ Rama `feat/rediseno-ui` (commits en español, Conventional Commits). Mejoras apl
 
 ### 12.1 Modo oscuro según mejores prácticas de Vercel
 - `layout.tsx`: script inline síncrono en `<head>` que aplica la clase `dark` y `color-scheme` antes de la hidratación, eliminando el flash de tema claro→oscuro al cargar (regla `rendering-hydration-no-flicker`).
-- `providers.tsx`: clave de `localStorage` versionada (`petcarnet-theme:v1`) con **migración** automática desde la clave anterior sin versión (regla `client-localstorage-schema`); cache en memoria de las lecturas de storage (regla `js-cache-storage`).
+- `providers.tsx`: clave de `localStorage` versionada (`pawpass-theme:v1`) con **migración** automática desde la clave anterior sin versión (regla `client-localstorage-schema`); cache en memoria de las lecturas de storage (regla `js-cache-storage`).
 - Tema gestionado con `useSyncExternalStore` (`getServerSnapshot = "light"`), lo que **elimina el hydration mismatch** que ocurría en SSG (el render servidor `light` difería del cliente `dark` por `prefers-color-scheme`), respetando la regla `set-state-in-effect`.
 - Verificado en browser: 0 errores de consola tras estos cambios.
 
@@ -1226,7 +1270,7 @@ Rama `feat/rediseno-ui` (commits en español, Conventional Commits). Mejoras apl
 ### 12.4 Fix dark mode de subpáginas, menú agrupado, "Carnet Digital" y story en galería
 - **Fix dark mode en Documentos/Vacunas/Alerta:** `SubpageHeader.tsx` recibía gradientes claros (`via-white`) sin variantes `dark:`, quedando como bloque blanco en modo oscuro. Se añade un overlay absoluto `hidden dark:block bg-gray-900 ring-gray-800` que lo tapa en dark; el icono decorativo pasa a `dark:text-gray-800`. Aplica automáticamente a Documentos, Vacunas, Alerta y Login. Se añaden también variantes `dark:` al enlace "Volver al perfil" en `alerta/page.tsx`.
 - **Menú agrupado en un solo pill:** `SiteNav.tsx` reescrito como un único bloque agrupado (`divide-x rounded-full bg-white px-1.5 py-1.5 ring-1`) que junta la huella (Inicio) con Mascotas, Iniciar sesión y el botón de modo oscuro, separados por divisores verticales. En `<640px` los textos se ocultan (`hidden sm:inline`) y `Mascotas` gana el icono `Bone`, evitando desbordes; `AppShell.tsx` reduce su `gap` en mobile (`gap-2 sm:gap-4`) para que todo quepa junto al logo.
-- **Subtítulo "Carnet Digital":** renombrado "Pasaporte Digital" → "Carnet Digital" en el header (`AppShell.tsx`), el hero (`page.tsx`) y la metadata de `layout.tsx` (título "PetCarnet | Carnet Digital").
+- **Subtítulo "Carnet Digital":** renombrado "Pasaporte Digital" → "Carnet Digital" en el header (`AppShell.tsx`), el hero (`page.tsx`) y la metadata de `layout.tsx` (título "PawPass | Carnet Digital").
 - **Círculo de story en la galería:** `RecentPhotos.tsx` añade la prop `profilePhoto: string`; renderiza un círculo con ring tipo Instagram (gradiente `#feda75→#4f5bd5`, padding 3px, interior blanco/dark) con la foto de perfil de 64px y la etiqueta "Perfil". `perfil/[id]/page.tsx` pasa `profilePhoto={pet.mascota.fotoPerfilUrl}`.
 - Verificado en browser: overlay `bg-gray-900` visible en dark en Documentos y Alerta; nav de 358px en desktop y 161px en mobile sin desborde; subtítulo y título "Carnet Digital" mostrados; 0 errores de consola.
 
@@ -1234,7 +1278,7 @@ Rama `feat/rediseno-ui` (commits en español, Conventional Commits). Mejoras apl
 - **Navbar del perfil (ProfileNav):** los botones pasan a iconos de 18px e igual talla en todas las pantallas. En móvil son botones cuadrados de 40×40 centrados (solo el icono, con `h-10 w-10`); en `md+` mantienen icono + texto alineados (`md:h-auto md:w-auto`). El contenedor pasa a `w-full justify-between` para distribuir los botones con espacio uniforme (equivalente a `space-between`), llenando todo el ancho de la barra tanto en escritorio como en móvil.
 - **Dark mode + WCAG en la sección Instagram (`RecentPhotos`):** el título, los chips (`pink`), el label "Perfil" y el grid ahora tienen variantes `dark:` con fondos translúcidos (`dark:bg-pink-500/15`, `dark:ring-pink-500/30`) y textos con contraste (`dark:text-pink-300`, `dark:text-gray-300`). El lightbox pasó a `dark:bg-gray-900` con textos e índices adaptados; los `alt` descriptivos se mantienen.
 - **Imagen de alerta completa:** `LostPetAlertImage` deja de limitarse a `max-w-[480px]` y ocupa todo el ancho disponible (`w-full`). La vista previa se amplía a `max-w-3xl` y la captura/descarga sube a `pixelRatio: 3`, generando un PNG de ~2304×2565px (completo y nítido).
-- **Modo alerta en el perfil restaurado:** nuevo hook `useLostAlerts` (localStorage versionado `petcarnet-alerta:v1:<id>`, con `useSyncExternalStore` para evitar hydration mismatch en SSG) que guarda zona/fecha/recompensa/mensaje. El generador de alerta (`LostPetAlertForm`) incorpora una tarjeta "Modo alerta en el perfil" para activar/desactivar. El perfil muestra vía `LostModeAlertSections` el banner "está perdido", las instrucciones y un panel con "Desactivar modo alerta" cuando está activo (además del flag estático `emergencia.perdido`).
+- **Modo alerta en el perfil restaurado:** nuevo hook `useLostAlerts` (localStorage versionado `pawpass-alerta:v1:<id>`, con `useSyncExternalStore` para evitar hydration mismatch en SSG) que guarda zona/fecha/recompensa/mensaje. El generador de alerta (`LostPetAlertForm`) incorpora una tarjeta "Modo alerta en el perfil" para activar/desactivar. El perfil muestra vía `LostModeAlertSections` el banner "está perdido", las instrucciones y un panel con "Desactivar modo alerta" cuando está activo (además del flag estático `emergencia.perdido`).
 - **Filtro por especie en la home:** nuevo componente cliente `PetsList` con chips "Todos / Perro / Gato", contador de resultados y estado vacío; reemplaza el listado estático del `GlassCard`.
 - Verificado en browser: perfil con modo alerta muestra banner/instrucciones; preview de imagen 768px y PNG 2304×2565; filtro "Gato" muestra 8 mascotas; 0 errores de consola.
 
@@ -1288,11 +1332,11 @@ Rama `feat/rediseno-ui` (commits en español, Conventional Commits). Rediseño d
 
 ### 11.1 Base de diseño: dark mode + tokens + menú global
 - Tokens de color/superficie/sombra en `globals.css` con variantes `.dark`; patrón Tailwind v4 `@custom-variant dark`.
-- `providers.tsx` nuevo: `ThemeProvider` + `useTheme` (persiste en `localStorage` `petcarnet-theme`, respeta `prefers-color-scheme`, aplica `color-scheme` y clase `.dark`).
+- `providers.tsx` nuevo: `ThemeProvider` + `useTheme` (persiste en `localStorage` `pawpass-theme`, respeta `prefers-color-scheme`, aplica `color-scheme` y clase `.dark`).
 - Menú global `SiteNav.tsx`: Inicio, Mascotas (/#mascotas), Iniciar sesión (placeholder `/login`) y toggle de modo noche.
 - `layout.tsx`: envuelto en `ThemeProvider` + `suppressHydrationWarning`.
 - `AppShell.tsx`: integrado `SiteNav`, eliminado badge "Perfil Verificado".
-- **Fix**: corazón decorativo del hero ya no tapa el título "PetCarnet" en el rango `sm` (se quitó el decorativo que se superponía al `h1`).
+- **Fix**: corazón decorativo del hero ya no tapa el título "PawPass" en el rango `sm` (se quitó el decorativo que se superponía al `h1`).
 - `app/login/page.tsx`: placeholder de login.
 - **Nota lint:** corregido `set-state-in-effect` en `providers.tsx` con inicialización lazy del estado.
 
@@ -1544,7 +1588,7 @@ Actualizados todos los imports afectados:
 
 ### Tareas realizadas
 - Instalada `qrcode.react` para generar QR escaneable
-- `QRShareCard` reescrito: genera QR real con URL completa (`https://petcarnet.app/perfil/{id}`)
+- `QRShareCard` reescrito: genera QR real con URL completa (`https://pawpass.app/perfil/{id}`)
 - Funcionalidad de descarga QR como PNG (SVG → Canvas → PNG)
 - Eliminada clase `.qr-grid` decorativa de `globals.css`
 
@@ -1604,7 +1648,7 @@ Actualizados todos los imports afectados:
 
 ### Tareas realizadas
 - Instalada `html2canvas` para renderizar componente a PNG
-- Componente `LostPetAlertImage`: template de imagen con "SE BUSCA", foto, nombre, raza, rasgos distintivos, zona perdida, fecha, recompensa, contacto, QR al perfil y branding PetCarnet
+- Componente `LostPetAlertImage`: template de imagen con "SE BUSCA", foto, nombre, raza, rasgos distintivos, zona perdida, fecha, recompensa, contacto, QR al perfil y branding PawPass
 - Componente `LostPetAlertForm`: formulario pre-rellenado con datos de la mascota, editable antes de generar la imagen
 - Descarga como PNG y compartido via Web Share API
 - Nueva ruta `/perfil/[id]/alerta` con `generateStaticParams`

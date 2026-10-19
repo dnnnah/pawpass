@@ -18,10 +18,10 @@
  */
 
 /** Caché de documentos y estáticos. Debe coincidir con `public/sw.js`. */
-const CACHE_NAME = "petcarnet-v3";
+const CACHE_NAME = "pawpass-v3";
 
 /** Caché de payloads RSC del App Router. Debe coincidir con `public/sw.js`. */
-const ROUTE_CACHE_NAME = "petcarnet-routes-v3";
+const ROUTE_CACHE_NAME = "pawpass-routes-v3";
 
 /**
  * Qué copias locales existen de una ruta. La distinción importa: el payload RSC

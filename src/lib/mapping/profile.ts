@@ -1,6 +1,7 @@
 import { formatMexicanDate, getPetAgeText } from "@/lib/dateFormat";
 import { getPublicDocuments } from "@/lib/petDocuments";
-import { getVaccineStatusMeta } from "@/lib/domain/vaccineStatus";
+import { resolveVaccineNextDoseAlert } from "@/lib/domain/vaccine";
+import { getVaccineStatusMeta } from "@/lib/mapping/vaccineStatus";
 import { buildWhatsAppHref } from "@/lib/phone";
 import type { PetProfile, PetStatus } from "@/types/pet";
 
@@ -93,7 +94,12 @@ export function toProfileViewModel(pet: PetProfile): ProfileViewModel {
       id: pet.identificacion.codigoPublico,
       image: pet.mascota.fotoPerfilUrl,
       status: {
-        vaccines: pet.vacunas.some((vaccine) => vaccine.estatus === "vencida") ? "Revisar" : "Al día",
+        vaccines: pet.vacunas.some((vaccine) => {
+          const alert = resolveVaccineNextDoseAlert(vaccine);
+          return alert?.kind === "vencida";
+        })
+          ? "Revisar"
+          : "Al día",
         sterilized: pet.mascota.esterilizado ? "Sí" : "No",
         microchip: pet.identificacion.microchip ? "Registrado" : "No cuenta",
       },

@@ -3,18 +3,12 @@ import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 
 /**
- * Guarda arquitectónica (FASE 5): la capa `domain` no debe depender de React,
- * Next.js, Supabase, componentes ni de la capa de mapeo/presentación.
- *
- * Excepciones conocidas (históricas, previas a FASE 5 y documentadas en el
- * CHANGELOG): `vaccineStatus.ts` y `documentCategory.ts` son metadata de UI
- * (iconos lucide-react) que se dejaron en `domain/` por inercia. Cualquier
- * archivo NUEVO en `domain/` debe ser puro.
+ * Guarda arquitectónica: la capa `domain` es 100% pura y no debe depender de
+ * React, Next.js, Supabase, lucide-react, framer-motion, componentes ni de la
+ * capa de mapeo/presentación.
  */
 
 const DOMAIN_DIR = resolve(process.cwd(), "src/lib/domain");
-
-const UI_LEGACY_ALLOWLIST = new Set(["vaccineStatus.ts", "documentCategory.ts"]);
 
 const FORBIDDEN_PREFIXES = ["react", "next", "@supabase", "lucide-react", "framer-motion"];
 
@@ -73,9 +67,7 @@ describe("pureza de la capa domain", () => {
     const businessViolations = specifiers.filter(isBusinessImport);
 
     it(`${file} no importa de dependencias de UI ni de la capa de presentación`, () => {
-      const legacy = UI_LEGACY_ALLOWLIST.has(file);
-      const expected = legacy ? violations : [];
-      expect(violations, `imports prohibidos en ${file}: ${violations.join(", ")}`).toEqual(expected);
+      expect(violations, `imports prohibidos en ${file}: ${violations.join(", ")}`).toEqual([]);
       expect(businessViolations).toEqual([]);
     });
   }

@@ -83,12 +83,12 @@ function makePet(overrides: Partial<PetProfile> = {}): PetProfile {
 
 describe("getPetProfileSeoTitle", () => {
   it("usa el nombre en un perfil normal", () => {
-    expect(getPetProfileSeoTitle(makePet())).toBe("Lucca | PetCarnet");
+    expect(getPetProfileSeoTitle(makePet())).toBe("Lucca | PawPass");
   });
 
   it("antecede 'está perdido' cuando la mascota está en modo perdido", () => {
     const pet = makePet({ emergencia: { ...makePet().emergencia, perdido: true } });
-    expect(getPetProfileSeoTitle(pet)).toBe("Lucca está perdido | PetCarnet");
+    expect(getPetProfileSeoTitle(pet)).toBe("Lucca está perdido | PawPass");
   });
 });
 
@@ -125,7 +125,7 @@ describe("buildPetProfileMetadata", () => {
     expect(metadata.openGraph?.description).toBe(metadata.description);
     expect(metadata.openGraph?.url).toBe(metadata.alternates?.canonical);
     expect(ogFields(metadata).type).toBe("website");
-    expect(ogFields(metadata).siteName).toBe("PetCarnet");
+    expect(ogFields(metadata).siteName).toBe("PawPass");
     expect(ogFields(metadata).locale).toBe("es_MX");
   });
 

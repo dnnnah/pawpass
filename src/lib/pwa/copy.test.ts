@@ -9,7 +9,7 @@ import {
 
 /**
  * Estas pruebas no comprueban redacción: comprueban una restricción de
- * producto. PetCarnet no tiene backend, así que ninguna línea de la UI de
+ * producto. PawPass no tiene backend, así que ninguna línea de la UI de
  * campo puede prometer sincronización remota, envío diferido ni copia en la
  * nube. Es el tipo de promesa que se cuela en un文案, suena bien y es falsa.
  *
@@ -83,7 +83,7 @@ describe("copy de la experiencia de campo", () => {
 
   it("el estado online se comunica como 'sin conexión', no como servidor disponible", () => {
     // `navigator.onLine` describe la red del dispositivo, no un servidor de
-    // PetCarnet. Ninguna línea puede insinuar que hay backend respondiendo.
+    // PawPass. Ninguna línea puede insinuar que hay backend respondiendo.
     for (const [, texto] of TODAS_LAS_LINEAS) {
       expect(texto.toLowerCase()).not.toContain("servidor disponible");
     }
@@ -110,7 +110,7 @@ describe("copy de la experiencia de campo", () => {
   });
 
   it("el CTA de instalar nombra la aplicación, sin jerga técnica", () => {
-    expect(INSTALL_CTA_COPY.titulo).toContain("PetCarnet");
+    expect(INSTALL_CTA_COPY.titulo).toContain("PawPass");
     for (const jerga of ["pwa", "service worker", "manifest", "standalone"]) {
       expect(INSTALL_CTA_COPY.cuerpo.toLowerCase()).not.toContain(jerga);
     }

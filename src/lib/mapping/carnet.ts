@@ -13,7 +13,7 @@
 
 import { formatMexicanDate } from "@/lib/dateFormat";
 import { isVaccineStatus } from "@/lib/domain/vaccine";
-import { getVaccineStatusMeta } from "@/lib/domain/vaccineStatus";
+import { getVaccineStatusMeta } from "@/lib/mapping/vaccineStatus";
 import { getPetStatusMeta } from "@/lib/mapping/petStatusPresentation";
 import type {
   PhysicalPetCard,

@@ -15,8 +15,10 @@ type VaccinesPageProps = {
   params: Promise<{ id: string }>;
 };
 
-export function generateStaticParams() {
-  return getAllProfilePets().flatMap((pet) => [
+export async function generateStaticParams() {
+  const pets = await getAllProfilePets();
+
+  return pets.flatMap((pet) => [
     { id: pet.id },
     { id: pet.identificacion.codigoPublico },
   ]);
@@ -24,23 +26,23 @@ export function generateStaticParams() {
 
 export async function generateMetadata({ params }: VaccinesPageProps): Promise<Metadata> {
   const { id } = await params;
-  const pet = getPetByIdAny(id);
+  const pet = await getPetByIdAny(id);
 
   if (!pet) {
     return {
-      title: "Vacunas no encontradas | PetCarnet",
+      title: "Vacunas no encontradas | PawPass",
     };
   }
 
   return {
-    title: `Vacunas de ${pet.mascota.nombre} | PetCarnet`,
+    title: `Vacunas de ${pet.mascota.nombre} | PawPass`,
     description: `Cartilla de vacunación de ${pet.mascota.nombre}.`,
   };
 }
 
 export default async function VaccinesPage({ params }: VaccinesPageProps) {
   const { id } = await params;
-  const pet = getPetByIdAny(id);
+  const pet = await getPetByIdAny(id);
 
   if (!pet) {
     notFound();

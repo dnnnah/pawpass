@@ -13,7 +13,7 @@
 
 export type StorageLike = Pick<Storage, "getItem" | "setItem" | "removeItem">;
 
-const PROBE_KEY = "__petcarnet_probe__";
+const PROBE_KEY = "__pawpass_probe__";
 
 /**
  * Devuelve `window.localStorage` de forma SSRR-safe.

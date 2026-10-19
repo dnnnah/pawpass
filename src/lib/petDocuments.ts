@@ -1,4 +1,4 @@
-import { getDocumentCategoryLabel } from "@/lib/domain/documentCategory";
+import { getDocumentCategoryLabel } from "@/lib/mapping/documentCategory";
 import type { PetDocument, PetProfile } from "@/types/pet";
 
 export function getPublicDocuments(pet: PetProfile) {

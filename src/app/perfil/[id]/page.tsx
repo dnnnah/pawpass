@@ -35,17 +35,19 @@ type ProfilePageProps = {
   params: Promise<{ id: string }>;
 };
 
-export function generateStaticParams() {
-  return getAllProfilePets().flatMap((pet) => [{ id: pet.id }, { id: pet.identificacion.codigoPublico }]);
+export async function generateStaticParams() {
+  const pets = await getAllProfilePets();
+
+  return pets.flatMap((pet) => [{ id: pet.id }, { id: pet.identificacion.codigoPublico }]);
 }
 
 export async function generateMetadata({ params }: ProfilePageProps): Promise<Metadata> {
   const { id } = await params;
-  const pet = getPetByIdAny(id);
+  const pet = await getPetByIdAny(id);
 
   if (!pet) {
     return {
-      title: "Mascota no encontrada | PetCarnet",
+      title: "Mascota no encontrada | PawPass",
       robots: { index: false },
     };
   }
@@ -55,7 +57,7 @@ export async function generateMetadata({ params }: ProfilePageProps): Promise<Me
 
 export default async function ProfilePage({ params }: ProfilePageProps) {
   const { id } = await params;
-  const pet = getPetByIdAny(id);
+  const [pet, shelters] = await Promise.all([getPetByIdAny(id), getMockShelters()]);
 
   if (!pet) {
     notFound();
@@ -108,7 +110,7 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
             petName={pet.mascota.nombre}
             emergency={pet.emergencia}
             status={profile.status}
-            shelterName={findShelterForPet(pet.id, getMockShelters())?.nombre ?? null}
+            shelterName={findShelterForPet(pet.id, shelters)?.nombre ?? null}
           />
           <div id="contacto" className="scroll-mt-24">
             <EmergencyContactSection

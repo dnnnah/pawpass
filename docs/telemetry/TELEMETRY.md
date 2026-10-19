@@ -2,10 +2,10 @@
 
 Estado: **núcleo + instrumentación de la UI existentes. NO hay envío de datos.**
 
-PetCarnet es un prototipo local: no existe backend, ni Supabase, ni Auth, ni
-proveedor de analítica. La FASE 8A construyó el contrato y las funciones puras;
-esta fase (8B) conecta ese núcleo con los flujos que el producto **ya tiene**.
-Ningún evento sale de la aplicación.
+PawPass es un prototipo local: no existe backend, ni Supabase, ni Auth, ni
+proveedor de analítica. Esta fase construye únicamente el contrato, la
+abstracción de medición y las funciones puras de KPI. Ningún evento sale de la
+aplicación.
 
 ## Arquitectura
 

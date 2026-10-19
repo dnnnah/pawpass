@@ -219,7 +219,7 @@ function IdentityBlock({ card }: { card: PhysicalPetCard }) {
           }
         />
         <DocRow label="Edad" value={age} />
-        <DocRow label="ID PetCarnet" value={card.identificacion.codigoPublico || "Sin código"} />
+        <DocRow label="ID PawPass" value={card.identificacion.codigoPublico || "Sin código"} />
       </div>
 
       {card.mascota.rasgosDistintivos.length > 0 ? (
@@ -576,7 +576,7 @@ export function CarnetDocument({ card }: CarnetDocumentProps) {
       {/* Letra del documento */}
       <header className="flex flex-wrap items-center justify-between gap-3 border-b-2 border-brand px-6 py-5 sm:px-8">
         <div>
-          <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-brand">PetCarnet</p>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-brand">PawPass</p>
           <p className="mt-1 text-sm font-medium text-ink">Carnet Digital para Mascotas</p>
         </div>
         <div className="flex items-center gap-2">
@@ -612,8 +612,8 @@ export function CarnetDocument({ card }: CarnetDocumentProps) {
       <footer className="flex flex-wrap items-center justify-between gap-3 border-t border-rule bg-canvas px-6 py-4 sm:px-8">
         <p className="text-xs text-ink-2">
           {card.identificacion.codigoPublico
-            ? `ID PetCarnet · ${card.identificacion.codigoPublico}`
-            : "ID PetCarnet · Sin código"}
+            ? `ID PawPass · ${card.identificacion.codigoPublico}`
+            : "ID PawPass · Sin código"}
         </p>
         <p className="text-xs text-ink-3">
           Documento informativo · QR mínimo de impresión {card.print.qrMinimoMm} mm · {vm.formatoLabel.toLowerCase()}

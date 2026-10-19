@@ -6,7 +6,7 @@ import {
   toCacheKey,
 } from "@/lib/pwa/offlineNavigation";
 
-const ORIGIN = "https://petcarnet.example";
+const ORIGIN = "https://pawpass.example";
 const CURRENT = `${ORIGIN}/perfil/lucca`;
 
 describe("resolveLinkPrecheck", () => {

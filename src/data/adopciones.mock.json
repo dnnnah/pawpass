@@ -19,7 +19,7 @@
     "identificacion": {
       "codigoPublico": "PC-MILA-001",
       "microchip": "900123456789012",
-      "notas": "Mascota de demostración del prototipo de adopción de PetCarnet."
+      "notas": "Mascota de demostración del prototipo de adopción de PawPass."
     },
     "contacto": {
       "nombrePublico": "Patitas con Causa",
@@ -29,7 +29,7 @@
       "email": "adopciones@patitasconcausa.mx",
       "zonaSegura": "Roma Norte",
       "zonaHabitual": "Colonia Roma Norte, Ciudad de México",
-      "mensajeWhatsapp": "Hola, me interesa adoptar a Mila. Vi su perfil en PetCarnet."
+      "mensajeWhatsapp": "Hola, me interesa adoptar a Mila. Vi su perfil en PawPass."
     },
     "emergencia": {
       "perdido": false,
@@ -98,7 +98,7 @@
     "identificacion": {
       "codigoPublico": "PC-TOBY-001",
       "microchip": null,
-      "notas": "Mascota de demostración del prototipo de adopción de PetCarnet."
+      "notas": "Mascota de demostración del prototipo de adopción de PawPass."
     },
     "contacto": {
       "nombrePublico": "Patitas con Causa",
@@ -108,7 +108,7 @@
       "email": "adopciones@patitasconcausa.mx",
       "zonaSegura": "Roma Norte",
       "zonaHabitual": "Colonia Roma Norte, Ciudad de México",
-      "mensajeWhatsapp": "Hola, me interesa adoptar a Toby. Vi su perfil en PetCarnet."
+      "mensajeWhatsapp": "Hola, me interesa adoptar a Toby. Vi su perfil en PawPass."
     },
     "emergencia": {
       "perdido": false,
@@ -163,7 +163,7 @@
     "identificacion": {
       "codigoPublico": "PC-LUNA-001",
       "microchip": null,
-      "notas": "Mascota de demostración del prototipo de adopción de PetCarnet."
+      "notas": "Mascota de demostración del prototipo de adopción de PawPass."
     },
     "contacto": {
       "nombrePublico": "Rincón Canino Ixtapaluca",
@@ -173,7 +173,7 @@
       "email": "",
       "zonaSegura": "Ixtapaluca Centro",
       "zonaHabitual": "Ixtapaluca, Estado de México",
-      "mensajeWhatsapp": "Hola, me interesa adoptar a Luna. Vi su perfil en PetCarnet."
+      "mensajeWhatsapp": "Hola, me interesa adoptar a Luna. Vi su perfil en PawPass."
     },
     "emergencia": {
       "perdido": false,
@@ -235,7 +235,7 @@
     "identificacion": {
       "codigoPublico": "PC-SIMBA-001",
       "microchip": null,
-      "notas": "Mascota de demostración del prototipo de adopción de PetCarnet."
+      "notas": "Mascota de demostración del prototipo de adopción de PawPass."
     },
     "contacto": {
       "nombrePublico": "Rincón Canino Ixtapaluca",
@@ -245,7 +245,7 @@
       "email": "",
       "zonaSegura": "Ixtapaluca Centro",
       "zonaHabitual": "Ixtapaluca, Estado de México",
-      "mensajeWhatsapp": "Hola, me interesa adoptar a Simba. Vi su perfil en PetCarnet."
+      "mensajeWhatsapp": "Hola, me interesa adoptar a Simba. Vi su perfil en PawPass."
     },
     "emergencia": {
       "perdido": false,
@@ -300,7 +300,7 @@
     "identificacion": {
       "codigoPublico": "PC-ROCKY-001",
       "microchip": "900987654321098",
-      "notas": "Mascota de demostración del prototipo de adopción de PetCarnet."
+      "notas": "Mascota de demostración del prototipo de adopción de PawPass."
     },
     "contacto": {
       "nombrePublico": "Rosa Martínez",
@@ -310,7 +310,7 @@
       "email": "",
       "zonaSegura": "Nápoles",
       "zonaHabitual": "Colonia Nápoles, Ciudad de México",
-      "mensajeWhatsapp": "Hola, me interesa adoptar a Rocky. Vi su perfil en PetCarnet."
+      "mensajeWhatsapp": "Hola, me interesa adoptar a Rocky. Vi su perfil en PawPass."
     },
     "emergencia": {
       "perdido": false,
@@ -671,7 +671,7 @@
       "email": "",
       "zonaSegura": "cerca de casa",
       "zonaHabitual": "Coyoacán, CDMX",
-      "mensajeWhatsapp": "Hola, encontré a Nube. Vi su perfil en PetCarnet."
+      "mensajeWhatsapp": "Hola, encontré a Nube. Vi su perfil en PawPass."
     },
     "emergencia": {
       "perdido": false,

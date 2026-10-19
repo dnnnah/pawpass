@@ -12,14 +12,14 @@ import { getAdoptionDemoPets } from "@/lib/services/pets/queries";
 import { getMockShelters } from "@/lib/services/shelters/queries";
 
 export const metadata: Metadata = {
-  title: "Adopciones | PetCarnet",
+  title: "Adopciones | PawPass",
   description:
-    "Encuentra mascotas en adopción a través del prototipo de PetCarnet: conoce sus perfiles y envía una solicitud de demostración.",
+    "Encuentra mascotas en adopción a través del prototipo de PawPass: conoce sus perfiles y envía una solicitud de demostración.",
 };
 
-export default function AdopcionesPage() {
-  const pets = getAdoptionDemoPets();
-  const shelters = getMockShelters();
+export default async function AdopcionesPage() {
+  const pets = await getAdoptionDemoPets();
+  const shelters = await getMockShelters();
   const adoptablePets = filterAdoptablePets(pets);
   const entries = adoptablePets.map((pet) =>
     buildAdoptionCatalogEntry(pet, findShelterForPet(pet.id, shelters)),
@@ -42,7 +42,7 @@ export default function AdopcionesPage() {
           <SubpageHeader
             eyebrow="Adopción"
             title="Mascotas en adopción"
-            description="Perfiles de mascotas que buscan un hogar. Esta vista es parte del prototipo de PetCarnet y usa datos simulados para demostrar el flujo de adopción."
+            description="Perfiles de mascotas que buscan un hogar. Esta vista es parte del prototipo de PawPass y usa datos simulados para demostrar el flujo de adopción."
           />
 
           <PrototypeNotice />

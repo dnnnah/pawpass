@@ -26,14 +26,14 @@ beforeEach(() => {
 describe("readLostAlert", () => {
   it("devuelve null cuando no hay datos en storage", () => {
     const storage = createMemoryStorage();
-    expect(readLostAlert(storage, "petcarnet-alerta:v1:lucca")).toBeNull();
+    expect(readLostAlert(storage, "pawpass-alerta:v1:lucca")).toBeNull();
   });
 
   it("lee y valida un payload JSON válido", () => {
     const storage = createMemoryStorage({
-      "petcarnet-alerta:v1:lucca": JSON.stringify({ active: true, zonaPerdida: "Parque" }),
+      "pawpass-alerta:v1:lucca": JSON.stringify({ active: true, zonaPerdida: "Parque" }),
     });
-    expect(readLostAlert(storage, "petcarnet-alerta:v1:lucca")).toEqual({
+    expect(readLostAlert(storage, "pawpass-alerta:v1:lucca")).toEqual({
       active: true,
       zonaPerdida: "Parque",
     });
@@ -41,16 +41,16 @@ describe("readLostAlert", () => {
 
   it("devuelve null ante JSON corrupto", () => {
     const storage = createMemoryStorage({
-      "petcarnet-alerta:v1:lucca": "{not-json",
+      "pawpass-alerta:v1:lucca": "{not-json",
     });
-    expect(readLostAlert(storage, "petcarnet-alerta:v1:lucca")).toBeNull();
+    expect(readLostAlert(storage, "pawpass-alerta:v1:lucca")).toBeNull();
   });
 
   it("devuelve null ante un payload con forma inválida", () => {
     const storage = createMemoryStorage({
-      "petcarnet-alerta:v1:lucca": JSON.stringify({ active: false, zonaPerdida: "Parque" }),
+      "pawpass-alerta:v1:lucca": JSON.stringify({ active: false, zonaPerdida: "Parque" }),
     });
-    expect(readLostAlert(storage, "petcarnet-alerta:v1:lucca")).toBeNull();
+    expect(readLostAlert(storage, "pawpass-alerta:v1:lucca")).toBeNull();
   });
 
   it("tolera storage que lanza en lectura (bloqueado/modo privado)", () => {
@@ -65,19 +65,19 @@ describe("readLostAlert", () => {
         throw new Error("SecurityError");
       },
     };
-    expect(readLostAlert(blocked, "petcarnet-alerta:v1:lucca")).toBeNull();
+    expect(readLostAlert(blocked, "pawpass-alerta:v1:lucca")).toBeNull();
   });
 
   it("acepta storage null o undefined y devuelve null", () => {
-    expect(readLostAlert(null, "petcarnet-alerta:v1:lucca")).toBeNull();
-    expect(readLostAlert(undefined, "petcarnet-alerta:v1:lucca")).toBeNull();
+    expect(readLostAlert(null, "pawpass-alerta:v1:lucca")).toBeNull();
+    expect(readLostAlert(undefined, "pawpass-alerta:v1:lucca")).toBeNull();
   });
 });
 
 describe("writeLostAlert", () => {
   it("persiste el payload y vuelve a leerse sin storage (fallback en memoria)", () => {
     const storage = createMemoryStorage();
-    const key = "petcarnet-alerta:v1:lucca";
+    const key = "pawpass-alerta:v1:lucca";
     writeLostAlert(storage, key, { active: true, mensaje: "Ayuda" });
 
     expect(readLostAlert(storage, key)).toEqual({ active: true, mensaje: "Ayuda" });
@@ -86,13 +86,13 @@ describe("writeLostAlert", () => {
 
   it("escribe JSON serializable al storage", () => {
     const storage = createMemoryStorage();
-    const key = "petcarnet-alerta:v1:lucca";
+    const key = "pawpass-alerta:v1:lucca";
     writeLostAlert(storage, key, { active: true, recompensa: 100 });
     expect(storage.getItem(key)).toBe('{"active":true,"recompensa":100}');
   });
 
   it("removeItem cuando se escribe null", () => {
-    const key = "petcarnet-alerta:v1:lucca";
+    const key = "pawpass-alerta:v1:lucca";
     const storage = createMemoryStorage({
       [key]: JSON.stringify({ active: true }),
     });
@@ -109,7 +109,7 @@ describe("writeLostAlert", () => {
       },
       removeItem: () => undefined,
     };
-    const key = "petcarnet-alerta:v1:lucca";
+    const key = "pawpass-alerta:v1:lucca";
 
     writeLostAlert(blocked, key, { active: true, zonaPerdida: "Parque" });
     expect(readLostAlert(blocked, key)).toEqual({ active: true, zonaPerdida: "Parque" });
@@ -126,7 +126,7 @@ describe("writeLostAlert", () => {
       removeItem: () => undefined,
     };
 
-    const key = "petcarnet-alerta:v1:lucca";
+    const key = "pawpass-alerta:v1:lucca";
     writeLostAlert(null, key, { active: true, mensaje: "Mensaje en memoria" });
     expect(readLostAlert(blocked, key)).toEqual({ active: true, mensaje: "Mensaje en memoria" });
   });
@@ -134,7 +134,7 @@ describe("writeLostAlert", () => {
 
 describe("invalidateLostAlertCache", () => {
   it("invalida una clave y vuelve a leer del storage", () => {
-    const key = "petcarnet-alerta:v1:lucca";
+    const key = "pawpass-alerta:v1:lucca";
     const storage = createMemoryStorage({
       [key]: JSON.stringify({ active: true, zonaPerdida: "Primera" }),
     });
@@ -147,7 +147,7 @@ describe("invalidateLostAlertCache", () => {
   });
 
   it("sin argumentos limpia toda la caché en memoria", () => {
-    const key = "petcarnet-alerta:v1:lucca";
+    const key = "pawpass-alerta:v1:lucca";
     writeLostAlert(null, key, { active: true });
     expect(readLostAlert(null, key)).toEqual({ active: true });
 

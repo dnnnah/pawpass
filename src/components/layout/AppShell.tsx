@@ -32,14 +32,14 @@ export function AppShell({ children }: AppShellProps) {
           <Link
             href="/"
             className="flex min-h-11 min-w-0 items-center gap-2.5"
-            aria-label="PetCarnet, inicio"
+            aria-label="PawPass, inicio"
           >
             <span className="grid h-9 w-9 shrink-0 place-items-center rounded-md bg-brand text-on-solid">
               <PawPrint size={20} aria-hidden="true" />
             </span>
             <span className="min-w-0">
               <span className="block font-display text-xl font-semibold leading-none tracking-tight text-ink">
-                PetCarnet
+                PawPass
               </span>
               <span className="mt-0.5 block text-[11px] font-medium leading-none text-ink-3">
                 Carnet digital
@@ -72,7 +72,7 @@ export function AppShell({ children }: AppShellProps) {
         <div className="mx-auto w-full max-w-5xl px-4 py-10 sm:px-6 lg:px-8">
           <div className="flex flex-wrap items-start justify-between gap-x-8 gap-y-6">
             <div className="max-w-xs">
-              <p className="font-display text-lg font-semibold text-ink">PetCarnet</p>
+              <p className="font-display text-lg font-semibold text-ink">PawPass</p>
               <p className="mt-1.5 text-sm leading-6 text-ink-2">
                 El carnet digital de tu mascota: identidad, salud y contacto de emergencia en un
                 solo lugar.

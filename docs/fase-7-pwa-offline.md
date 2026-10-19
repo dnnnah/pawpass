@@ -1,6 +1,6 @@
 # FASE 7 — PWA / Campo: estrategia técnica
 
-Documento técnico de la base PWA/offline de PetCarnet. Complementa el
+Documento técnico de la base PWA/offline de PawPass. Complementa el
 CHANGELOG y detalla decisiones, límites y trabajo futuro.
 
 ## Estado actual del producto (pre-FASE 7)
@@ -47,7 +47,7 @@ declarada y verificada por test.
 
 | Campo | Valor |
 | --- | --- |
-| `name` / `short_name` | PetCarnet \| Carnet Digital / PetCarnet |
+| `name` / `short_name` | PawPass \| Carnet Digital / PawPass |
 | `start_url` / `scope` | `/` |
 | `display` | `standalone` |
 | `theme_color` | `#10B981` (esmeralda de la marca) |
@@ -64,10 +64,10 @@ inexistentes; cuando B entregue los PNG se añadirán a
 - **Registro:** solo `NODE_ENV=production` y solo si
   `navigator.serviceWorker` existe. En dev nunca se activa (no interfiere con
   `next dev`). Ruta: `/sw.js`, scope `/`.
-- **Caché:** versión manual `petcarnet-<VERSION>`; **subir `VERSION` en cada
+- **Caché:** versión manual `pawpass-<VERSION>`; **subir `VERSION` en cada
   despliegue** para invalidar cachés viejas.
-- **Dos cachés, no una:** `petcarnet-<VERSION>` para documentos y estáticos,
-  `petcarnet-routes-<VERSION>` para los payloads RSC del App Router. Los
+- **Dos cachés, no una:** `pawpass-<VERSION>` para documentos y estáticos,
+  `pawpass-routes-<VERSION>` para los payloads RSC del App Router. Los
   nombres están escritos a mano en `public/sw.js` **y** en
   `src/lib/pwa/cacheApi.ts` (el SW es JS plano y la capa no importa de
   `public/`), así que el contrato se fija con un test que lee ambos ficheros y
@@ -182,7 +182,7 @@ prueban renderizando a HTML estático.
   `isIosSafariLike` detecta iPadOS por UA Macintosh + `maxTouchPoints`, de modo
   que macOS y Android no se confundan con iOS.
 - El CTA se oculta si la app ya está instalada o si la persona lo descartó; el
-  descarte se persiste en `localStorage` (`petcarnet-pwa-install-dismissed:v1`)
+  descarte se persiste en `localStorage` (`pawpass-pwa-install-dismissed:v1`)
   y degrada a memoria si el storage está bloqueado.
 - `installStore` captura `beforeinstallprompt` al evaluarse el módulo, no al
   montar el componente: si el evento llega antes de que la UI se monte, la

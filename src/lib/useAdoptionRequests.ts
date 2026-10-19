@@ -9,8 +9,8 @@ import type { AdoptionRequest } from "@/types/adoption";
 
 export type { AdoptionRequest };
 
-const PREFIX = "petcarnet-adopcion:v1:";
-const EVENT = "petcarnet-adoption-requests";
+const PREFIX = "pawpass-adopcion:v1:";
+const EVENT = "pawpass-adoption-requests";
 
 function keyOf(petId: string) {
   return `${PREFIX}${String(petId)}`;

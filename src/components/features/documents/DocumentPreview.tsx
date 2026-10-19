@@ -1,4 +1,4 @@
-import { getDocumentCategoryMeta } from "@/lib/domain/documentCategory";
+import { getDocumentCategoryMeta } from "@/lib/mapping/documentCategory";
 import { cx } from "@/lib/ui/tone";
 import type { PetDocument, PetDocumentType } from "@/types/pet";
 

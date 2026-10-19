@@ -1,10 +1,10 @@
-# PetCarnet
+# PawPass
 
 Pasaporte digital publico para mascotas con QR de emergencia.
 
 ## Que es
 
-PetCarnet es el registro de identidad y cuidados de una mascota, mas los dos
+PawPass es el registro de identidad y cuidados de una mascota, mas los dos
 momentos que un registro en papel no puede cubrir: recuperarla si se pierde y
 encontrarle un hogar.
 
@@ -91,8 +91,8 @@ src/
 ## Instalacion
 
 ```bash
-git clone https://github.com/dnnnah/petCarnet.git
-cd petCarnet
+git clone https://github.com/dnnnah/pawpass.git
+cd pawpass
 npm install
 npm run dev
 ```
@@ -139,7 +139,7 @@ con la misma version.
 ### Skills globales
 
 Las que hay en la maquina y sirven en todos los repos. **No estan en el arbol**:
-un clone de PetCarnet no las trae, y eso es a proposito, para no versionar 2 MB
+un clone de PawPass no las trae, y eso es a proposito, para no versionar 2 MB
 de datos vendorizados en cada repo. Si necesitas una de esta tabla, instalala
 una vez.
 
@@ -160,7 +160,7 @@ Cinco skills que estaban en `.agents/skills/` ya no estan ahi, y conviene
 saber por que para no volver a subirlas:
 
 - `impeccable` y `typescript-pro` **se movieron a global** (`~/.agents/skills/`).
-  No tienen nada de especifico de PetCarnet: sirven igual en cualquier repo, y
+  No tienen nada de especifico de PawPass: sirven igual en cualquier repo, y
   global se actualiza una vez y llega a todos. De paso el repo deja de cargar
   los ~2.2 MB de `impeccable` (launcher, 40 playbooks en `reference/` y sus
   datos vendorizados) y el lock local deja de ser una copia que se pudre.

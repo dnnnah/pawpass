@@ -14,7 +14,7 @@
  * **2. `installed` se lee al arrancar, no solo a partir de `appinstalled`.**
  * Si la app ya está instalada y la persona la abre desde su pantalla de inicio,
  * no habrá ningún `appinstalled` en toda la sesión. Sin esta lectura, quien ya
- * tenga PetCarnet instalado seguiría viendo el aviso de instalarlo.
+ * tenga PawPass instalado seguiría viendo el aviso de instalarlo.
  *
  * Como en `connectivityStore`, el estado vive en el módulo y se lee con
  * `useSyncExternalStore`: un solo valor, estable entre renders y comparable con
@@ -30,7 +30,7 @@ export type InstallOutcome = "accepted" | "dismissed" | "unavailable";
 export type InstallStateSnapshot = {
   /** Hay un `beforeinstallprompt` capturado y utilizable. */
   canInstall: boolean;
-  /** PetCarnet ya se está ejecutando como app instalada. */
+  /** PawPass ya se está ejecutando como app instalada. */
   installed: boolean;
   /** El usuario descartó el aviso en este dispositivo. */
   dismissed: boolean;

@@ -18,7 +18,7 @@ refugios que publican animales en adopción y las personas adopantes que los con
 
 ## Propósito del producto
 
-PetCarnet es el registro de identidad y cuidados de una mascota. Contiene el historial de vacunas y
+PawPass es el registro de identidad y cuidados de una mascota. Contiene el historial de vacunas y
 médico, el carnet físico y digital, los documentos oficiales y los datos de contacto que hacen
 recuperable al animal. También cubre los dos momentos que el registro en papel no puede: encontrar a
 una mascota perdida y darle un nuevo hogar.
@@ -41,7 +41,7 @@ con honestidad:
 - **Un ciclo cubierto, no una sola tarea.** Pérdida, recuperación y adopción son el mismo registro
   recorriendo estados distintos, así que no se vuelve a capturar nada entre ellos.
 - **Privado por defecto.** Nada se publica sin consentimiento explícito. Una cuenta genérica de perfil
-  de mascota difunde datos de identidad por defecto; PetCarnet publica elemento por elemento y solo
+  de mascota difunde datos de identidad por defecto; PawPass publica elemento por elemento y solo
   cuando se solicita.
 
 ## Contexto de uso
@@ -79,7 +79,7 @@ son datos de prototipo.
 
 ## Compromisos de marca
 
-El nombre es PetCarnet. Todos los textos del producto están en español (es-MX) y el tono es llano,
+El nombre es PawPass. Todos los textos del producto están en español (es-MX) y el tono es llano,
 cálido y tranquilo: esos textos se dirigen a una persona ansiosa y nunca deben leerse como alarmistas
 ni como un embudo de conversión.
 

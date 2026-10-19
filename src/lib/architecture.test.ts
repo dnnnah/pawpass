@@ -23,6 +23,17 @@ const SRC = resolve(process.cwd(), "src");
 
 const FRAMEWORK_PREFIXES = ["react", "next", "@supabase", "lucide-react", "framer-motion"];
 
+/**
+ * Prefijos de infraestructura permitidos SOLO en la capa `infra`.
+ *
+ * El cliente de Supabase (`@supabase/supabase-js`) vive en `infra`; por eso
+ * `infra` puede importarlo. La prohibición se mantiene en `domain` y
+ * `services`, que deben hablar por puertos, no por el cliente de datos.
+ * `@supabase/ssr` (cliente de sesión) se permite además en `app`, que no forma
+ * parte de este guardián de capas.
+ */
+const INFRA_ALLOWED_PREFIXES = ["@supabase"];
+
 const UI_PREFIXES = ["@/app", "@/components"];
 
 function listSourceFiles(dir: string): string[] {
@@ -65,6 +76,18 @@ function isFramework(specifier: string): boolean {
     (prefix) =>
       specifier === prefix || specifier.startsWith(`${prefix}/`) || specifier.startsWith(`${prefix}@`),
   );
+}
+
+function isInfraAllowed(specifier: string): boolean {
+  return INFRA_ALLOWED_PREFIXES.some(
+    (prefix) =>
+      specifier === prefix || specifier.startsWith(`${prefix}/`) || specifier.startsWith(`${prefix}@`),
+  );
+}
+
+/** Framework prohibido en `infra`: cualquiera salvo los de infraestructura permitida. */
+function isFrameworkForbiddenInInfra(specifier: string): boolean {
+  return isFramework(specifier) && !isInfraAllowed(specifier);
 }
 
 function isUi(specifier: string): boolean {
@@ -129,12 +152,33 @@ describe("dirección de dependencias: services", () => {
 
 describe("dirección de dependencias: infra", () => {
   for (const { file, specifiers } of infraFiles) {
-    it(`${file} no depende de la UI ni de frameworks`, () => {
-      const violations = specifiers.filter((specifier) => isUi(specifier) || isFramework(specifier));
+    it(`${file} no depende de la UI ni de frameworks de UI (sí puede usar @supabase)`, () => {
+      const violations = specifiers.filter(
+        (specifier) => isUi(specifier) || isFrameworkForbiddenInInfra(specifier),
+      );
 
       expect(violations, `dependencia prohibida en ${file}: ${violations.join(", ")}`).toEqual([]);
     });
   }
+});
+
+describe("política de @supabase por capa", () => {
+  it("services y domain siguen prohibiendo @supabase (isFramework lo detecta)", () => {
+    expect(isFramework("@supabase/supabase-js")).toBe(true);
+    expect(isFramework("@supabase/ssr")).toBe(true);
+  });
+
+  it("infra puede importar @supabase", () => {
+    expect(isInfraAllowed("@supabase/supabase-js")).toBe(true);
+    expect(isFrameworkForbiddenInInfra("@supabase/supabase-js")).toBe(false);
+    expect(isFrameworkForbiddenInInfra("@supabase/ssr")).toBe(false);
+  });
+
+  it("infra sigue prohibiendo frameworks de UI", () => {
+    for (const specifier of ["react", "next", "lucide-react", "framer-motion"]) {
+      expect(isFrameworkForbiddenInInfra(specifier)).toBe(true);
+    }
+  });
 });
 
 describe("aislamiento de la fuente de datos estática", () => {

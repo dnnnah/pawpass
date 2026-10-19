@@ -14,29 +14,31 @@ type DocumentsPageProps = {
   params: Promise<{ id: string }>;
 };
 
-export function generateStaticParams() {
-  return getAllProfilePets().flatMap((pet) => [{ id: pet.id }, { id: pet.identificacion.codigoPublico }]);
+export async function generateStaticParams() {
+  const pets = await getAllProfilePets();
+
+  return pets.flatMap((pet) => [{ id: pet.id }, { id: pet.identificacion.codigoPublico }]);
 }
 
 export async function generateMetadata({ params }: DocumentsPageProps): Promise<Metadata> {
   const { id } = await params;
-  const pet = getPetByIdAny(id);
+  const pet = await getPetByIdAny(id);
 
   if (!pet) {
     return {
-      title: "Documentos no encontrados | PetCarnet",
+      title: "Documentos no encontrados | PawPass",
     };
   }
 
   return {
-    title: `Documentos de ${pet.mascota.nombre} | PetCarnet`,
+    title: `Documentos de ${pet.mascota.nombre} | PawPass`,
     description: `Documentos públicos de ${pet.mascota.nombre}.`,
   };
 }
 
 export default async function DocumentsPage({ params }: DocumentsPageProps) {
   const { id } = await params;
-  const pet = getPetByIdAny(id);
+  const pet = await getPetByIdAny(id);
 
   if (!pet) {
     notFound();

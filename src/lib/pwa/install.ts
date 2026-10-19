@@ -12,7 +12,7 @@
  */
 
 /** Clave de `localStorage` con el descarte del CTA en este dispositivo. */
-export const INSTALL_DISMISS_KEY = "petcarnet-pwa-install-dismissed:v1";
+export const INSTALL_DISMISS_KEY = "pawpass-pwa-install-dismissed:v1";
 
 /** `navigator.standalone` es la forma propia de iOS (Safari), no estándar. */
 type IosNavigator = Navigator & { standalone?: boolean };
@@ -56,7 +56,7 @@ export function isInstallApiSupported(): boolean {
 }
 
 /**
- * `true` cuando PetCarnet ya se está ejecutando como aplicación instalada
+ * `true` cuando PawPass ya se está ejecutando como aplicación instalada
  * (ventana propia o pantalla de inicio). Cubre `display-mode: standalone`,
  * `minimal-ui` y `fullscreen`, y el `navigator.standalone` de iOS.
  */

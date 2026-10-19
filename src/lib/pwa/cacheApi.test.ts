@@ -14,9 +14,9 @@ import {
  * completa terminaban en la MISMA entrada.
  */
 
-const ORIGIN = "https://petcarnet.example";
-const CACHE_NAME = "petcarnet-v3";
-const ROUTE_CACHE_NAME = "petcarnet-routes-v3";
+const ORIGIN = "https://pawpass.example";
+const CACHE_NAME = "pawpass-v3";
+const ROUTE_CACHE_NAME = "pawpass-routes-v3";
 
 type MatchOptions = { ignoreSearch?: boolean; ignoreVary?: boolean };
 

@@ -90,7 +90,7 @@ describe("InstallCtaView", () => {
     // "PWA", "service worker" o "manifest" no significan nada para quien esta en
     // una adopcion y necesita una respuesta rapida.
     const text = visibleText(render("native") + render("manual"));
-    expect(text).toContain("PetCarnet");
+    expect(text).toContain("PawPass");
     for (const jerga of ["pwa", "service worker", "manifest"]) {
       expect(text.toLowerCase(), jerga).not.toContain(jerga);
     }

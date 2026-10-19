@@ -1,4 +1,4 @@
-/* PetCarnet — Service Worker (FASE 7)
+/* PawPass — Service Worker (FASE 7)
  *
  * Estrategia conservadora y segura para uso en campo:
  *   1. Navegaciones (documentos HTML): network-first, fallback a la copia
@@ -34,7 +34,7 @@
    la caché de documentos, ambos fallos desaparecen. Al subir de versión, las
    cachés de la v2 se borran y se reprecargan al navegar. */
 const VERSION = "v3";
-const CACHE_NAME = `petcarnet-${VERSION}`;
+const CACHE_NAME = `pawpass-${VERSION}`;
 
 /* Los payloads RSC van a una caché APARTE, y no es un detalle menor.
  *
@@ -48,7 +48,7 @@ const CACHE_NAME = `petcarnet-${VERSION}`;
  * estaba y el worker devolvía el shell raíz. Quien buscaba el carnet de su
  * mascota aterrizaba en el inicio sin explicación. Con cachés separadas no
  * pueden pisarse. */
-const ROUTE_CACHE_NAME = `petcarnet-routes-${VERSION}`;
+const ROUTE_CACHE_NAME = `pawpass-routes-${VERSION}`;
 
 const OWN_CACHE_NAMES = new Set([CACHE_NAME, ROUTE_CACHE_NAME]);
 

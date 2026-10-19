@@ -75,7 +75,7 @@ export function HealthExpedientePreview({ pet }: HealthExpedientePreviewProps) {
       <header className="flex flex-wrap items-start justify-between gap-x-6 gap-y-3 border-b border-rule bg-canvas px-5 py-5 sm:px-6">
         <div className="min-w-0">
           <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-brand">
-            PetCarnet · Expediente
+            PawPass · Expediente
           </p>
           <h2 className="mt-2 flex items-center gap-2.5 text-xl leading-tight text-ink sm:text-2xl">
             <HeartPulse size={20} className="shrink-0 text-brand" aria-hidden="true" />
@@ -185,8 +185,8 @@ export function HealthExpedientePreview({ pet }: HealthExpedientePreviewProps) {
       <footer className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3 border-t border-rule bg-canvas px-5 py-4 sm:px-6">
         <p className="text-xs text-ink-3">
           {pet.identificacion.codigoPublico
-            ? `ID PetCarnet · ${pet.identificacion.codigoPublico}`
-            : "ID PetCarnet · Sin código"}
+            ? `ID PawPass · ${pet.identificacion.codigoPublico}`
+            : "ID PawPass · Sin código"}
         </p>
         <div className="flex flex-wrap items-center gap-4">
           <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-ink-3">
