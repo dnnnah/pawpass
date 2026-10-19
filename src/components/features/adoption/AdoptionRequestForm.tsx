@@ -18,6 +18,8 @@ import {
 import { formatMexicanDate } from "@/lib/dateFormat";
 import { useLostAlerts } from "@/lib/useLostAlerts";
 import { useAdoptionRequests } from "@/lib/useAdoptionRequests";
+import { trackAdoptionRequestStarted } from "@/lib/services/telemetry/trackers";
+import { useTelemetryOnMount } from "@/components/telemetry/use-telemetry-on-mount";
 import type { AdoptionRequest } from "@/types/adoption";
 import type { PetProfile } from "@/types/pet";
 
@@ -27,6 +29,14 @@ type AdoptionRequestFormProps = {
 };
 
 export function AdoptionRequestForm({ pet, shelterName = null }: AdoptionRequestFormProps) {
+  /* Una solicitud empieza cuando la persona entra al formulario, no cuando lo
+     envía. Se mide en el montaje y una sola vez, con el mismo guardia que el
+     resto de entradas a la UI. El evento dice `form` y nada más: no el nombre,
+     ni el teléfono, ni el correo, ni el motivo, ni las notas. */
+  useTelemetryOnMount(() => {
+    trackAdoptionRequestStarted("form");
+  });
+
   const [values, setValues] = useState<AdoptionFormValues>({
     nombre: "",
     telefono: "",

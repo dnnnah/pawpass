@@ -8,6 +8,7 @@ import { Pill } from "@/components/ui/Pill";
 import { getPetByIdAny, getAllProfilePets } from "@/lib/services/pets/queries";
 import { toVaccineSummaryViewModel } from "@/lib/mapping/health";
 import { notFound } from "next/navigation";
+import { ProfileViewTracker } from "@/components/telemetry/ProfileViewTracker";
 import { VaccineListClient } from "./VaccineListClient";
 
 type VaccinesPageProps = {
@@ -53,6 +54,7 @@ export default async function VaccinesPage({ params }: VaccinesPageProps) {
 
   return (
     <AppShell>
+      <ProfileViewTracker section="private" />
       <div className="mx-auto max-w-4xl px-4 pb-10 sm:px-6 lg:px-8">
         <div className="space-y-6">
           <BackLink href={`/perfil/${pet.id}`} />

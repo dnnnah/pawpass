@@ -20,6 +20,7 @@ import {
   type LocationErrorKey,
 } from "@/lib/foundPetReport";
 import { copyTextToClipboard } from "@/lib/clipboard";
+import { trackFoundPetFlowStarted } from "@/lib/services/telemetry/trackers";
 
 type IdleLocation = { status: "idle" };
 type LocatingLocation = { status: "locating" };
@@ -68,6 +69,10 @@ export function FoundPetPanel({
   }, [flowOpen]);
 
   function openFlow() {
+    // "Flow started" es exactamente este clic: el panel ya está en pantalla
+    // antes, así que emitirlo al montar habría medido algo distinto. El evento
+    // no lleva el mensaje, ni la ubicación, ni el número de WhatsApp.
+    trackFoundPetFlowStarted("started");
     setMessage(buildFoundPetMessage({ petName, lastZone }));
     setLocation({ status: "idle" });
     setFlowOpen(true);

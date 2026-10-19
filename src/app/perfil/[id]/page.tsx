@@ -16,6 +16,7 @@ import { PetHeader } from "@/components/features/pet-profile/PetHeader";
 import { ProfileNav } from "@/components/features/pet-profile/ProfileNav";
 import { QRShareCard } from "@/components/features/pet-profile/QRShareCard";
 import { RecentPhotos } from "@/components/features/pet-profile/RecentPhotos";
+import { ProfileViewTracker } from "@/components/telemetry/ProfileViewTracker";
 import { VaccineTimeline } from "@/components/features/pet-profile/VaccineTimeline";
 import { VetCard } from "@/components/features/pet-profile/VetCard";
 import { buildPhysicalPetCard } from "@/lib/domain/carnet";
@@ -78,6 +79,7 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
 
   return (
     <AppShell>
+      <ProfileViewTracker section="public" />
       {/* `overflow-x: clip` recorta el nav a sangre sin crear contenedor de
           scroll: `clip` no genera scrollport, asi que el `sticky` del nav y
           de la tarjeta del QR siguen funcionando. Sin esto, el `w-screen` del

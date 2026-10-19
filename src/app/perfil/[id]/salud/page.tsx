@@ -17,6 +17,7 @@ import {
   toVaccineItemViewModel,
 } from "@/lib/mapping/health";
 import { notFound } from "next/navigation";
+import { ProfileViewTracker } from "@/components/telemetry/ProfileViewTracker";
 import { ExportSummaryClient } from "./ExportSummaryClient";
 
 type HealthPageProps = {
@@ -70,6 +71,9 @@ export default async function SaludPage({ params }: HealthPageProps) {
 
   return (
     <AppShell>
+      {/* El expediente de salud es la vista detallada del perfil, no la ficha
+          pública: de ahí `private` en lugar de `public`. */}
+      <ProfileViewTracker section="private" />
       <div className="mx-auto max-w-4xl px-4 pb-10 sm:px-6 lg:px-8">
         <div className="space-y-6">
           <BackLink href={`/perfil/${pet.id}`} />

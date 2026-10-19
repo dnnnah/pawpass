@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { BadgeCheck, Check, Download, FileCode2, Link2, Printer, QrCode, TriangleAlert } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 import { Surface } from "@/components/ui/Surface";
+import { trackQrGenerated } from "@/lib/services/telemetry/trackers";
 import { cx } from "@/lib/ui/tone";
 
 const QR_EXPORT_SIZE = 1024;
@@ -151,6 +152,12 @@ export function QRShareCard({ petName, profileUrl, petCode, className }: QRShare
       link.download = `pawpass-qr-${fileName}.png`;
       link.click();
 
+      // El PNG ya salió del navegador: el QR se produjo. Solo aquí, y nunca en
+      // el `catch`: si falla el render o la conversión, no se generó nada.
+      // (La descarga en sí no se puede confirmar desde aquí; el navegador no
+      // avisa. Por eso `qr_generated` cuenta "exporté", no "lo guardaste".)
+      trackQrGenerated("profile");
+
       announce("QR descargado en PNG de alta resolución");
     } catch {
       setDownloadFailed(true);
@@ -171,6 +178,7 @@ export function QRShareCard({ petName, profileUrl, petCode, className }: QRShare
         new Blob([cleanQrSvg(svg)], { type: "image/svg+xml;charset=utf-8" }),
         `pawpass-qr-${fileName}.svg`
       );
+      trackQrGenerated("profile");
       announce("QR exportado en SVG");
     } catch {
       setDownloadFailed(true);
@@ -233,6 +241,9 @@ export function QRShareCard({ petName, profileUrl, petCode, className }: QRShare
                   title={`Código QR del perfil público de ${petName}`}
                   style={{ width: "100%", height: "100%" }}
                 />
+                {/* Pintar el QR no es generarlo: este bloque se dibuja en cada
+                    render y en cada visita. `qr_generated` solo se emite en las
+                    dos descargas de abajo, que son las que producen un archivo. */}
               </div>
               {/* `w-full`, no un ancho fijo: la linea debe medir lo mismo que el
                   cuadro del QR en cada tamano. Con `w-48` fijo, en movil (QR de

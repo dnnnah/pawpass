@@ -7,6 +7,7 @@ import { buildPhysicalPetCard } from "@/lib/domain/carnet";
 import { getPetByIdAny, getAllProfilePets } from "@/lib/services/pets/queries";
 import type { PhysicalPetCardFormato } from "@/types/carnet";
 import { notFound } from "next/navigation";
+import { ProfileViewTracker } from "@/components/telemetry/ProfileViewTracker";
 
 type CarnetPageProps = {
   params: Promise<{ id: string }>;
@@ -50,6 +51,9 @@ export default async function CarnetPage({ params }: CarnetPageProps) {
 
   return (
     <AppShell>
+      {/* El estudio del carnet existe para imprimir: es su propia sección del
+          contrato, distinta de la ficha pública y del expediente. */}
+      <ProfileViewTracker section="print" />
       <div className="mx-auto max-w-4xl px-4 pb-10 sm:px-6 lg:px-8">
         <div className="space-y-6">
           <BackLink href={`/perfil/${pet.id}`} />

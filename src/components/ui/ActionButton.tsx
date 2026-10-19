@@ -9,6 +9,12 @@ type ActionButtonProps = {
   tone?: "call" | "whatsapp" | "location" | "urgentCall" | "urgentWhatsapp";
   size?: "normal" | "large";
   className?: string;
+  /**
+   * Observador del clic. Lo consume la telemetría para registrar la acción
+   * (FASE 8B). No cambia el destino ni el comportamiento del enlace: solo
+   * observa. Se mantiene opcional para no obligar a todos los usos a definirlo.
+   */
+  onActivate?: () => void;
 };
 
 /**
@@ -76,6 +82,7 @@ export function ActionButton({
   size = "normal",
   tone = "call",
   className,
+  onActivate,
 }: ActionButtonProps) {
   const classes = tones[tone];
   const urgent = tone === "urgentCall" || tone === "urgentWhatsapp";
@@ -83,6 +90,7 @@ export function ActionButton({
   return (
     <a
       href={href}
+      onClick={onActivate}
       className={cx(
         "group flex w-full min-w-0 items-center gap-3.5 rounded-lg border px-4 py-3.5 transition-colors duration-150",
         size === "large" && "sm:px-5 sm:py-4",

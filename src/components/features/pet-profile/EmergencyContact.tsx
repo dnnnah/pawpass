@@ -1,5 +1,8 @@
+"use client";
+
 import { Phone, Send } from "lucide-react";
 import { ActionButton } from "@/components/ui/ActionButton";
+import { trackEmergencyActionStarted } from "@/lib/services/telemetry/trackers";
 import { cx } from "@/lib/ui/tone";
 
 type EmergencyContactProps = {
@@ -63,6 +66,9 @@ export function EmergencyContact({
         </div>
 
         <div className="grid min-w-0 gap-2.5 sm:grid-cols-2">
+          {/* Se mide la acción, no el render: el evento sale del clic. Y solo
+              dice *qué* botón se pulsó — ni el teléfono, ni el enlace de
+              WhatsApp con su texto, ni el nombre del tutor. */}
           <ActionButton
             href={`tel:${contact.phoneHref}`}
             label="Llamar"
@@ -70,6 +76,9 @@ export function EmergencyContact({
             icon={Phone}
             size={isLost ? "large" : "normal"}
             tone={isLost ? "urgentCall" : "call"}
+            onActivate={() => {
+              trackEmergencyActionStarted("call");
+            }}
           />
           <ActionButton
             href={contact.whatsapp}
@@ -78,6 +87,9 @@ export function EmergencyContact({
             icon={Send}
             size={isLost ? "large" : "normal"}
             tone={isLost ? "urgentWhatsapp" : "whatsapp"}
+            onActivate={() => {
+              trackEmergencyActionStarted("share");
+            }}
           />
         </div>
       </div>
