@@ -1,10 +1,12 @@
 # PAWPASS — Estructura de la base de datos
 
 **Proyecto:** pawpass · **Referencia:** `gjolkedvspnmueqatqyt`  
-**Fecha de verificación:** 2026-10-12 13:30:06 CST  
+**Fecha de verificación:** 2026-10-19 17:50:00 CST
 **Fuente:** catálogo real de PostgreSQL, políticas, privilegios, funciones, triggers, buckets e historial de migraciones de PAWPASS.
 
-Este documento describe lo que está implementado, no una propuesta. La elaboración fue de solo lectura: no se aplicaron cambios de esquema ni se habilitó Q19.
+Este documento describe lo que está implementado, no una propuesta. El inventario
+original fue de solo lectura y después se incorporaron las migraciones Q19 para la
+ficha pública por QR.
 
 ## 1. Estado actual
 
@@ -13,15 +15,15 @@ Este documento describe lo que está implementado, no una propuesta. La elaborac
 | Motor | PostgreSQL 17 |
 | Tablas propias | 18 en `public` y 2 en `private` |
 | RLS | Activada en las 20 tablas |
-| Migraciones registradas | 10 |
+| Migraciones registradas | 12 |
 | Buckets de la aplicación | 2, ambos privados |
 | Usuarios de Auth | 0 |
-| Mascotas | 3, todas de demostración |
-| Refugios | 1, de demostración |
+| Mascotas | 24 (21 del seed y 3 de demostración preexistentes) |
+| Refugios | 3 (2 del seed y 1 de demostración preexistente) |
 | Tutelas | 0 |
 | Solicitudes de adopción | 0 |
 | Metadata de documentos | 0 registros |
-| Perfil anónimo por QR | Pendiente; Q19 no está aplicada |
+| Perfil anónimo por QR | Implementado mediante wrapper público acotado |
 
 **`public` es el nombre de un schema de PostgreSQL; no significa que sus datos sean públicos.** Actualmente `anon` no tiene permisos de tablas ni de ejecución de las funciones propias en `public` y `private`. El acceso de `authenticated` depende además de RLS, rol de negocio y permisos por columna.
 
@@ -110,9 +112,14 @@ Además, vacunas, desparasitaciones, consultas y documentos tienen `visible_publ
 
 **Implementado:** `obtener_preview_perfil`, `listar_preview_catalogo` y `listar_preview_refugios`, que siguen restringidos a tutores/miembros autenticados y aplican los filtros de publicación pertinentes. `obtener_preview_perfil` requiere además que exista un administrador vigente y verificado. Un seed sin tutor no aparecerá en ese preview, aunque sea visible para el administrador de la base en el panel.
 
-**Pendiente:** Q19 agregaría las funciones de consulta anónima del perfil/catálogos y lectura de archivos consentidos. La revisión automática rechazó ese cambio de frontera pública; el usuario indicó dejarlo pendiente. **No existen actualmente las RPC `obtener_perfil_publico`, `listar_catalogo_publico` o `listar_refugios_publicos` de ese borrador, ni la política de Storage de lectura anónima propuesta.**
+El QR anónimo se implementó mediante `public.obtener_ficha_publica(text)`, un wrapper
+`SECURITY DEFINER` con `search_path` vacío que delega en una implementación privada.
+Solo expone identidad, estado, pérdida y contacto consentido; no devuelve salud,
+veterinario, dirección, microchip ni rutas privadas de Storage. El catálogo público,
+los refugios públicos y la lectura anónima de archivos siguen fuera de este contrato.
 
-Marcar `publicado=true` hoy no habilita por sí solo el QR anónimo. El perfil por QR todavía necesita Q19, verificación de sus filtros e integración en el sitio.
+Marcar `publicado=true` habilita la ficha QR únicamente a través de ese wrapper y
+después de aplicar sus filtros de privacidad; no concede acceso directo a las tablas.
 
 ## 7. Estado de mascota y emergencia
 
@@ -253,7 +260,7 @@ La numeración identifica scripts y categorías; no todos los scripts son migrac
 | 06 — Storage | Q15 | Aplicada |
 | 07 — Pruebas | Q16, Q20 | Pruebas con rollback ejecutadas durante implementación |
 | 02 — Integridad/concurrencia | Q17–Q18 | Aplicadas |
-| 03 — Acceso público | Q19 | Borrador pendiente, no aplicado |
+| 03 — Acceso público | Q19 | Wrapper público de ficha QR aplicado y verificado |
 | 07 — Inventario | Q21 | Verificación |
 | 08 — Seeds | Q22–Q24 | Tres conjuntos cargados |
 | 08 — Verificar seeds | Q25 | Verificada privacidad y ausencia de duplicados |
@@ -272,6 +279,8 @@ La numeración identifica scripts y categorías; no todos los scripts son migrac
 | `20261012184438` | `q15_storage_fotos_documentos_privados` |
 | `20261012190318` | `q17_integridad_indices_privilegios` |
 | `20261012190435` | `q18_limite_solicitudes_concurrencia` |
+| `20261019223611` | `q19_ficha_publica_qr` |
+| `20261019240000` | `q19_public_wrapper_definer` |
 
 Las queries no están guardadas automáticamente como pestañas/carpetas del SQL Editor: se entregaron en archivos por categoría. No reejecutar migraciones ya aplicadas en PAWPASS.
 
@@ -284,13 +293,12 @@ Este documento se contrastó con el catálogo actual. No se ejecutaron nuevas pr
 ### Pendientes de integración
 
 1. Crear cuentas reales y asignar administrativamente tutor/miembros a los demos si se quieren usar en la aplicación.
-2. Integrar Auth y adapters asincrónicos del sitio; sus servicios siguen usando datos estáticos en el código inspeccionado durante la implementación.
+2. Completar el adapter autenticado del catálogo; las rutas de catálogo y adopción todavía usan datos estáticos.
 3. Resolver fotos/documentos a URLs firmadas y coordinar borrado de bytes/metadata.
-4. Revisar y probar Q19 antes de habilitar QR anónimo.
-5. Diseñar entrega/descubrimiento de destinatarios de invitaciones sin listar todas las cuentas.
-6. Implementar gestión de miembros de refugio y notas internas si el producto la necesita.
-7. Diseñar eliminación de cuentas, transferencia, retención de datos y limpieza de archivos huérfanos.
-8. Mantener la estrategia offline sin cachear automáticamente expedientes o contactos privados.
+4. Diseñar entrega/descubrimiento de destinatarios de invitaciones sin listar todas las cuentas.
+5. Implementar gestión de miembros de refugio y notas internas si el producto la necesita.
+6. Diseñar eliminación de cuentas, transferencia, retención de datos y limpieza de archivos huérfanos.
+7. Mantener la estrategia offline sin cachear automáticamente expedientes o contactos privados.
 
 No hay todavía una entidad de cuenta veterinaria, un catálogo normalizado de medicamentos ni una tabla de carnet físico. El carnet, la edad, el catálogo y el expediente exportable deben derivarse de datos existentes.
 
@@ -1132,4 +1140,4 @@ Esta lista complementa RLS. INSERT/UPDATE por columna no habilita esas acciones 
 
 ---
 
-**Alcance del documento:** fotografía de la estructura y permisos de PAWPASS en la fecha indicada. Debe actualizarse después de nuevas migraciones, cambios de políticas o habilitación de Q19. No contiene credenciales ni claves API.
+**Alcance del documento:** fotografía de la estructura y permisos de PAWPASS en la fecha indicada. Debe actualizarse después de nuevas migraciones o cambios de políticas. No contiene credenciales ni claves API.
