@@ -41,11 +41,11 @@ spec + plan. La ejecución avanza por tareas T1–T10.
 | --- | --- | --- |
 | T1 | Habilitar `@supabase` en guardas arquitectónicas | ✅ Hecha |
 | T2 | Puertos y services asíncronos | ✅ Hecha |
-| T3 | Cliente Supabase y entorno | 🟡 Scaffold hecho (cierre real pendiente de P3) |
+| T3 | Cliente Supabase y entorno | ✅ Cliente browser/server, claves públicas y proxy de sesión |
 | T4 | Mappers DB↔dominio y ajustes de contrato (D5–D11) | ⏳ Siguiente |
-| T5 | Adaptadores Supabase de lectura + swap | ⛔ T3/T4/P4 |
-| T6 | Supabase Auth | ⛔ T3/P2 |
-| T7 | Ficha pública del QR + RPC anónima | ⛔ T4/P1 |
+| T5 | Adaptadores Supabase de lectura + swap | 🟡 Adapter del contrato público QR y panel autenticado listos; catálogo sigue en demo |
+| T6 | Supabase Auth | 🟡 Registro, inicio de sesión, callback y `/cuenta` protegida por correo; OAuth queda para otra iteración |
+| T7 | Ficha pública del QR + RPC anónima | ✅ `/p/[codigo]` y `obtener_ficha_publica(text)` desplegados con wrapper security-definer |
 | T8 | Escrituras por RPC | ⛔ T6 |
 | T9 | Storage y signed URLs | ⛔ T3/P4 |
 | T10 | Cierre y verificación | ⛔ Todas |
@@ -77,19 +77,20 @@ spec + plan. La ejecución avanza por tareas T1–T10.
 - Verificación: `typecheck` ✓ · `lint` ✓ · `test` → **712 passed (54 files)** ·
   `build` ✓ → **281 rutas SSG** (async `generateStaticParams` correcto).
 
-### T3 — Cliente Supabase y entorno 🟡
+### T3 — Cliente Supabase y entorno ✅
 
 - Dependencias: `@supabase/supabase-js@2.117.3`, `@supabase/ssr@0.12.7`.
-- `src/lib/infra/supabase/env.ts`: lee/valida `NEXT_PUBLIC_SUPABASE_URL` y
-  `NEXT_PUBLIC_SUPABASE_ANON_KEY` (`hasSupabaseEnv`, `getSupabaseEnv`).
+- `src/lib/infra/supabase/env.ts`: lee/valida `NEXT_PUBLIC_SUPABASE_URL` y la
+  publishable key moderna, con fallback a `NEXT_PUBLIC_SUPABASE_ANON_KEY`.
 - `src/lib/infra/supabase/client.ts`: `createSupabaseBrowserClient()` (cookies, no
   `localStorage`).
 - `src/lib/infra/supabase/server.ts`: `createSupabaseServerClient(cookieStore)` con la
   tienda de cookies **inyectada** (la capa `infra` no importa `next`, respetando la guarda).
 - `.env.example` (documentado) y `.gitignore` con `!.env.example`.
-- Tests: `env.test.ts` (3). Verificación: `typecheck` ✓ · `lint` ✓ ·
-  `test` → **718 passed (55 files)** · `build` ✓ (281 rutas).
-- **Pendiente:** cerrar contra un proyecto real (P3) y añadir el middleware de sesión en T6.
+- Tests: `env.test.ts` (5). Verificación: `typecheck` ✓ · `lint` ✓ ·
+  `test` → **736 passed (59 files)** · `build` ✓ (283 rutas).
+- `src/proxy.ts`: refresca los claims de sesión con `supabase.auth.getClaims()`.
+- Verificado contra el proyecto real `pawpass` (activo y saludable).
 
 ### Renombrado del producto: PetCarnet → PawPass ✅
 
@@ -103,20 +104,39 @@ spec + plan. La ejecución avanza por tareas T1–T10.
 - Verificación: `typecheck` ✓ · `lint` ✓ · `test` → **718 passed** · `build` ✓ ·
   `validate:data` ✓ (26 avisos preexistentes).
 
+### Cierre de integración en la rama de trabajo ✅
+
+- `.env.local` quedó corregido para usar la URL HTTPS del proyecto real; la clave pública
+  permanece en el archivo local y no se versiona.
+- `/p/[codigo]` ya consulta el RPC anónimo de Supabase y se verificó con `PC-BRUNO-001`:
+  estado perdido, zona, fecha, instrucciones y contacto respetando consentimiento.
+- El wrapper público usa `security definer` con `search_path` vacío; la implementación
+  privada sigue sin permisos de ejecución para `anon` y `authenticated`.
+- `/cuenta` valida la sesión en servidor, consulta `pet_ownerships` con RLS y muestra
+  las mascotas asociadas; el menú reconoce la sesión y ofrece cerrar sesión.
+- Verificación actual: `typecheck` ✓ · `lint` ✓ · **873 tests (65 archivos)** ✓ ·
+  `build` ✓ (283 rutas) · `validate:data` ✓ (26 avisos preexistentes).
+- El advisor de Supabase conserva dos avisos informativos preexistentes sobre tablas
+  privadas sin políticas. También marca el wrapper QR como `security definer`: es
+  intencional, usa `search_path` vacío, devuelve un payload acotado y la función privada
+  no es ejecutable por roles públicos.
+
 ## Puertas de verificación (cada tarea)
 
 `npm run typecheck && npm run lint && npm test && npm run build`
 
 ## Prerrequisitos externos pendientes
 
-- **P1:** aprobar Q19 (`obtener_ficha_publica` con `GRANT EXECUTE TO anon`) → T7.
+- **P1:** Q19 desplegada como wrapper público security-definer que delega en una función
+  privada acotada; `anon` solo puede ejecutar el wrapper y la publicación exige
+  `pet_privacy.publicado = true`.
 - **P2:** credenciales Apple Developer + OAuth Google → T6.
-- **P3:** proyecto Supabase + `NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_ANON_KEY`
-  → T3 en adelante.
-- **P4:** verificar catálogo/RLS/funciones en vivo (hoy **NO VERIFICADO**) → T5, T9, T10.
+- **P3:** proyecto Supabase verificado: `gjolkedvspnmueqatqyt` (`ACTIVE_HEALTHY`).
+- **P4:** catálogo/RLS/funciones verificados; Storage sigue privado y requiere signed URLs
+  para publicar fotos desde la ficha QR.
 
 ## Riesgos / notas
 
-- El esquema real de la instancia Supabase **no está verificado**; solo se cuenta con
-  `PAWPASS-ESTRUCTURA-BASE-DE-DATOS.md` como referencia.
+- La ficha QR no devuelve rutas de Storage privadas: la imagen estática se conserva para
+  la demo local y el siguiente paso es generar signed URLs desde una ruta de servidor.
 - Los cambios de contrato de T4 (D5–D11) tienen amplio impacto en consumidores y tests.

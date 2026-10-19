@@ -1,10 +1,13 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Bone, HeartHandshake, LogIn, PawPrint } from "lucide-react";
+import { Bone, HeartHandshake, LogIn, PawPrint, UserRound } from "lucide-react";
+import { createSupabaseBrowserClient } from "@/lib/infra/supabase/client";
+import { hasSupabaseEnv } from "@/lib/infra/supabase/env";
 
-const links = [
+const baseLinks = [
   { href: "/", label: "Inicio", icon: PawPrint, match: (p: string) => p === "/" },
   {
     href: "/#mascotas",
@@ -18,11 +21,43 @@ const links = [
     icon: HeartHandshake,
     match: (p: string) => p.startsWith("/adopciones") || p.startsWith("/refugios"),
   },
-  { href: "/login", label: "Iniciar sesión", icon: LogIn, match: (p: string) => p === "/login" },
 ];
 
 export function SiteNav() {
   const pathname = usePathname();
+  const [authenticated, setAuthenticated] = useState(false);
+
+  useEffect(() => {
+    if (!hasSupabaseEnv()) return;
+
+    const supabase = createSupabaseBrowserClient();
+    let mounted = true;
+
+    void supabase.auth.getUser().then(({ data }) => {
+      if (mounted) setAuthenticated(Boolean(data.user));
+    });
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (mounted) setAuthenticated(Boolean(session?.user));
+    });
+
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
+  }, []);
+
+  const links = [
+    ...baseLinks,
+    {
+      href: authenticated ? "/cuenta" : "/login",
+      label: authenticated ? "Mi cuenta" : "Iniciar sesión",
+      icon: authenticated ? UserRound : LogIn,
+      match: (p: string) => (authenticated ? p.startsWith("/cuenta") : p === "/login"),
+    },
+  ];
 
   return (
     <nav

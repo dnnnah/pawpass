@@ -17,6 +17,17 @@ describe("entorno de Supabase", () => {
     });
   });
 
+  it("prefiere la publishable key moderna cuando está disponible", () => {
+    vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL", "https://example.supabase.co");
+    vi.stubEnv("NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY", "sb_publishable-key");
+    vi.stubEnv("NEXT_PUBLIC_SUPABASE_ANON_KEY", "legacy-anon-key");
+
+    expect(getSupabaseEnv()).toEqual({
+      url: "https://example.supabase.co",
+      anonKey: "sb_publishable-key",
+    });
+  });
+
   it("no está disponible y lanza si falta configuración", () => {
     vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL", "");
     vi.stubEnv("NEXT_PUBLIC_SUPABASE_ANON_KEY", "");
@@ -30,5 +41,20 @@ describe("entorno de Supabase", () => {
     vi.stubEnv("NEXT_PUBLIC_SUPABASE_ANON_KEY", "");
 
     expect(hasSupabaseEnv()).toBe(false);
+  });
+
+  it("acepta solo la publishable key", () => {
+    vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL", "https://example.supabase.co");
+    vi.stubEnv("NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY", "sb_publishable-key");
+
+    expect(hasSupabaseEnv()).toBe(true);
+  });
+
+  it("rechaza un identificador de proyecto en lugar de una URL", () => {
+    vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL", "gjolkedvspnmueqatqyt");
+    vi.stubEnv("NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY", "sb_publishable-key");
+
+    expect(hasSupabaseEnv()).toBe(false);
+    expect(() => getSupabaseEnv()).toThrow(/URL HTTPS/);
   });
 });

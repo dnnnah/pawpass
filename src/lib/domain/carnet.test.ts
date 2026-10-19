@@ -319,7 +319,7 @@ describe("FASE 6 — carnet físico: identidad e identificación", () => {
     const card = buildCard(makePet(), { today: TODAY });
 
     expect(card.qr.disponible).toBe(true);
-    expect(card.qr.url).toBe(`${APP_URL}/perfil/PC-LUNA-001`);
+    expect(card.qr.url).toBe(`${APP_URL}/p/PC-LUNA-001`);
   });
 
   it("9. código público inválido: QR no disponible y URL nula sin romper el carnet", () => {
@@ -341,11 +341,11 @@ describe("FASE 6 — carnet físico: identidad e identificación", () => {
   it("10. URL pública: colapsa a ruta relativa sin base y compone absoluta con base", () => {
     vi.stubEnv("NEXT_PUBLIC_APP_URL", "");
     const relative = buildCard(makePet(), { today: TODAY });
-    expect(relative.qr.url).toBe("/perfil/PC-LUNA-001");
+    expect(relative.qr.url).toBe("/p/PC-LUNA-001");
 
     vi.stubEnv("NEXT_PUBLIC_APP_URL", APP_URL.replace(/\/+$/, ""));
     const absolute = buildCard(makePet(), { today: TODAY });
-    expect(absolute.qr.url).toBe(`${APP_URL}/perfil/PC-LUNA-001`);
+    expect(absolute.qr.url).toBe(`${APP_URL}/p/PC-LUNA-001`);
   });
 
   it("11. QR: codifica la URL pública existente y NUNCA pet.id", () => {

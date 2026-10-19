@@ -7,24 +7,37 @@
 
 export type SupabaseEnv = {
   url: string;
+  /** Publishable key (preferred) or legacy anon key for older projects. */
   anonKey: string;
 };
+
+function isSupabaseUrl(value: string | undefined): value is string {
+  if (!value) return false;
+
+  try {
+    const parsed = new URL(value);
+    return (parsed.protocol === "https:" || parsed.protocol === "http:") && parsed.hostname !== "";
+  } catch {
+    return false;
+  }
+}
 
 /** ¿Está configurado el entorno mínimo de Supabase? */
 export function hasSupabaseEnv(): boolean {
   return Boolean(
-    process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+    isSupabaseUrl(process.env.NEXT_PUBLIC_SUPABASE_URL) &&
+      (process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY),
   );
 }
 
 /** Devuelve `{ url, anonKey }` o lanza si falta configuración. */
 export function getSupabaseEnv(): SupabaseEnv {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ?? process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-  if (!url || !anonKey) {
+  if (!isSupabaseUrl(url) || !anonKey) {
     throw new Error(
-      "Faltan NEXT_PUBLIC_SUPABASE_URL y/o NEXT_PUBLIC_SUPABASE_ANON_KEY. Copia .env.example a .env.local.",
+      "Falta NEXT_PUBLIC_SUPABASE_URL con una URL HTTPS válida y una clave pública de Supabase (NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY o NEXT_PUBLIC_SUPABASE_ANON_KEY). Usa la URL completa del proyecto, por ejemplo https://tu-proyecto.supabase.co, y copia .env.example a .env.local.",
     );
   }
 
