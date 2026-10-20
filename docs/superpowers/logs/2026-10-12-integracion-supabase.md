@@ -113,9 +113,10 @@ spec + plan. La ejecución avanza por tareas T1–T10.
 - El wrapper público usa `security definer` con `search_path` vacío; la implementación
   privada sigue sin permisos de ejecución para `anon` y `authenticated`.
 - `/cuenta` valida la sesión en servidor, consulta `pet_ownerships` con RLS y muestra
-  las mascotas asociadas; permite registrar una mascota con `crear_mascota`, el menú
-  reconoce la sesión y ofrece cerrar sesión.
-- Verificación actual: `typecheck` ✓ · `lint` ✓ · **877 tests (66 archivos)** ✓ ·
+  las mascotas asociadas; permite registrar mascotas con `crear_mascota`, editar el
+  contacto, configurar el consentimiento y persistir el estado perdido con
+  `cambiar_estado_mascota`; el menú reconoce la sesión y ofrece cerrar sesión.
+- Verificación actual: `typecheck` ✓ · `lint` ✓ · **885 tests (68 archivos)** ✓ ·
   `build` ✓ (283 rutas) · `validate:data` ✓ (26 avisos preexistentes).
 - El advisor de Supabase conserva dos avisos informativos preexistentes sobre tablas
   privadas sin políticas. También marca el wrapper QR como `security definer`: es

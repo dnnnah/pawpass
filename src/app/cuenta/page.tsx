@@ -198,6 +198,12 @@ export default async function CuentaPage() {
                           Rol: {pet.role}
                         </span>
                       </div>
+                      <LostStatusForm
+                        petId={pet.id}
+                        petName={pet.name}
+                        status={pet.status}
+                        canEdit={pet.role === "administrador"}
+                      />
                     </Surface>
                   ))}
                 </div>
