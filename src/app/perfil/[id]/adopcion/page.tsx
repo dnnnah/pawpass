@@ -39,7 +39,7 @@ export async function generateMetadata({ params }: AdoptionPageProps): Promise<M
 
   return {
     title: `Solicitar adopción de ${pet.mascota.nombre} | PawPass`,
-    description: `Solicitud de adopción prototipo para ${pet.mascota.nombre} (${pet.mascota.especie}) en PawPass.`,
+    description: `Solicitud de adopción para ${pet.mascota.nombre} (${pet.mascota.especie}) en PawPass.`,
   };
 }
 
@@ -70,7 +70,7 @@ export default async function AdoptionRequestPage({ params }: AdoptionPageProps)
           <SubpageHeader
             eyebrow="Solicitud de adopción"
             title={`Adoptar a ${pet.mascota.nombre}`}
-            description="Completa el formulario para registrar tu interés. En este prototipo la solicitud se guarda solo en este navegador y no se envía a ningún servidor."
+            description="Completa el formulario para registrar tu interés y compartirlo con la organización responsable."
           />
 
           {!availability.available ? (

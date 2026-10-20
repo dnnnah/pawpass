@@ -46,7 +46,7 @@ spec + plan. La ejecución avanza por tareas T1–T10.
 | T5 | Adaptadores Supabase de lectura + swap | 🟡 Adapter del contrato público QR y panel autenticado listos; catálogo sigue en demo |
 | T6 | Supabase Auth | 🟡 Registro, inicio de sesión, callback, alta de mascotas y `/cuenta` protegida por correo; OAuth queda para otra iteración |
 | T7 | Ficha pública del QR + RPC anónima | ✅ `/p/[codigo]` y `obtener_ficha_publica(text)` desplegados con wrapper security-definer |
-| T8 | Escrituras por RPC | 🟡 Alta de mascotas, contacto, privacidad y estado perdido integrados; salud y adopciones siguen pendientes |
+| T8 | Escrituras por RPC | 🟡 Alta de mascotas integrada con `crear_mascota`; solicitud de adopción integrada con `solicitar_adopcion`; estados, contacto y privacidad siguen pendientes |
 | T9 | Storage y signed URLs | ⛔ T3/P4 |
 | T10 | Cierre y verificación | ⛔ Todas |
 
@@ -122,6 +122,23 @@ spec + plan. La ejecución avanza por tareas T1–T10.
   privadas sin políticas. También marca el wrapper QR como `security definer`: es
   intencional, usa `search_path` vacío, devuelve un payload acotado y la función privada
   no es ejecutable por roles públicos.
+
+### Solicitudes de adopción persistidas ✅
+
+- `src/lib/adoption/submitAdoptionRequest.ts` adapta el formulario al RPC
+  `solicitar_adopcion`, normaliza los campos y no expone errores internos de la base.
+- `AdoptionRequestForm` comprueba la sesión con `auth.getUser()` antes de enviar,
+  muestra un acceso de regreso al formulario cuando falta cuenta y evita guardar
+  datos personales en `localStorage` cuando Supabase está configurado.
+- El modo local queda como fallback explícito para la demo sin variables públicas de
+  Supabase; las notas adicionales del prototipo no se envían al contrato remoto.
+- `/cuenta` muestra las solicitudes enviadas y recibidas con RLS, permite cancelar una
+  solicitud propia y permite a la persona administradora pasarla a revisión, aprobarla
+  o rechazarla mediante `revisar_adopcion`.
+- Login y OAuth conservan el parámetro `next`, por lo que una persona que llega desde
+  una solicitud puede volver a ese formulario después de autenticarse.
+- Verificación: `typecheck` ✓ · `lint` ✓ · **887 tests (68 archivos)** ✓ · `build` ✓
+  (283 rutas) · `validate:data` ✓ (26 avisos preexistentes).
 
 ## Puertas de verificación (cada tarea)
 
