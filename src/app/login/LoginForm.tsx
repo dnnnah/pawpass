@@ -20,6 +20,13 @@ async function ensureProfile(supabase: ReturnType<typeof createSupabaseBrowserCl
   await supabase.from("profiles").upsert({ id: user.id, full_name: fullName });
 }
 
+function getNextPath(): string {
+  if (typeof window === "undefined") return "/cuenta";
+
+  const value = new URLSearchParams(window.location.search).get("next");
+  return value && value.startsWith("/") && !value.startsWith("//") ? value : "/cuenta";
+}
+
 export function LoginForm() {
   const router = useRouter();
   const [mode, setMode] = useState<AuthMode>("login");
@@ -63,14 +70,14 @@ export function LoginForm() {
           email: email.trim(),
           password,
           options: {
-            emailRedirectTo: `${window.location.origin}/auth/callback?next=/cuenta`,
+            emailRedirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(getNextPath())}`,
           },
         });
         if (error) throw error;
 
         if (data.session) {
           await ensureProfile(supabase);
-          router.replace("/cuenta");
+          router.replace(getNextPath());
           router.refresh();
         } else {
           setNotice("Revisa tu correo para confirmar la cuenta antes de iniciar sesión.");
@@ -82,7 +89,7 @@ export function LoginForm() {
         });
         if (error) throw error;
         await ensureProfile(supabase);
-        router.replace("/cuenta");
+        router.replace(getNextPath());
         router.refresh();
       }
     } catch (error) {
@@ -106,7 +113,7 @@ export function LoginForm() {
       const { error } = await createSupabaseBrowserClient().auth.signInWithOAuth({
         provider,
         options: {
-          redirectTo: `${window.location.origin}/auth/callback?next=/cuenta`,
+          redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(getNextPath())}`,
         },
       });
       if (error) throw error;

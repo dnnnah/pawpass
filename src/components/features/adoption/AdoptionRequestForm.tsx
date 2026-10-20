@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
+import Link from "next/link";
 import { HeartHandshake, Send } from "lucide-react";
 import { BackLink } from "@/components/ui/BackLink";
 import { Field, SubmitButton } from "@/components/ui/Field";
@@ -16,6 +17,9 @@ import {
   type AdoptionFieldError,
 } from "@/lib/adoptionRequestForm";
 import { formatMexicanDate } from "@/lib/dateFormat";
+import { submitAdoptionRequest } from "@/lib/adoption/submitAdoptionRequest";
+import { createSupabaseBrowserClient } from "@/lib/infra/supabase/client";
+import { hasSupabaseEnv } from "@/lib/infra/supabase/env";
 import { useLostAlerts } from "@/lib/useLostAlerts";
 import { useAdoptionRequests } from "@/lib/useAdoptionRequests";
 import { trackAdoptionRequestStarted } from "@/lib/services/telemetry/trackers";
@@ -48,6 +52,8 @@ export function AdoptionRequestForm({ pet, shelterName = null }: AdoptionRequest
   const [generalErrors, setGeneralErrors] = useState<string[]>([]);
   const [phase, setPhase] = useState<"form" | "sending" | "success">("form");
   const [submitted, setSubmitted] = useState<AdoptionRequest | null>(null);
+  const [submissionMode, setSubmissionMode] = useState<"remote" | "local" | null>(null);
+  const [loginRequired, setLoginRequired] = useState(false);
 
   const nombreRef = useRef<HTMLInputElement>(null);
   const telefonoRef = useRef<HTMLInputElement>(null);
@@ -81,7 +87,7 @@ export function AdoptionRequestForm({ pet, shelterName = null }: AdoptionRequest
     });
   }
 
-  function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
     if (phase === "sending") {
@@ -108,7 +114,57 @@ export function AdoptionRequestForm({ pet, shelterName = null }: AdoptionRequest
 
     setFieldErrors({});
     setGeneralErrors([]);
+    setLoginRequired(false);
     setPhase("sending");
+
+    if (hasSupabaseEnv()) {
+      try {
+        const supabase = createSupabaseBrowserClient();
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+
+        if (!user) {
+          setLoginRequired(true);
+          setGeneralErrors(["Para enviar una solicitud real, inicia sesión o crea una cuenta."]);
+          setPhase("form");
+          return;
+        }
+
+        const result = await submitAdoptionRequest(
+          {
+            rpc: async (functionName, params) => {
+              const response = await supabase.rpc(functionName, params);
+              return { data: response.data, error: response.error };
+            },
+          },
+          {
+            publicCode: pet.identificacion.codigoPublico,
+            name: values.nombre,
+            phone: values.telefono,
+            email: values.email,
+            reason: values.motivo,
+          },
+        );
+
+        if (result.error || !result.id) {
+          setGeneralErrors([result.error ?? "No pudimos enviar la solicitud. Intenta de nuevo."]);
+          setPhase("form");
+          return;
+        }
+
+        setSubmissionMode("remote");
+        setSubmitted({
+          ...buildAdoptionRequestFromDraft(draft, result.id),
+          id: result.id,
+        });
+        setPhase("success");
+      } catch {
+        setGeneralErrors(["No pudimos enviar la solicitud. Intenta de nuevo."]);
+        setPhase("form");
+      }
+      return;
+    }
 
     const seed =
       typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
@@ -118,6 +174,7 @@ export function AdoptionRequestForm({ pet, shelterName = null }: AdoptionRequest
 
     window.setTimeout(() => {
       submit(request);
+      setSubmissionMode("local");
       setSubmitted(request);
       setPhase("success");
     }, 900);
@@ -163,8 +220,9 @@ export function AdoptionRequestForm({ pet, shelterName = null }: AdoptionRequest
           </dl>
 
           <p className="mt-5 rounded-md border border-dashed border-rule-strong bg-sunken p-4 text-xs leading-5 text-ink-2">
-            Esto es un prototipo: tu solicitud no llegó a ningún refugio real. Quedó guardada solo
-            en este navegador para demostrar el flujo.
+            {submissionMode === "remote"
+              ? "Tu solicitud quedó registrada y la organización podrá revisarla desde PawPass."
+              : "Esto es un prototipo: tu solicitud no llegó a ningún refugio real. Quedó guardada solo en este navegador para demostrar el flujo."}
           </p>
 
           <div className="mt-6">
@@ -188,6 +246,14 @@ export function AdoptionRequestForm({ pet, shelterName = null }: AdoptionRequest
               <li key={error}>{error}</li>
             ))}
           </ul>
+          {loginRequired ? (
+            <Link
+              href={`/login?next=${encodeURIComponent(`/perfil/${pet.id}/adopcion`)}`}
+              className="mt-3 inline-flex font-semibold underline underline-offset-2"
+            >
+              Iniciar sesión o crear cuenta
+            </Link>
+          ) : null}
         </div>
       ) : null}
 
@@ -203,7 +269,9 @@ export function AdoptionRequestForm({ pet, shelterName = null }: AdoptionRequest
             <h2 className="font-display text-xl leading-snug text-ink">
               Solicitud de adopción de {petName}
             </h2>
-            <p className="mt-1 text-sm text-ink-2">{viaText} · Prototipo, sin envío real</p>
+            <p className="mt-1 text-sm text-ink-2">
+              {viaText} · {hasSupabaseEnv() ? "Solicitud real · requiere cuenta" : "Prototipo, sin envío real"}
+            </p>
           </div>
         </div>
 
@@ -288,19 +356,21 @@ export function AdoptionRequestForm({ pet, shelterName = null }: AdoptionRequest
             )}
           </Field>
 
-          <Field id="adopcion-notas" label="Notas adicionales" optional className="sm:col-span-2">
-            {(control) => (
-              <textarea
-                {...control}
-                name="notas"
-                rows={2}
-                value={values.notas}
-                onChange={(event) => handleChange("notas", event.target.value)}
-                placeholder="Ej: vivo en un departamento, tengo espacio para pasearla."
-                className={`${control.className} resize-none`}
-              />
-            )}
-          </Field>
+          {!hasSupabaseEnv() ? (
+            <Field id="adopcion-notas" label="Notas adicionales" optional className="sm:col-span-2">
+              {(control) => (
+                <textarea
+                  {...control}
+                  name="notas"
+                  rows={2}
+                  value={values.notas}
+                  onChange={(event) => handleChange("notas", event.target.value)}
+                  placeholder="Ej: vivo en un departamento, tengo espacio para pasearla."
+                  className={`${control.className} resize-none`}
+                />
+              )}
+            </Field>
+          ) : null}
 
           <div className="sm:col-span-2">
             <SubmitButton
@@ -315,11 +385,13 @@ export function AdoptionRequestForm({ pet, shelterName = null }: AdoptionRequest
 
         <div className="mt-6 flex flex-wrap items-center justify-between gap-3 rounded-md border border-dashed border-rule-strong bg-sunken p-4">
           <p className="max-w-md text-xs leading-5 text-ink-2">
-            Prototipo: la solicitud no se envía a ningún servidor. Queda registrada solo en este
-            navegador.
-            {requests.length > 0
-              ? ` Solicitudes guardadas en este dispositivo: ${requests.length}.`
-              : ""}
+            {hasSupabaseEnv()
+              ? "Necesitas una cuenta para enviar la solicitud. La información se registra mediante el flujo seguro de PawPass."
+              : `Prototipo: la solicitud no se envía a ningún servidor. Queda registrada solo en este navegador.${
+                  requests.length > 0
+                    ? ` Solicitudes guardadas en este dispositivo: ${requests.length}.`
+                    : ""
+                }`}
           </p>
           <BackLink href={`/perfil/${pet.id}`}>Cancelar y volver al perfil</BackLink>
         </div>

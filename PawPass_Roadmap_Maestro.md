@@ -16,9 +16,12 @@ y sin adelantar innecesariamente Auth/Base de Datos.
 
 > **Actualización de integración (2026-10-19):** el proyecto ya cuenta con
 > Supabase Auth por correo, callback de sesión, `/cuenta` protegida con RLS,
-> alta de mascotas mediante `crear_mascota` y ficha pública QR mediante
-> `public.obtener_ficha_publica`. El catálogo de perfiles, adopciones y
-> refugios conserva el adapter estático mientras se completa su migración.
+> alta de mascotas mediante `crear_mascota`, solicitudes de adopción mediante
+> `solicitar_adopcion` y ficha pública QR mediante
+> `public.obtener_ficha_publica`. El formulario remoto de adopción requiere
+> una cuenta autenticada; sin configuración de Supabase conserva el modo demo
+> local. El catálogo de perfiles, adopciones y refugios conserva el adapter
+> estático mientras se completa su migración.
 > Las secciones que siguen describen el roadmap original y sus objetivos; este
 > bloque resume el estado vigente para no confundirlo con el punto de partida.
 
