@@ -11,6 +11,7 @@ import { createSupabaseServerClient } from "@/lib/infra/supabase/server";
 import { normalizeAccountPetRow, type AccountPet } from "@/lib/account/pets";
 import { LogoutButton } from "./LogoutButton";
 import { CreatePetForm } from "./CreatePetForm";
+import { LostStatusForm } from "./LostStatusForm";
 
 export const metadata: Metadata = {
   title: "Mi cuenta | PawPass",
@@ -154,6 +155,12 @@ export default async function CuentaPage() {
                           Rol: {pet.role}
                         </span>
                       </div>
+                      <LostStatusForm
+                        petId={pet.id}
+                        petName={pet.name}
+                        status={pet.status}
+                        canEdit={pet.role === "administrador"}
+                      />
                     </Surface>
                   ))}
                 </div>
