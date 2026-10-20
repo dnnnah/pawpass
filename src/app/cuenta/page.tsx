@@ -9,8 +9,10 @@ import { Surface } from "@/components/ui/Surface";
 import { hasSupabaseEnv } from "@/lib/infra/supabase/env";
 import { createSupabaseServerClient } from "@/lib/infra/supabase/server";
 import { normalizeAccountPetRow, type AccountPet } from "@/lib/account/pets";
+import { listAccountAdoptionRequests } from "@/lib/account/adoptionRequests";
 import { LogoutButton } from "./LogoutButton";
 import { CreatePetForm } from "./CreatePetForm";
+import { AdoptionRequestsPanel } from "./AdoptionRequestsPanel";
 
 export const metadata: Metadata = {
   title: "Mi cuenta | PawPass",
@@ -72,8 +74,50 @@ async function getAccountPets(): Promise<{ pets: AccountPet[]; error: string | n
   };
 }
 
+async function getAccountAdoptionRequests() {
+  if (!hasSupabaseEnv()) {
+    return { requests: [], error: "Supabase todavía no está configurado para esta instalación." };
+  }
+
+  const cookieStore = await cookies();
+  const supabase = createSupabaseServerClient({
+    getAll: () => cookieStore.getAll(),
+    setAll: (cookiesToSet) => {
+      try {
+        for (const cookie of cookiesToSet) cookieStore.set(cookie.name, cookie.value, cookie.options);
+      } catch {
+        // Server Components pueden leer la sesión aunque no puedan escribir cookies.
+      }
+    },
+  });
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) redirect("/login?next=/cuenta");
+
+  return listAccountAdoptionRequests(
+    {
+      read: async () => {
+        const response = await supabase
+          .from("adoption_requests")
+          .select(
+            "id, pet_id, applicant_id, nombre, telefono, email, motivo, estado, created_at, updated_at, pets(id, codigo_publico, nombre, especie, slug)",
+          )
+          .order("created_at", { ascending: false });
+        return { data: response.data, error: response.error };
+      },
+    },
+    user.id,
+  );
+}
+
 export default async function CuentaPage() {
-  const { pets, error } = await getAccountPets();
+  const [{ pets, error }, adoptionRequests] = await Promise.all([
+    getAccountPets(),
+    getAccountAdoptionRequests(),
+  ]);
 
   return (
     <AppShell>
@@ -160,6 +204,15 @@ export default async function CuentaPage() {
               </section>
             )}
           </div>
+
+          {adoptionRequests.error ? (
+            <Surface variant="accent" tone="danger" size="md" rest={{ role: "alert" }}>
+              <h2 className="font-semibold text-ink">No pudimos cargar las solicitudes</h2>
+              <p className="mt-1 text-sm leading-6 text-ink-2">{adoptionRequests.error}</p>
+            </Surface>
+          ) : (
+            <AdoptionRequestsPanel requests={adoptionRequests.requests} />
+          )}
         </div>
       </div>
     </AppShell>

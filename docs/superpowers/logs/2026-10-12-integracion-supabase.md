@@ -131,9 +131,12 @@ spec + plan. La ejecución avanza por tareas T1–T10.
   datos personales en `localStorage` cuando Supabase está configurado.
 - El modo local queda como fallback explícito para la demo sin variables públicas de
   Supabase; las notas adicionales del prototipo no se envían al contrato remoto.
+- `/cuenta` muestra las solicitudes enviadas y recibidas con RLS, permite cancelar una
+  solicitud propia y permite a la persona administradora pasarla a revisión, aprobarla
+  o rechazarla mediante `revisar_adopcion`.
 - Login y OAuth conservan el parámetro `next`, por lo que una persona que llega desde
   una solicitud puede volver a ese formulario después de autenticarse.
-- Verificación: `typecheck` ✓ · `lint` ✓ · **881 tests (67 archivos)** ✓ · `build` ✓
+- Verificación: `typecheck` ✓ · `lint` ✓ · **887 tests (68 archivos)** ✓ · `build` ✓
   (283 rutas) · `validate:data` ✓ (26 avisos preexistentes).
 
 ## Puertas de verificación (cada tarea)
