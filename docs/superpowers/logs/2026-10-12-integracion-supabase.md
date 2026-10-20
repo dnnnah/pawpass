@@ -43,7 +43,7 @@ spec + plan. La ejecución avanza por tareas T1–T10.
 | T2 | Puertos y services asíncronos | ✅ Hecha |
 | T3 | Cliente Supabase y entorno | ✅ Cliente browser/server, claves públicas y proxy de sesión |
 | T4 | Mappers DB↔dominio y ajustes de contrato (D5–D11) | ⏳ Siguiente |
-| T5 | Adaptadores Supabase de lectura + swap | 🟡 Adapter del contrato público QR y panel autenticado listos; catálogo sigue en demo |
+| T5 | Adaptadores Supabase de lectura + swap | 🟡 Adapter QR y catálogo público preparados; refugios y perfiles completos siguen en demo |
 | T6 | Supabase Auth | 🟡 Registro, inicio de sesión, callback, alta de mascotas y `/cuenta` protegida por correo; OAuth queda para otra iteración |
 | T7 | Ficha pública del QR + RPC anónima | ✅ `/p/[codigo]` y `obtener_ficha_publica(text)` desplegados con wrapper security-definer |
 | T8 | Escrituras por RPC | 🟡 Alta de mascotas integrada con `crear_mascota`; solicitud de adopción integrada con `solicitar_adopcion`; estados, contacto y privacidad siguen pendientes |
@@ -139,6 +139,17 @@ spec + plan. La ejecución avanza por tareas T1–T10.
   una solicitud puede volver a ese formulario después de autenticarse.
 - Verificación: `typecheck` ✓ · `lint` ✓ · **887 tests (68 archivos)** ✓ · `build` ✓
   (283 rutas) · `validate:data` ✓ (26 avisos preexistentes).
+
+### Catálogo público de adopción 🟡
+
+- `src/lib/infra/directory/supabaseCatalog.ts` valida el contrato mínimo de tarjetas
+  de adopción y descarta filas incompletas antes de llegar a la UI.
+- `/adopciones` usa el service de catálogo; si el RPC no está disponible conserva el
+  catálogo local para no romper la demo.
+- La migración `20261019252000_public_adoption_catalog.sql` define el contrato público
+  con mascotas publicadas, listadas y sin alerta vigente. Su aplicación en el proyecto
+  compartido queda pendiente de autorización explícita por la superficie `SECURITY DEFINER`
+  con ejecución anónima.
 
 ## Puertas de verificación (cada tarea)
 
