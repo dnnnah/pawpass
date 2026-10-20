@@ -21,7 +21,8 @@ y sin adelantar innecesariamente Auth/Base de Datos.
 > `public.obtener_ficha_publica`. El formulario remoto de adopción requiere
 > una cuenta autenticada; sin configuración de Supabase conserva el modo demo
 > local. El catálogo de perfiles, adopciones y refugios conserva el adapter
-> estático mientras se completa su migración.
+> estático mientras se completa su migración; el adapter del catálogo público ya
+> está preparado y espera aplicar su RPC pública en la base.
 > Las secciones que siguen describen el roadmap original y sus objetivos; este
 > bloque resume el estado vigente para no confundirlo con el punto de partida.
 

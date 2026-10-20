@@ -5,10 +5,8 @@ import { AppShell } from "@/components/layout/AppShell";
 import { SubpageHeader } from "@/components/ui/SubpageHeader";
 import { AdoptionCatalog, type ShelterFilterOption } from "@/components/features/adoption/AdoptionCatalog";
 import { PrototypeNotice } from "@/components/features/adoption/PrototypeNotice";
-import { filterAdoptablePets, buildAdoptionCatalogEntry } from "@/lib/domain/adoption";
-import { findShelterForPet } from "@/lib/domain/shelter";
 import { buildCatalogCard } from "@/lib/mapping/adoptionPresentation";
-import { getAdoptionDemoPets } from "@/lib/services/pets/queries";
+import { getAdoptionCatalogEntries } from "@/lib/services/adoption/queries";
 import { getMockShelters } from "@/lib/services/shelters/queries";
 
 export const metadata: Metadata = {
@@ -18,12 +16,8 @@ export const metadata: Metadata = {
 };
 
 export default async function AdopcionesPage() {
-  const pets = await getAdoptionDemoPets();
+  const entries = await getAdoptionCatalogEntries();
   const shelters = await getMockShelters();
-  const adoptablePets = filterAdoptablePets(pets);
-  const entries = adoptablePets.map((pet) =>
-    buildAdoptionCatalogEntry(pet, findShelterForPet(pet.id, shelters)),
-  );
   const cards = entries.map(buildCatalogCard);
 
   const shelterOptions: ShelterFilterOption[] = [];
