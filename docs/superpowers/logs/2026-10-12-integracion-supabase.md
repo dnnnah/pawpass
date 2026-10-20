@@ -46,7 +46,7 @@ spec + plan. La ejecución avanza por tareas T1–T10.
 | T5 | Adaptadores Supabase de lectura + swap | 🟡 Adapter del contrato público QR y panel autenticado listos; catálogo sigue en demo |
 | T6 | Supabase Auth | 🟡 Registro, inicio de sesión, callback, alta de mascotas y `/cuenta` protegida por correo; OAuth queda para otra iteración |
 | T7 | Ficha pública del QR + RPC anónima | ✅ `/p/[codigo]` y `obtener_ficha_publica(text)` desplegados con wrapper security-definer |
-| T8 | Escrituras por RPC | 🟡 Alta de mascotas, contacto y privacidad integrados; estados, salud y adopciones siguen pendientes |
+| T8 | Escrituras por RPC | 🟡 Alta de mascotas, contacto, privacidad y estado perdido integrados; salud y adopciones siguen pendientes |
 | T9 | Storage y signed URLs | ⛔ T3/P4 |
 | T10 | Cierre y verificación | ⛔ Todas |
 
@@ -114,9 +114,9 @@ spec + plan. La ejecución avanza por tareas T1–T10.
   privada sigue sin permisos de ejecución para `anon` y `authenticated`.
 - `/cuenta` valida la sesión en servidor, consulta `pet_ownerships` con RLS y muestra
   las mascotas asociadas; permite registrar mascotas con `crear_mascota`, editar el
-  contacto y configurar el consentimiento de la ficha; el menú reconoce la sesión
-  y ofrece cerrar sesión.
-- Verificación actual: `typecheck` ✓ · `lint` ✓ · **881 tests (67 archivos)** ✓ ·
+  contacto, configurar el consentimiento y persistir el estado perdido con
+  `cambiar_estado_mascota`; el menú reconoce la sesión y ofrece cerrar sesión.
+- Verificación actual: `typecheck` ✓ · `lint` ✓ · **885 tests (68 archivos)** ✓ ·
   `build` ✓ (283 rutas) · `validate:data` ✓ (26 avisos preexistentes).
 - El advisor de Supabase conserva dos avisos informativos preexistentes sobre tablas
   privadas sin políticas. También marca el wrapper QR como `security definer`: es

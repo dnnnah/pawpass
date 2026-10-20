@@ -17,7 +17,8 @@ y sin adelantar innecesariamente Auth/Base de Datos.
 > **Actualización de integración (2026-10-19):** el proyecto ya cuenta con
 > Supabase Auth por correo, callback de sesión, `/cuenta` protegida con RLS,
 > alta de mascotas mediante `crear_mascota` y ficha pública QR mediante
-> `public.obtener_ficha_publica`. El catálogo de perfiles, adopciones y
+> `public.obtener_ficha_publica`; la cuenta también puede configurar contacto,
+> privacidad y estado perdido mediante RPC protegidas. El catálogo de perfiles, adopciones y
 > refugios conserva el adapter estático mientras se completa su migración.
 > Las secciones que siguen describen el roadmap original y sus objetivos; este
 > bloque resume el estado vigente para no confundirlo con el punto de partida.
