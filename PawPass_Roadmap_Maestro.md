@@ -3,7 +3,7 @@
 ## Mejoras, MVP, funcionalidades, arquitectura y simbiosis Frontend / Backend / Base de Datos
 
 **Proyecto:** PawPass --- Pasaporte Digital Público para Mascotas\
-**Estado actual:** Prototipo funcional, datos locales, sin backend ni
+**Estado base del roadmap:** Prototipo funcional, datos locales, sin backend ni
 despliegue productivo\
 **Stack actual:** Next.js 16 + App Router, React 19, TypeScript
 estricto, Tailwind CSS v4\
@@ -13,6 +13,14 @@ estricto, Tailwind CSS v4\
 **Objetivo:** Convertir gradualmente el prototipo actual en el producto
 definido por el proyecto académico, sin romper la arquitectura existente
 y sin adelantar innecesariamente Auth/Base de Datos.
+
+> **Actualización de integración (2026-10-19):** el proyecto ya cuenta con
+> Supabase Auth por correo, callback de sesión, `/cuenta` protegida con RLS,
+> alta de mascotas mediante `crear_mascota` y ficha pública QR mediante
+> `public.obtener_ficha_publica`. El catálogo de perfiles, adopciones y
+> refugios conserva el adapter estático mientras se completa su migración.
+> Las secciones que siguen describen el roadmap original y sus objetivos; este
+> bloque resume el estado vigente para no confundirlo con el punto de partida.
 
 ------------------------------------------------------------------------
 
