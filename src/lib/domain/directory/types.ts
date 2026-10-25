@@ -35,4 +35,5 @@ export type ShelterDirectory = {
 
 export type PublicPetDirectory = {
   findPublicPet(publicCode: string): Promise<PublicPetCard | null>;
+  listLostPets(): Promise<PublicPetCard[]>;
 };

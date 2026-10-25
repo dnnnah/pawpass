@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { cookies } from "next/headers";
-import { AlertTriangle, CheckCircle2, MapPin, MessageCircle, PawPrint, Phone, ShieldCheck } from "lucide-react";
+import { AlertTriangle, CheckCircle2, Mail, MapPin, MessageCircle, PawPrint, Phone, ShieldCheck } from "lucide-react";
 import { notFound } from "next/navigation";
 import { AppShell } from "@/components/layout/AppShell";
 import { Badge } from "@/components/ui/Badge";
@@ -48,7 +48,7 @@ export async function generateMetadata({ params }: PublicPetPageProps): Promise<
   if (!pet) {
     return {
       title: "Ficha no encontrada | PawPass",
-      robots: { index: false },
+      robots: { index: false, follow: false },
     };
   }
 
@@ -59,6 +59,7 @@ export async function generateMetadata({ params }: PublicPetPageProps): Promise<
     title: `${pet.name} | PawPass`,
     description,
     alternates: { canonical: `/p/${encodeURIComponent(pet.publicCode)}` },
+    robots: { index: false, follow: false },
     openGraph: {
       title: `${pet.name} | PawPass`,
       description,
@@ -183,27 +184,34 @@ export default async function PublicPetPage({ params }: PublicPetPageProps) {
             </Surface>
           ) : null}
 
-          {pet.contact && (pet.contact.phone || pet.contact.whatsapp) ? (
-            <Surface as="section" className="p-5 sm:p-6" rest={{ "aria-labelledby": "contacto-tutor" }}>
+          {pet.zone || pet.contact || pet.emergencyCareNote ? (
+            <Surface as="section" tone={isLost ? "danger" : undefined} className="p-5 sm:p-6" rest={{ "aria-labelledby": "datos-qr" }}>
               <div className="flex items-center gap-2">
                 <ShieldCheck size={20} className="text-success" aria-hidden="true" />
-                <h2 id="contacto-tutor" className="font-display text-2xl text-ink">Contacto del tutor</h2>
+                <h2 id="datos-qr" className="font-display text-2xl text-ink">Datos para ayudar</h2>
               </div>
-              {pet.contact.name ? <p className="mt-2 text-sm text-ink-2">{pet.contact.name}</p> : null}
-              <div className="mt-5 flex flex-wrap gap-3">
-                {phoneDigits ? (
-                  <Button href={`tel:${phoneDigits}`} icon={<Phone size={17} />}>
-                    Llamar · {formatPhoneForDisplay(pet.contact.phone ?? "")}
-                  </Button>
-                ) : null}
-                {whatsappHref ? (
-                  <Button href={whatsappHref} variant="secondary" icon={<MessageCircle size={17} />}>
-                    WhatsApp
-                  </Button>
-                ) : null}
-              </div>
+              <dl className="mt-4 grid gap-4 sm:grid-cols-2">
+                {!isLost && pet.zone ? <div><dt className="flex items-center gap-1.5 text-sm font-semibold text-ink"><MapPin size={15} aria-hidden="true" />Zona aproximada</dt><dd className="mt-1 text-sm leading-6 text-ink-2">{pet.zone}</dd></div> : null}
+                {pet.contact ? <div>
+                  <dt className="text-sm font-semibold text-ink">{isLost ? "Contacto de rescate" : "Contacto elegido"}</dt>
+                  <dd className="mt-1 text-sm leading-6 text-ink-2">{pet.contact.name ? `${pet.contact.name} · ` : ""}{pet.contact.phone ? formatPhoneForDisplay(pet.contact.phone) : pet.contact.whatsapp ? formatPhoneForDisplay(pet.contact.whatsapp) : pet.contact.email}</dd>
+                </div> : null}
+                {pet.emergencyCareNote ? <div className="sm:col-span-2"><dt className="text-sm font-semibold text-ink">Cuidados importantes</dt><dd className="mt-1 whitespace-pre-wrap text-sm leading-6 text-ink-2">{pet.emergencyCareNote}</dd></div> : null}
+              </dl>
+              {pet.contact ? <div className="mt-5 flex flex-wrap gap-3">
+                {phoneDigits ? <Button href={`tel:${phoneDigits}`} variant={isLost ? "primary" : "secondary"} icon={<Phone size={17} />}>Llamar</Button> : null}
+                {whatsappHref ? <Button href={whatsappHref} variant="secondary" icon={<MessageCircle size={17} />}>WhatsApp</Button> : null}
+                {pet.contact.email ? <Button href={`mailto:${pet.contact.email}`} variant="secondary" icon={<Mail size={17} />}>Correo</Button> : null}
+              </div> : null}
             </Surface>
           ) : null}
+
+          {isLost ? <Surface as="section" variant="sunken" size="sm" rest={{ "aria-labelledby": "resumen-vacunacion" }}>
+            <h2 id="resumen-vacunacion" className="font-semibold text-ink">Vacunación</h2>
+            <p className="mt-1 text-sm leading-6 text-ink-2">
+              {pet.vaccinationStatus === "al_dia" ? "El registro indica que las vacunas están al día." : pet.vaccinationStatus === "pendiente" ? "El registro indica que hay una vacuna pendiente." : "Sin información suficiente para calcular el estado de vacunación."}
+            </p>
+          </Surface> : null}
 
           {pet.recentPhotos.length > 0 ? (
             <Surface as="section" className="p-5 sm:p-6" rest={{ "aria-labelledby": "fotos-recientes" }}>
@@ -220,7 +228,7 @@ export default async function PublicPetPage({ params }: PublicPetPageProps) {
           ) : null}
 
           <p className="text-center text-xs leading-5 text-ink-3">
-            Este perfil solo muestra la información que el tutor decidió compartir públicamente.
+            Esta ficha muestra los datos básicos elegidos para el QR. El carnet y los documentos siguen privados.
           </p>
         </div>
       </div>

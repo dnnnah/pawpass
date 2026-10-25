@@ -7,7 +7,7 @@ describe("staticPublicPetDirectory", () => {
 
     expect(card?.publicCode).toBe("PC-LUCCA-001");
     expect(card?.name).toBe("Lucca");
-    expect(card?.contact).toBeNull();
+    expect(card?.contact).toMatchObject({ phone: "5646091856", whatsapp: null, email: null });
   });
 
   it("devuelve null para una mascota inexistente", async () => {
@@ -19,5 +19,11 @@ describe("staticPublicPetDirectory", () => {
       name: "Bruno",
       status: "perdido",
     });
+  });
+
+  it("incluye solo mascotas perdidas en el directorio estático de rescate", async () => {
+    const pets = await staticPublicPetDirectory.listLostPets();
+    expect(pets.length).toBeGreaterThan(0);
+    expect(pets.every((pet) => pet.status === "perdido" && pet.lost !== null)).toBe(true);
   });
 });

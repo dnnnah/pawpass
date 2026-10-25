@@ -14,4 +14,7 @@ export const staticPublicPetDirectory: PublicPetDirectory = {
     const pet = pets.find((candidate) => candidate.identificacion.codigoPublico === normalized);
     return pet ? toStaticPublicPetCard(pet) : null;
   },
+  listLostPets: async () => pets
+    .filter((pet) => pet.estado === "perdido" || pet.emergencia.perdido)
+    .map(toStaticPublicPetCard),
 };

@@ -20,6 +20,10 @@ export type PublicPetPayload = {
   species: PetSpecies;
   breed?: string | null;
   status: PetStatus;
+  contactMethod?: "phone" | "whatsapp" | "email" | null;
+  zone?: string | null;
+  emergencyCareNote?: string | null;
+  vaccinationStatus?: "al_dia" | "pendiente" | "sin_informacion" | null;
   privacy?: {
     mostrarNombreContacto?: boolean;
     mostrarTelefono?: boolean;
@@ -37,6 +41,7 @@ export type PublicPetPayload = {
     name?: string | null;
     phone?: string | null;
     whatsapp?: string | null;
+    email?: string | null;
   } | null;
   recentPhotos?: Array<{ url?: string | null }> | null;
 };
@@ -101,19 +106,28 @@ export function toPublicPetCard(raw: unknown): PublicPetCard | null {
   const isLost = status === "perdido" && lostRaw !== null;
   const lost = isLost
     ? {
-        zona: privacy.mostrarZona ? nullableText(lostRaw.zona) : null,
-        fechaPerdida: privacy.mostrarEmergencia ? nullableDate(lostRaw.fechaPerdida) : null,
-        mensaje: privacy.mostrarEmergencia ? nullableText(lostRaw.mensaje) : null,
-        instrucciones: privacy.mostrarEmergencia ? stringList(lostRaw.instrucciones) : [],
+        zona: nullableText(lostRaw.zona),
+        fechaPerdida: nullableDate(lostRaw.fechaPerdida),
+        mensaje: nullableText(lostRaw.mensaje),
+        instrucciones: stringList(lostRaw.instrucciones),
       }
     : null;
 
   const contactRaw = isRecord(raw.contact) ? raw.contact : {};
-  const contact = isLost && (privacy.mostrarTelefono || privacy.mostrarWhatsapp)
+  const contactMethod = raw.contactMethod;
+  const contactValue = contactMethod === "phone"
+    ? nullableText(contactRaw.phone)
+    : contactMethod === "whatsapp"
+      ? nullableText(contactRaw.whatsapp)
+      : contactMethod === "email"
+        ? nullableText(contactRaw.email)
+        : null;
+  const contact = contactValue
     ? {
         name: privacy.mostrarNombreContacto ? nullableText(contactRaw.name) : null,
-        phone: privacy.mostrarTelefono ? nullableText(contactRaw.phone) : null,
-        whatsapp: privacy.mostrarWhatsapp ? nullableText(contactRaw.whatsapp) : null,
+        phone: contactMethod === "phone" ? contactValue : null,
+        whatsapp: contactMethod === "whatsapp" ? contactValue : null,
+        email: contactMethod === "email" ? contactValue : null,
       }
     : null;
 
@@ -132,6 +146,11 @@ export function toPublicPetCard(raw: unknown): PublicPetCard | null {
     species,
     breed: nullableText(raw.breed),
     status,
+    zone: nullableText(raw.zone),
+    emergencyCareNote: nullableText(raw.emergencyCareNote),
+    vaccinationStatus: isLost && ["al_dia", "pendiente", "sin_informacion"].includes(String(raw.vaccinationStatus))
+      ? raw.vaccinationStatus as PublicPetCard["vaccinationStatus"]
+      : null,
     lost,
     contact,
     recentPhotos,
@@ -141,6 +160,13 @@ export function toPublicPetCard(raw: unknown): PublicPetCard | null {
 /** Adapter de compatibilidad para la demo estática mientras Supabase no está configurado. */
 export function toStaticPublicPetCard(pet: PetProfile): PublicPetCard {
   const isLost = pet.estado === "perdido" || pet.emergencia.perdido;
+  const contact = pet.contacto.telefonoPrincipal
+    ? { phone: pet.contacto.telefonoPrincipal }
+    : pet.contacto.whatsapp
+      ? { whatsapp: pet.contacto.whatsapp }
+      : pet.contacto.email
+        ? { email: pet.contacto.email }
+        : null;
   const recentPhotos = pet.documentos
     .filter((document) => document.categoria === "foto" && document.visiblePublico)
     .slice(0, 6)
@@ -153,6 +179,9 @@ export function toStaticPublicPetCard(pet: PetProfile): PublicPetCard {
     species: pet.mascota.especie,
     breed: pet.mascota.raza || null,
     status: pet.estado,
+    zone: isLost ? pet.emergencia.zonaPerdida || null : pet.contacto.zonaSegura || pet.contacto.zonaHabitual || null,
+    emergencyCareNote: null,
+    vaccinationStatus: isLost ? "sin_informacion" : null,
     lost: isLost
       ? {
           zona: pet.emergencia.zonaPerdida || null,
@@ -161,13 +190,7 @@ export function toStaticPublicPetCard(pet: PetProfile): PublicPetCard {
           instrucciones: pet.emergencia.instrucciones,
         }
       : null,
-    contact: isLost && (pet.contacto.telefonoPrincipal || pet.contacto.whatsapp)
-      ? {
-          name: pet.contacto.nombrePublico || null,
-          phone: pet.contacto.telefonoPrincipal || null,
-          whatsapp: pet.contacto.whatsapp || null,
-        }
-      : null,
+    contact: contact ? { name: pet.contacto.nombrePublico || null, phone: contact.phone ?? null, whatsapp: contact.whatsapp ?? null, email: contact.email ?? null } : null,
     recentPhotos,
   };
 }

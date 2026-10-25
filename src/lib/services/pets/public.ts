@@ -13,3 +13,9 @@ export async function getPublicPetCard(
 ): Promise<PublicPetCard | null> {
   return directory.findPublicPet(publicCode);
 }
+
+export async function getLostPetCards(
+  directory: PublicPetDirectory = staticPublicPetDirectory,
+): Promise<PublicPetCard[]> {
+  return directory.listLostPets();
+}

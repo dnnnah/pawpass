@@ -112,24 +112,27 @@ Además, vacunas, desparasitaciones, consultas y documentos tienen `visible_publ
 
 **Implementado:** `obtener_preview_perfil`, `listar_preview_catalogo` y `listar_preview_refugios`, que siguen restringidos a tutores/miembros autenticados y aplican los filtros de publicación pertinentes. `obtener_preview_perfil` requiere además que exista un administrador vigente y verificado. Un seed sin tutor no aparecerá en ese preview, aunque sea visible para el administrador de la base en el panel.
 
-El QR anónimo se implementó mediante `public.obtener_ficha_publica(text)`, un wrapper
-`SECURITY DEFINER` con `search_path` vacío que delega en una implementación privada.
-Solo expone identidad, estado, pérdida y contacto consentido; no devuelve salud,
-veterinario, dirección, microchip ni rutas privadas de Storage. El catálogo público,
-los refugios públicos y la lectura anónima de archivos siguen fuera de este contrato.
+El QR anónimo se sirve por código aunque `publicado=false`; ese valor controla la
+descubribilidad del perfil voluntario, no el acceso de quien ya tiene el QR. El wrapper
+`public.obtener_ficha_publica(text)` devuelve identidad, foto principal, canal de contacto
+elegido, zona aproximada y nota de cuidados. Durante una pérdida añade la alerta y un
+resumen de vacunación. No devuelve el expediente ni documentos. La ruta entrega una URL
+firmada de corta duración solo para la foto principal.
 
-Marcar `publicado=true` habilita la ficha QR únicamente a través de ese wrapper y
-después de aplicar sus filtros de privacidad; no concede acceso directo a las tablas.
+El directorio público de pérdidas usa `public.listar_mascotas_perdidas(integer, integer)`;
+incluye únicamente mascotas con estado `perdido` y alerta vigente. La política anónima de
+Storage se limita a la primera foto de cada mascota en `pawpass-fotos`; no habilita el
+bucket `pawpass-documentos` ni fotos adicionales.
 
 ## 7. Estado de mascota y emergencia
 
 Los estados admitidos son `en_casa`, `perdido`, `en_adopcion`, `adoptado`, `rescatado` y `fallecido`, mediante CHECK; no se creó un enum PostgreSQL.
 
-`cambiar_estado_mascota` valida tutela, bloquea la mascota, cierra la alerta anterior y cambia el estado en una transacción. Si el destino es `perdido`, exige fecha no futura y crea una alerta con zona, mensaje/recompensa opcionales. El índice parcial de alertas impide dos pérdidas activas de la misma mascota.
+`cambiar_estado_mascota` valida administración, bloquea la mascota, cierra la alerta anterior y cambia el estado en una transacción. Si el destino es `perdido`, exige fecha no futura, zona, canal QR con dato y foto subida antes de crear la alerta. El índice parcial de alertas impide dos pérdidas activas de la misma mascota.
 
 El trigger impide salir de `fallecido`; la RPC cierra la alerta al pasar a ese estado. La congruencia entre estado y alerta es una regla del flujo RPC, no una FK o CHECK que cubra todas las posibles escrituras de un backend privilegiado. Los seeds de pérdida se cargaron con ambos datos coherentes.
 
-Los textos públicos de emergencia siguen sujetos a consentimiento. No hay una segunda bandera `perdido` almacenada en `pets`: la vista previa la deriva del estado.
+El QR muestra la nota de cuidados redactada por el dueño. La alerta y el resumen de vacunas solo aparecen en estado `perdido`; nunca se exponen datos médicos detallados por ese estado. No hay una segunda bandera `perdido` almacenada en `pets`: la vista previa la deriva del estado.
 
 ## 8. Salud y documentos
 
@@ -203,17 +206,19 @@ Los permisos por columna impiden modificar desde el cliente identificadores o ve
 
 ## 12. RPC disponibles
 
-Todas las RPC de esta tabla están en `public`, son SECURITY INVOKER y solo tienen EXECUTE para `authenticated`. Llaman a implementaciones internas con autorización explícita.
+Las RPC privadas de cuenta requieren `authenticated`. Los dos RPC públicos de lectura tienen proyección acotada y permiten `anon`; la mutación de estado sigue requiriendo `authenticated` y administración.
 
 | RPC y parámetros | Retorno | Función |
 |---|---|---|
 | `aceptar_invitacion(p_invitacion uuid)` | `void` | Acepta una invitación propia vigente y crea tutela. |
-| `cambiar_estado_mascota(p_pet uuid, p_estado text, p_fecha date, p_zona text, p_mensaje text, p_recompensa numeric)` | `void` | Cambia estado y coordina apertura/cierre de pérdida. |
+| `cambiar_estado_mascota(p_pet uuid, p_estado text, p_fecha date, p_zona text, p_mensaje text, p_recompensa numeric)` | `void` | Solo administración; perder exige canal de contacto y foto válida. |
 | `crear_mascota(p_nombre text, p_especie text, p_nacimiento date, p_medio_contacto text, p_valor_contacto text, p_foto_nombre text, p_foto_mime text, p_foto_tamano bigint)` | `jsonb` | Requiere cuenta verificada, fecha no futura, un teléfono/WhatsApp/correo válido y foto privada JPEG/PNG/WebP de hasta 5 MiB. Crea mascota, tutela administradora, contacto elegido, privacidad cerrada y metadata de foto; devuelve UUID de mascota/documento, ruta privada y código público. Los bytes se suben después con la sesión del tutor y RLS de Storage. |
 | `crear_refugio(p_nombre text)` | `uuid` | Crea refugio y primera membresía administradora. |
 | `invitar_tutor(p_pet uuid, p_usuario uuid)` | `uuid` | Invita a una cuenta existente; devuelve UUID de invitación. |
 | `listar_preview_catalogo(p_limite integer, p_offset integer)` | `jsonb` | Devuelve catálogo paginado de las mascotas del tutor que cumplen publicación/disponibilidad. |
 | `listar_preview_refugios(p_limite integer, p_offset integer)` | `jsonb` | Devuelve refugios publicados del miembro, con contactos filtrados. |
+| `listar_mascotas_perdidas(p_limite integer, p_offset integer)` | `jsonb` | Público sin sesión; solo alertas activas y campos de rescate permitidos. |
+| `obtener_ficha_publica(p_codigo text)` | `jsonb` | Público sin sesión; QR básico aunque el perfil voluntario no esté publicado. |
 | `obtener_preview_perfil(p_identificador text)` | `jsonb` | Devuelve JSON filtrado por consentimiento, para tutor de perfil publicado. |
 | `revisar_adopcion(p_solicitud uuid, p_estado text)` | `void` | Revisa, cancela o completa solicitud según rol/transición. |
 | `revocar_tutor(p_pet uuid, p_usuario uuid)` | `void` | Finaliza tutela de un tutor; no permite revocar administración sin transferirla. |
@@ -460,6 +465,7 @@ Contacto y zonas de la mascota, separados de los atributos de pets. Sus campos n
 | Columna | Tipo | NULL | Predeterminado |
 |---|---|---|---|
 | `pet_id` | `uuid` | No | — |
+| `medio_contacto_qr` | `text` | Sí | — |
 | `nombre_publico` | `text` | Sí | — |
 | `telefono_principal` | `text` | Sí | — |
 | `whatsapp` | `text` | Sí | — |
@@ -475,6 +481,7 @@ Contacto y zonas de la mascota, separados de los atributos de pets. Sus campos n
 
 - `pet_contacts_email_check`: `CHECK (((char_length(email) <= 254) AND (email ~ '^[^[:space:]@]+@[^[:space:]@]+\.[^[:space:]@]+$'::text)))`.
 - `pet_contacts_mensaje_whatsapp_check`: `CHECK ((char_length(mensaje_whatsapp) <= 1000))`.
+- `pet_contacts_medio_contacto_qr_check`: requiere que el canal elegido tenga un dato de contacto.
 - `pet_contacts_nombre_publico_check`: `CHECK ((char_length(nombre_publico) <= 120))`.
 - `pet_contacts_pet_id_fkey`: `FOREIGN KEY (pet_id) REFERENCES pets(id) ON DELETE CASCADE`.
 - `pet_contacts_pkey`: `PRIMARY KEY (pet_id)`.
@@ -988,7 +995,7 @@ CREATE INDEX adoption_notes_request_idx ON private.adoption_notes USING btree (r
 
 RLS está activada en las 20 tablas propias. `private.audit_events` y `private.adoption_notes` no tienen políticas ni permisos ordinarios de tabla: permanecen cerradas para usuarios.
 
-Las políticas de Storage se evalúan sobre `storage.objects`. Todas las políticas listadas actualmente son para el rol `authenticated`; ninguna abre acceso a `anon`.
+Las políticas de Storage se evalúan sobre `storage.objects`. La política `pawpass_qr_photo_read` permite firmar/leer solo la primera foto de cada mascota desde `anon`; los documentos siguen privados.
 
 | Tabla | Política | Operación | USING | WITH CHECK |
 |---|---|---|---|---|
@@ -1043,6 +1050,7 @@ Las políticas de Storage se evalúan sobre `storage.objects`. Todas las políti
 | `storage.objects` | `pawpass_storage_delete` | `DELETE` | `((bucket_id = ANY (ARRAY['pawpass-documentos'::text, 'pawpass-fotos'::text])) AND private.puede_escribir_archivo(bucket_id, name))` | — |
 | `storage.objects` | `pawpass_storage_insert` | `INSERT` | — | `((bucket_id = ANY (ARRAY['pawpass-documentos'::text, 'pawpass-fotos'::text])) AND private.puede_escribir_archivo(bucket_id, name))` |
 | `storage.objects` | `pawpass_storage_read` | `SELECT` | `((bucket_id = ANY (ARRAY['pawpass-documentos'::text, 'pawpass-fotos'::text])) AND private.puede_leer_archivo(bucket_id, name))` | — |
+| `storage.objects` | `pawpass_qr_photo_read` | `SELECT` | `private.puede_leer_foto_qr(bucket_id, name)` | `anon`, `authenticated` |
 | `storage.objects` | `pawpass_storage_update` | `UPDATE` | `((bucket_id = ANY (ARRAY['pawpass-documentos'::text, 'pawpass-fotos'::text])) AND private.puede_escribir_archivo(bucket_id, name))` | `((bucket_id = ANY (ARRAY['pawpass-documentos'::text, 'pawpass-fotos'::text])) AND private.puede_escribir_archivo(bucket_id, name))` |
 
 ## Apéndice C. Triggers instalados
@@ -1059,6 +1067,7 @@ Las políticas de Storage se evalúan sobre `storage.objects`. Todas las políti
 | `public.pet_consultations` | `pet_consultations_updated_at` | `BEFORE UPDATE → private.actualizar_fecha()` |
 | `public.pet_contacts` | `contacts_record_guard` | `BEFORE INSERT OR UPDATE → private.proteger_registro()` |
 | `public.pet_contacts` | `contacts_updated_at` | `BEFORE UPDATE → private.actualizar_fecha()` |
+| `public.pet_contacts` | `pet_contacts_inferir_medio_qr` | `BEFORE INSERT OR UPDATE → private.inferir_medio_contacto_qr()` |
 | `public.pet_dewormings` | `dewormings_date_guard` | `BEFORE INSERT OR UPDATE → private.validar_fechas_salud()` |
 | `public.pet_dewormings` | `dewormings_record_guard` | `BEFORE INSERT OR UPDATE → private.proteger_registro()` |
 | `public.pet_dewormings` | `pet_dewormings_audit` | `AFTER INSERT OR DELETE OR UPDATE → private.auditar_cambio()` |
@@ -1100,6 +1109,8 @@ No se instaló un trigger propio de creación automática de profiles en `auth.u
 | `aceptar_invitacion(p_invitacion uuid)` | Sí | Sí | No |
 | `actualizar_fecha()` | No | No | No |
 | `administra_mascota(p_pet uuid)` | Sí | Sí | No |
+| `inferir_medio_contacto_qr()` | No | Trigger | No |
+| `listar_mascotas_perdidas(p_limite integer, p_offset integer)` | Sí | Sí | Sí |
 | `auditar_cambio()` | Sí | No | No |
 | `cambiar_estado_mascota(p_pet uuid, p_estado text, p_fecha date, p_zona text, p_mensaje text, p_recompensa numeric)` | Sí | Sí | No |
 | `crear_mascota(p_nombre text, p_especie text, p_nacimiento date)` | Sí | Sí | No |
@@ -1116,6 +1127,7 @@ No se instaló un trigger propio de creación automática de profiles en `auth.u
 | `proteger_registro()` | No | No | No |
 | `puede_escribir_archivo(p_bucket text, p_path text)` | Sí | Sí | No |
 | `puede_leer_archivo(p_bucket text, p_path text)` | Sí | Sí | No |
+| `puede_leer_foto_qr(p_bucket text, p_path text)` | Sí | Sí | Sí |
 | `revisar_adopcion(p_solicitud uuid, p_estado text)` | Sí | Sí | No |
 | `revocar_tutor(p_pet uuid, p_usuario uuid)` | Sí | Sí | No |
 | `solicitar_adopcion(p_codigo text, p_nombre text, p_telefono text, p_email text, p_motivo text)` | Sí | Sí | No |

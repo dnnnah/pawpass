@@ -9,6 +9,8 @@ import { hasSupabaseEnv } from "@/lib/infra/supabase/env";
 import { createSupabaseServerClient } from "@/lib/infra/supabase/server";
 import { LogoutButton } from "../../LogoutButton";
 import { PetSettingsForm } from "../../PetSettingsForm";
+import { QRShareCard } from "@/components/features/pet-profile/QRShareCard";
+import { getPublicProfileUrl } from "@/lib/publicProfileUrl";
 import { PetCarnetEditor, type CarnetDocument, type CarnetHealth, type CarnetPet, type CarnetVaccine } from "./PetCarnetEditor";
 
 export const metadata: Metadata = {
@@ -53,7 +55,7 @@ export default async function PetCarnetPage({ params }: { params: Promise<{ petI
   if (ownershipError || !ownership) notFound();
 
   const [petResult, healthResult, vaccineResult, documentResult] = await Promise.all([
-    supabase.from("pets").select("id, nombre, especie, fecha_nacimiento, raza, genero, talla, color, peso_kg, esterilizado, microchip, rasgos_distintivos, notas_identificacion").eq("id", petId).maybeSingle(),
+    supabase.from("pets").select("id, codigo_publico, nombre, especie, fecha_nacimiento, raza, genero, talla, color, peso_kg, esterilizado, microchip, rasgos_distintivos, notas_identificacion").eq("id", petId).maybeSingle(),
     supabase.from("pet_health").select("alergias, condiciones_medicas, medicamentos_actuales, dieta_especial, comportamiento, nota_cuidados_emergencia").eq("pet_id", petId).maybeSingle(),
     supabase.from("pet_vaccines").select("id, nombre, fecha_aplicacion, proxima_dosis, lote, documento_id").eq("pet_id", petId).order("fecha_aplicacion", { ascending: false }),
     supabase.from("pet_documents").select("id, nombre, categoria, tipo, bucket_id, object_path, mime_type, tamano_bytes, fecha, descripcion, created_at").eq("pet_id", petId).order("created_at", { ascending: false }).limit(100),
@@ -65,6 +67,7 @@ export default async function PetCarnetPage({ params }: { params: Promise<{ petI
   }
 
   const petRow = record(petResult.data);
+  const publicCode = text(petRow.codigo_publico);
   const pet: CarnetPet = {
     id: petId,
     name: text(petRow.nombre),
@@ -102,6 +105,7 @@ export default async function PetCarnetPage({ params }: { params: Promise<{ petI
         <SubpageHeader eyebrow="Carnet privado" title={pet.name} description="Solo las cuentas con tutela activa pueden ver este expediente." action={<LogoutButton />} />
         <Button href="/cuenta" variant="secondary" size="sm">Volver a mis mascotas</Button>
         <PetSettingsForm petId={petId} petName={pet.name} canEdit={ownership.rol === "administrador"} showPrivacySettings={false} />
+        <QRShareCard petName={pet.name} petCode={publicCode} profileUrl={getPublicProfileUrl(publicCode) ?? ""} />
         <PetCarnetEditor
           pet={pet}
           health={healthFrom(record(healthResult.data))}

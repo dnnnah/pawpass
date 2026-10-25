@@ -136,6 +136,8 @@ export function LostStatusForm({ petId, petName, status, canEdit }: LostStatusFo
               <p className="mt-1 text-xs leading-5 text-ink-2">
                 Esta información aparecerá en la ficha pública y permitirá que quien la encuentre contacte a su familia.
               </p>
+              <p className="mt-2 text-xs leading-5 text-ink-2">Antes de activarla, revisa que el QR tenga un canal de contacto elegido y que la foto esté cargada.</p>
+              <Button href={`/cuenta/mascotas/${petId}`} variant="quiet" size="sm" className="mt-2">Revisar carnet y contacto</Button>
               <form className="mt-4 grid gap-3" onSubmit={(event) => void submitStatus("perdido", event)} noValidate>
                 <Field id={`${petId}-lost-zone`} label="Zona donde se perdió" error={errors.zone}>
                   {(field) => (

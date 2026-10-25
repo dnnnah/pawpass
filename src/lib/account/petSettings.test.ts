@@ -5,6 +5,7 @@ import {
   normalizePetPrivacy,
   updatePetContact,
   updatePetPrivacy,
+  validateQrContact,
   type PetSettingsClient,
 } from "./petSettings";
 
@@ -37,8 +38,10 @@ describe("normalizePetContact", () => {
         zona_segura: null,
         zona_habitual: "  Parque  ",
         mensaje_whatsapp: null,
+        medio_contacto_qr: "whatsapp",
       }),
     ).toEqual({
+      contactMethod: "whatsapp",
       publicName: "Ana",
       phone: "",
       whatsapp: "+525500000000",
@@ -48,6 +51,14 @@ describe("normalizePetContact", () => {
       usualZone: "Parque",
       whatsappMessage: "",
     });
+  });
+
+  it("infiere solo cuando no hay columna y no elige un canal ambiguo de un registro existente", () => {
+    const contact = normalizePetContact({ telefono_principal: "525500000000" });
+    expect(contact.contactMethod).toBe("phone");
+    expect(validateQrContact(contact)).toBeNull();
+    expect(normalizePetContact({ telefono_principal: "525500000000", whatsapp: "5215550000000", medio_contacto_qr: null }).contactMethod).toBe("");
+    expect(validateQrContact({ ...contact, contactMethod: "email" })).toBeTruthy();
   });
 });
 
@@ -95,6 +106,7 @@ describe("updatePetContact y updatePetPrivacy", () => {
 
     await expect(
       updatePetContact(client, "pet-1", {
+        contactMethod: "phone",
         publicName: "Ana",
         phone: "525500000000",
         whatsapp: "",

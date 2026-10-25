@@ -13,6 +13,7 @@ type AppShellProps = {
 const footerLinks = [
   { href: "/", label: "Inicio" },
   { href: "/#mascotas", label: "Mascotas" },
+  { href: "/perdidas", label: "Mascotas perdidas" },
   { href: "/adopciones", label: "Adopciones" },
   { href: "/login", label: "Iniciar sesión" },
 ];

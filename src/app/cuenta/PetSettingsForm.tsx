@@ -9,6 +9,7 @@ import {
   loadPetSettings,
   updatePetContact,
   updatePetPrivacy,
+  validateQrContact,
   type PetContact,
   type PetPrivacy,
   type PetSettingsClient,
@@ -35,19 +36,8 @@ const contactFields: Array<{ key: keyof PetContact; label: string; type?: "email
 ];
 
 const privacyFields: Array<{ key: keyof PetPrivacy; label: string; help?: string }> = [
-  { key: "published", label: "Publicar la ficha QR", help: "Permite que el código público muestre la información consentida." },
-  { key: "showContactName", label: "Mostrar nombre de contacto" },
-  { key: "showPhone", label: "Mostrar teléfono" },
-  { key: "showWhatsapp", label: "Mostrar WhatsApp" },
-  { key: "showSecondaryPhone", label: "Mostrar teléfono secundario" },
-  { key: "showEmail", label: "Mostrar correo" },
-  { key: "showZone", label: "Mostrar zona" },
-  { key: "showHealth", label: "Mostrar salud" },
-  { key: "showVeterinarian", label: "Mostrar veterinario" },
-  { key: "showVetAddress", label: "Mostrar dirección del veterinario" },
-  { key: "showEmergency", label: "Mostrar instrucciones de emergencia" },
-  { key: "showMicrochip", label: "Mostrar microchip" },
-  { key: "listInCatalog", label: "Incluir en el catálogo de adopción" },
+  { key: "published", label: "Activar perfil público voluntario", help: "La mascota aparecerá en listados públicos. Las fotos, vacunas y documentos solo se publican si los eliges individualmente en el carnet." },
+  { key: "showContactName", label: "Mostrar el nombre del contacto", help: "El canal elegido para el QR se muestra siempre; el nombre es opcional." },
 ];
 
 const defaultPrivacy: PetPrivacy = {
@@ -108,6 +98,12 @@ export function PetSettingsForm({ petId, petName, canEdit, showPrivacySettings =
     setSavingContact(true);
     setError(null);
     setNotice(null);
+    const contactError = validateQrContact(contact);
+    if (contactError) {
+      setError(contactError);
+      setSavingContact(false);
+      return;
+    }
     const result = await updatePetContact(asSettingsClient(), petId, contact);
     if (result) setError(result);
     else setNotice("Contacto guardado.");
@@ -121,7 +117,10 @@ export function PetSettingsForm({ petId, petName, canEdit, showPrivacySettings =
     setSavingPrivacy(true);
     setError(null);
     setNotice(null);
-    const result = await updatePetPrivacy(asSettingsClient(), petId, privacy);
+    const result = await updatePetPrivacy(asSettingsClient(), petId, {
+      ...privacy,
+      listInCatalog: privacy.published,
+    });
     if (result) setError(result);
     else setNotice("Privacidad guardada.");
     setSavingPrivacy(false);
@@ -162,6 +161,11 @@ export function PetSettingsForm({ petId, petName, canEdit, showPrivacySettings =
               <Surface as="section" variant="sunken" size="sm" rest={{ "aria-labelledby": `${petId}-contacto-titulo` }}>
                 <h4 id={`${petId}-contacto-titulo`} className="font-semibold text-ink">Contacto de emergencia</h4>
                 <form className="mt-4 grid gap-3" onSubmit={saveContact}>
+                  <Field id={`${petId}-contact-method`} label="Canal que aparecerá en el QR">
+                    {(field) => <select {...field} value={contact.contactMethod} disabled={!canEdit || savingContact} onChange={(event) => setContact((current) => current ? { ...current, contactMethod: event.target.value as PetContact["contactMethod"] } : current)}>
+                      <option value="">Elige un canal</option><option value="phone">Teléfono</option><option value="whatsapp">WhatsApp</option><option value="email">Correo</option>
+                    </select>}
+                  </Field>
                   {contactFields.map(({ key, label, type = "text" }) => (
                     <Field key={key} id={`${petId}-${key}`} label={label}>
                       {(field) => (

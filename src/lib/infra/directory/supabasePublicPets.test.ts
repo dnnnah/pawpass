@@ -11,6 +11,11 @@ const payload = {
   species: "Perro",
   breed: "Schnauzer",
   status: "perdido",
+  contactMethod: "phone",
+  zone: "San Buenaventura",
+  emergencyCareNote: "No ofrecer pollo.",
+  vaccinationStatus: "sin_informacion",
+  photoPath: "photo-id/archivo",
   privacy: {
     mostrarNombreContacto: true,
     mostrarTelefono: true,
@@ -24,21 +29,28 @@ const payload = {
     mensaje: "Avísame si lo ves",
     instrucciones: ["No lo persigas"],
   },
-  contact: { name: "Donnovan", phone: "5512345678", whatsapp: null },
-  recentPhotos: [],
+  contact: { name: "Donnovan", phone: "5512345678", whatsapp: "5215512345678", email: "privado@example.com" },
+  recentPhotoPaths: ["extra-id/archivo"],
 };
 
 describe("createSupabasePublicPetDirectory", () => {
   it("consulta el RPC con el código normalizado y mapea su respuesta", async () => {
     const rpc = vi.fn().mockResolvedValue({ data: [payload], error: null });
-    const directory = createSupabasePublicPetDirectory({ rpc });
+    const createSignedUrl = vi.fn(async (path: string) => ({ data: { signedUrl: `https://storage.test/${path}` }, error: null }));
+    const directory = createSupabasePublicPetDirectory({ rpc, storage: { from: () => ({ createSignedUrl }) } });
 
     await expect(directory.findPublicPet("  PC-LUCCA-001 ")).resolves.toMatchObject({
       publicCode: "PC-LUCCA-001",
       name: "Lucca",
       contact: { name: "Donnovan", phone: "5512345678", whatsapp: null },
+      zone: "San Buenaventura",
+      emergencyCareNote: "No ofrecer pollo.",
+      vaccinationStatus: "sin_informacion",
+      photoUrl: "https://storage.test/photo-id/archivo",
+      recentPhotos: [{ url: "https://storage.test/extra-id/archivo" }],
     });
     expect(rpc).toHaveBeenCalledWith("obtener_ficha_publica", { p_codigo: "PC-LUCCA-001" });
+    expect(createSignedUrl).toHaveBeenCalledTimes(2);
   });
 
   it("devuelve null para una respuesta vacía o un código vacío", async () => {
@@ -48,6 +60,14 @@ describe("createSupabasePublicPetDirectory", () => {
     await expect(directory.findPublicPet("PC-NO-EXISTE-999")).resolves.toBeNull();
     await expect(directory.findPublicPet("   ")).resolves.toBeNull();
     expect(rpc).toHaveBeenCalledTimes(1);
+  });
+
+  it("lista solo fichas que el mapper confirma como perdidas", async () => {
+    const rpc = vi.fn().mockResolvedValue({ data: [payload, { ...payload, status: "en_casa", lost: null }], error: null });
+    const directory = createSupabasePublicPetDirectory({ rpc });
+
+    await expect(directory.listLostPets()).resolves.toHaveLength(1);
+    expect(rpc).toHaveBeenCalledWith("listar_mascotas_perdidas", { p_limite: 50, p_offset: 0 });
   });
 
   it("convierte los errores del RPC en un error del adaptador", async () => {
