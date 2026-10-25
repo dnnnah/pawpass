@@ -20,6 +20,7 @@ type PetSettingsFormProps = {
   petId: string;
   petName: string;
   canEdit: boolean;
+  showPrivacySettings?: boolean;
 };
 
 const contactFields: Array<{ key: keyof PetContact; label: string; type?: "email" | "tel" | "text" }> = [
@@ -69,7 +70,7 @@ function asSettingsClient(): PetSettingsClient {
   return createSupabaseBrowserClient() as unknown as PetSettingsClient;
 }
 
-export function PetSettingsForm({ petId, petName, canEdit }: PetSettingsFormProps) {
+export function PetSettingsForm({ petId, petName, canEdit, showPrivacySettings = true }: PetSettingsFormProps) {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [savingContact, setSavingContact] = useState(false);
@@ -182,7 +183,7 @@ export function PetSettingsForm({ petId, petName, canEdit }: PetSettingsFormProp
                 </form>
               </Surface>
 
-              <Surface as="section" variant="sunken" size="sm" rest={{ "aria-labelledby": `${petId}-privacidad-titulo` }}>
+              {showPrivacySettings ? <Surface as="section" variant="sunken" size="sm" rest={{ "aria-labelledby": `${petId}-privacidad-titulo` }}>
                 <h4 id={`${petId}-privacidad-titulo`} className="font-semibold text-ink">Qué puede mostrar la ficha</h4>
                 <form className="mt-4 grid gap-2" onSubmit={savePrivacy}>
                   {privacyFields.map(({ key, label, help }) => (
@@ -209,7 +210,7 @@ export function PetSettingsForm({ petId, petName, canEdit }: PetSettingsFormProp
                     </SubmitButton>
                   ) : null}
                 </form>
-              </Surface>
+              </Surface> : null}
 
               {error ? <p className="text-sm text-danger" role="alert">{error}</p> : null}
               {notice ? <p className="text-sm text-success" role="status">{notice}</p> : null}

@@ -559,7 +559,7 @@ CREATE UNIQUE INDEX pet_lost_alerts_pkey ON public.pet_lost_alerts USING btree (
 
 ### public.pet_health
 
-Resumen de salud: alergias, condiciones, medicamentos, dieta y comportamiento.
+Resumen privado de salud: alergias, condiciones, medicamentos, dieta, comportamiento y nota de cuidados de emergencia.
 
 | Columna | Tipo | NULL | Predeterminado |
 |---|---|---|---|
@@ -569,6 +569,7 @@ Resumen de salud: alergias, condiciones, medicamentos, dieta y comportamiento.
 | `medicamentos_actuales` | `text[]` | No | `'{}'::text[]` |
 | `dieta_especial` | `text` | Sí | — |
 | `comportamiento` | `text` | Sí | — |
+| `nota_cuidados_emergencia` | `text` | Sí | — |
 | `updated_at` | `timestamp with time zone` | No | `now()` |
 
 **Restricciones**
@@ -577,6 +578,7 @@ Resumen de salud: alergias, condiciones, medicamentos, dieta y comportamiento.
 - `pet_health_check`: `CHECK (((char_length(dieta_especial) <= 2000) AND (char_length(comportamiento) <= 2000)))`.
 - `pet_health_condiciones_medicas_check`: `CHECK (((cardinality(condiciones_medicas) <= 100) AND (octet_length((condiciones_medicas)::text) <= 12000)))`.
 - `pet_health_medicamentos_actuales_check`: `CHECK (((cardinality(medicamentos_actuales) <= 100) AND (octet_length((medicamentos_actuales)::text) <= 12000)))`.
+- `pet_health_nota_cuidados_emergencia_check`: `CHECK ((nota_cuidados_emergencia IS NULL OR char_length(nota_cuidados_emergencia) <= 2000))`.
 - `pet_health_pet_id_fkey`: `FOREIGN KEY (pet_id) REFERENCES pets(id) ON DELETE CASCADE`.
 - `pet_health_pkey`: `PRIMARY KEY (pet_id)`.
 
@@ -630,7 +632,7 @@ Metadata de documentos y fotos. Los bytes se guardan en Storage, no en esta tabl
 | `bucket_id` | `text` | No | `'pawpass-documentos'::text` |
 | `object_path` | `text` | No | — |
 | `mime_type` | `text` | No | — |
-| `tamano_bytes` | `bigint` | Sí | — |
+| `tamano_bytes` | `bigint` | No | — |
 | `fecha` | `date` | Sí | — |
 | `descripcion` | `text` | Sí | — |
 | `visible_publico` | `boolean` | No | `false` |
@@ -1031,7 +1033,7 @@ Las políticas de Storage se evalúan sobre `storage.objects`. Todas las políti
 | `public.pet_veterinarians` | `pet_veterinarians_select` | `SELECT` | `private.es_tutor(pet_id)` | — |
 | `public.pet_veterinarians` | `pet_veterinarians_update` | `UPDATE` | `private.administra_mascota(pet_id)` | `private.administra_mascota(pet_id)` |
 | `public.pets` | `pets_tutor_select` | `SELECT` | `private.es_tutor(id)` | — |
-| `public.pets` | `pets_tutor_update` | `UPDATE` | `private.es_tutor(id)` | `private.es_tutor(id)` |
+| `public.pets` | `pets_admin_update` | `UPDATE` | `private.administra_mascota(id)` | `private.administra_mascota(id)` |
 | `public.profiles` | `profiles_insert_own` | `INSERT` | — | `(( SELECT auth.uid() AS uid) = id)` |
 | `public.profiles` | `profiles_select_own` | `SELECT` | `(( SELECT auth.uid() AS uid) = id)` | — |
 | `public.profiles` | `profiles_update_own` | `UPDATE` | `(( SELECT auth.uid() AS uid) = id)` | `(( SELECT auth.uid() AS uid) = id)` |

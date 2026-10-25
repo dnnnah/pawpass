@@ -134,6 +134,9 @@ export default async function CuentaPage() {
                           <dd className="mt-1 flex items-center gap-1.5 font-semibold text-ink"><CalendarDays size={14} aria-hidden="true" />{formatDate(pet.startedAt)}</dd>
                         </div>
                       </dl>
+                      <Button href={`/cuenta/mascotas/${pet.id}`} variant="secondary" className="mt-5 w-full">
+                        Abrir carnet privado
+                      </Button>
                     </Surface>
                   ))}
                 </div>
