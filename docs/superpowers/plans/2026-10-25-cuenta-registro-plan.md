@@ -4,7 +4,7 @@
 - **Especificación:** `docs/superpowers/specs/2026-10-25-cuenta-registro-design.md`
 - **Base:** `88bf56c` (`codex/fase-0-estabilizacion`)
 - **Rama de trabajo:** `codex/fase-1-cuenta-registro`
-- **Estado:** código y verificaciones locales completos; migración pendiente de aplicación
+- **Estado:** implementado y aplicado a Supabase; prueba transaccional del RPC aprobada
 - **Planificación:** el skill `writing-plans` no está disponible en este entorno; este documento sigue el patrón del plan Supabase previo del repositorio.
 
 ## T1 — Contratos y validación del alta
@@ -65,7 +65,9 @@
 
 - La política actual de Storage exige que el objeto corresponda a una fila existente en `pet_documents`; el RPC debe crear la metadata antes de subir bytes.
 - El proyecto remoto sí está conectado y se inspeccionó en modo lectura; cualquier cambio SQL se conserva como migración versionada, no se aplica directamente al proyecto durante la implementación.
-- El ejecutable `supabase` no está disponible en este entorno; por eso el archivo usa manualmente el formato estándar de migración. Debe generarse/verificarse con `supabase migration new` y aplicarse en una base local/de desarrollo antes de desplegar la aplicación.
-- La prueba reversible `supabase/tests/cuenta_registro_rls.sql` pasó contra el proyecto conectado para dueño, otra cuenta y visitante. La prueba `cuenta_registro_rpc.sql` queda lista para correr después de aplicar la migración; el revisor automático bloqueó la ejecución remota temporal de DDL por eliminar/recrear funciones, incluso dentro de un `ROLLBACK`.
+- El ejecutable `supabase` no está disponible en este entorno; los archivos siguen el formato estándar y usan las versiones registradas por el proyecto.
+- Se aplicaron `20261025181525_cuenta_registro_sencillo` y `20261025181633_corregir_ruta_foto_alta` al proyecto `pawpass` después de la autorización explícita del usuario.
+- La prueba reversible `supabase/tests/cuenta_registro_rls.sql` pasó para dueño, otra cuenta y visitante. `cuenta_registro_rpc.sql` pasó contra la versión aplicada; las cuentas y mascota de prueba se revirtieron al terminar.
+- El revisor automático había bloqueado la prueba temporal de DDL remoto por riesgo de cambios transitorios de funciones y permisos. Tras la autorización explícita, se aplicó mediante la herramienta de migraciones y la prueba de datos se ejecutó en una transacción reversible.
 - La confirmación de email puede dejar una cuenta pendiente sin sesión; la interfaz de login ya presenta el paso de verificación.
 - No se crean credenciales ni se configura OAuth de Apple/Google en Supabase; se reutiliza la configuración existente.

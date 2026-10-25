@@ -41,10 +41,10 @@ begin
   if v_count <> 1 then raise exception 'selected contact was not stored exclusively'; end if;
   select count(*) into v_count from public.pet_privacy where pet_id = v_pet and not publicado;
   if v_count <> 1 then raise exception 'new pet must remain unpublished'; end if;
-  perform set_config('role', 'postgres', true);
   select to_jsonb(d) into v_photo from public.pet_documents d where id = v_document;
-  perform set_config('role', 'authenticated', true);
-  if v_photo is null then raise exception 'private photo metadata was not readable (current_user %, session_user %, id %)', current_user, session_user, v_document; end if;
+  if v_photo is null then
+    raise exception 'owner cannot read the generated private photo metadata';
+  end if;
   if v_photo ->> 'pet_id' <> v_pet::text
      or v_photo ->> 'bucket_id' <> 'pawpass-fotos'
      or v_photo ->> 'object_path' <> v_path
