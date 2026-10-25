@@ -13,6 +13,7 @@ import { listAccountAdoptionRequests } from "@/lib/account/adoptionRequests";
 import { LogoutButton } from "./LogoutButton";
 import { CreatePetForm } from "./CreatePetForm";
 import { AdoptionRequestsPanel } from "./AdoptionRequestsPanel";
+import { LostStatusForm } from "./LostStatusForm";
 
 export const metadata: Metadata = {
   title: "Mi cuenta | PawPass",
