@@ -56,6 +56,19 @@ export type PetSettingsClient = {
   from: (table: "pet_contacts" | "pet_privacy") => PetSettingsQuery & PetSettingsUpdate;
 };
 
+export type PublicRecordTable = "pet_documents" | "pet_vaccines";
+export type PublicRecordVisibilityClient = {
+  from: (table: PublicRecordTable) => {
+    update: (values: { visible_publico: boolean }) => {
+      eq: (column: "pet_id", value: string) => {
+        eq: (column: "id", value: string) => {
+          select: (columns: "id") => { maybeSingle: () => Promise<QueryResult> };
+        };
+      };
+    };
+  };
+};
+
 const emptyContact: PetContact = {
   contactMethod: "",
   publicName: "",
@@ -237,6 +250,26 @@ export async function updatePetPrivacy(
       .eq("pet_id", petId);
 
     return error ? SAVE_ERROR : null;
+  } catch {
+    return SAVE_ERROR;
+  }
+}
+
+export async function setPublicRecordVisibility(
+  client: PublicRecordVisibilityClient,
+  table: PublicRecordTable,
+  petId: string,
+  recordId: string,
+  visible: boolean,
+): Promise<string | null> {
+  try {
+    const { data, error } = await client.from(table)
+      .update({ visible_publico: visible })
+      .eq("pet_id", petId)
+      .eq("id", recordId)
+      .select("id")
+      .maybeSingle();
+    return error || !data ? SAVE_ERROR : null;
   } catch {
     return SAVE_ERROR;
   }

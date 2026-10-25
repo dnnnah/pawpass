@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { Check, ChevronDown, ChevronUp, LockKeyhole, Save } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Field, SubmitButton } from "@/components/ui/Field";
@@ -20,6 +21,7 @@ import { hasSupabaseEnv } from "@/lib/infra/supabase/env";
 type PetSettingsFormProps = {
   petId: string;
   petName: string;
+  publicCode?: string;
   canEdit: boolean;
   showPrivacySettings?: boolean;
 };
@@ -36,8 +38,15 @@ const contactFields: Array<{ key: keyof PetContact; label: string; type?: "email
 ];
 
 const privacyFields: Array<{ key: keyof PetPrivacy; label: string; help?: string }> = [
-  { key: "published", label: "Activar perfil público voluntario", help: "La mascota aparecerá en listados públicos. Las fotos, vacunas y documentos solo se publican si los eliges individualmente en el carnet." },
-  { key: "showContactName", label: "Mostrar el nombre del contacto", help: "El canal elegido para el QR se muestra siempre; el nombre es opcional." },
+  { key: "published", label: "Activar perfil público voluntario", help: "La mascota aparecerá en el listado público. Los archivos y vacunas requieren una elección individual en el carnet." },
+  { key: "showContactName", label: "Mostrar el nombre del contacto" },
+  { key: "showPhone", label: "Mostrar también el teléfono principal", help: "El canal seleccionado para el QR ya es visible en la ficha básica." },
+  { key: "showWhatsapp", label: "Mostrar también WhatsApp" },
+  { key: "showSecondaryPhone", label: "Mostrar el teléfono secundario" },
+  { key: "showEmail", label: "Mostrar también el correo" },
+  { key: "showZone", label: "Mostrar zona aproximada en el perfil público" },
+  { key: "showHealth", label: "Mostrar el resumen de salud" },
+  { key: "showMicrochip", label: "Mostrar el número de microchip" },
 ];
 
 const defaultPrivacy: PetPrivacy = {
@@ -60,7 +69,7 @@ function asSettingsClient(): PetSettingsClient {
   return createSupabaseBrowserClient() as unknown as PetSettingsClient;
 }
 
-export function PetSettingsForm({ petId, petName, canEdit, showPrivacySettings = true }: PetSettingsFormProps) {
+export function PetSettingsForm({ petId, petName, publicCode, canEdit, showPrivacySettings = true }: PetSettingsFormProps) {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [savingContact, setSavingContact] = useState(false);
@@ -117,10 +126,7 @@ export function PetSettingsForm({ petId, petName, canEdit, showPrivacySettings =
     setSavingPrivacy(true);
     setError(null);
     setNotice(null);
-    const result = await updatePetPrivacy(asSettingsClient(), petId, {
-      ...privacy,
-      listInCatalog: privacy.published,
-    });
+    const result = await updatePetPrivacy(asSettingsClient(), petId, privacy);
     if (result) setError(result);
     else setNotice("Privacidad guardada.");
     setSavingPrivacy(false);
@@ -189,6 +195,7 @@ export function PetSettingsForm({ petId, petName, canEdit, showPrivacySettings =
 
               {showPrivacySettings ? <Surface as="section" variant="sunken" size="sm" rest={{ "aria-labelledby": `${petId}-privacidad-titulo` }}>
                 <h4 id={`${petId}-privacidad-titulo`} className="font-semibold text-ink">Qué puede mostrar la ficha</h4>
+                {privacy.published && publicCode ? <Link href={`/perfil/${publicCode}`} className="mt-2 inline-block text-sm font-semibold text-brand underline">Ver perfil público de {petName}</Link> : null}
                 <form className="mt-4 grid gap-2" onSubmit={savePrivacy}>
                   {privacyFields.map(({ key, label, help }) => (
                     <label key={key} className="flex items-start gap-3 rounded-md border border-rule bg-surface px-3 py-2.5 text-sm text-ink">

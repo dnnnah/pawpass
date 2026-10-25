@@ -70,6 +70,42 @@ describe("createSupabasePublicPetDirectory", () => {
     expect(rpc).toHaveBeenCalledWith("listar_mascotas_perdidas", { p_limite: 50, p_offset: 0 });
   });
 
+  it("lista perfiles voluntarios mediante un RPC separado del catálogo de adopción", async () => {
+    const rpc = vi.fn().mockResolvedValue({
+      data: [{ publicCode: "PC-LOLA-123", name: "Lola", species: "Perro", status: "en_casa", photoPath: "lola/main" }],
+      error: null,
+    });
+    const directory = createSupabasePublicPetDirectory({ rpc });
+
+    await expect(directory.listPublicProfiles()).resolves.toEqual([
+      { publicCode: "PC-LOLA-123", name: "Lola", species: "Perro", photoUrl: null, breed: null, status: "en_casa", zone: null },
+    ]);
+    expect(rpc).toHaveBeenCalledWith("listar_perfiles_publicos", { p_limite: 50, p_offset: 0 });
+  });
+
+  it("lee el perfil voluntario con su lista allowlisted y firma solo sus archivos publicados", async () => {
+    const publicProfile = {
+      publicCode: "PC-LOLA-123", name: "Lola", species: "Perro", status: "en_casa",
+      photoPath: "lola/main", photos: [{ visible: true, path: "lola/selected-photo" }],
+      contact: { name: null, phone: "+525512345678", whatsapp: null, email: null },
+      health: { allergies: ["Pollo"], conditions: [], medications: [], diet: "Croquetas especiales", behavior: "Tranquila" },
+      vaccines: [{ visible: true, name: "Rabia", applicationDate: "2025-05-01", nextDose: "2026-05-01" }],
+      documents: [{ visible: true, name: "Cartilla", type: "pdf", category: "vacunas", bucket: "pawpass-documentos", path: "lola/cartilla" }],
+      veterinarian: { name: "No debe llegar a la página" },
+    };
+    const rpc = vi.fn().mockResolvedValue({ data: publicProfile, error: null });
+    const createSignedUrl = vi.fn(async (path: string) => ({ data: { signedUrl: `https://storage.test/${path}` }, error: null }));
+    const directory = createSupabasePublicPetDirectory({ rpc, storage: { from: () => ({ createSignedUrl }) } });
+
+    await expect(directory.findPublicProfile("PC-LOLA-123")).resolves.toMatchObject({
+      publicCode: "PC-LOLA-123", name: "Lola", contact: { phone: "+525512345678" },
+      health: { allergies: ["Pollo"] }, photos: [{ url: "https://storage.test/lola/selected-photo" }],
+      documents: [{ name: "Cartilla", url: "https://storage.test/lola/cartilla" }],
+    });
+    expect(rpc).toHaveBeenCalledWith("obtener_perfil_publico", { p_codigo: "PC-LOLA-123" });
+    expect(createSignedUrl).toHaveBeenCalledTimes(3);
+  });
+
   it("convierte los errores del RPC en un error del adaptador", async () => {
     const directory = createSupabasePublicPetDirectory({
       rpc: vi.fn().mockResolvedValue({ data: null, error: { message: "RPC unavailable" } }),

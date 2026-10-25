@@ -30,12 +30,18 @@ import { toVaccineItemViewModel } from "@/lib/mapping/health";
 import { buildPetProfileMetadata } from "@/lib/seo";
 import { getPublicProfileUrl } from "@/lib/publicProfileUrl";
 import { notFound } from "next/navigation";
+import { hasSupabaseEnv } from "@/lib/infra/supabase/env";
+import { findActivePublicProfile } from "@/lib/infra/directory/activePublicProfiles";
+import { PublicProfileView } from "@/components/features/pet-profile/PublicProfileView";
 
 type ProfilePageProps = {
   params: Promise<{ id: string }>;
 };
 
+export const dynamic = "force-dynamic";
+
 export async function generateStaticParams() {
+  if (hasSupabaseEnv() || process.env.NODE_ENV === "production") return [];
   const pets = await getAllProfilePets();
 
   return pets.flatMap((pet) => [{ id: pet.id }, { id: pet.identificacion.codigoPublico }]);
@@ -43,6 +49,23 @@ export async function generateStaticParams() {
 
 export async function generateMetadata({ params }: ProfilePageProps): Promise<Metadata> {
   const { id } = await params;
+  if (hasSupabaseEnv()) {
+    try {
+      const profile = await findActivePublicProfile(id);
+      if (!profile) return { title: "Perfil no disponible | PawPass", robots: { index: false, follow: false } };
+      return {
+        title: `${profile.name} | PawPass`,
+        description: `Perfil público compartido por la persona responsable de ${profile.name}.`,
+        robots: { index: true, follow: true },
+        alternates: { canonical: `/perfil/${profile.publicCode}` },
+      };
+    } catch {
+      return { title: "Perfil temporalmente no disponible | PawPass", robots: { index: false, follow: false } };
+    }
+  }
+  if (process.env.NODE_ENV === "production") {
+    return { title: "Perfil no disponible | PawPass", robots: { index: false, follow: false } };
+  }
   const pet = await getPetByIdAny(id);
 
   if (!pet) {
@@ -57,6 +80,12 @@ export async function generateMetadata({ params }: ProfilePageProps): Promise<Me
 
 export default async function ProfilePage({ params }: ProfilePageProps) {
   const { id } = await params;
+  if (hasSupabaseEnv()) {
+    const profile = await findActivePublicProfile(id);
+    if (!profile) notFound();
+    return <PublicProfileView profile={profile} />;
+  }
+  if (process.env.NODE_ENV === "production") notFound();
   const [pet, shelters] = await Promise.all([getPetByIdAny(id), getMockShelters()]);
 
   if (!pet) {

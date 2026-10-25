@@ -5,7 +5,8 @@ import { Button } from "@/components/ui/Button";
 import { PetsList } from "@/components/features/home/PetsList";
 import { PetMarks } from "@/components/ui/PetMarks";
 import { Section } from "@/components/ui/Section";
-import { getAllPets } from "@/lib/services/pets/queries";
+import { listActivePublicProfiles } from "@/lib/infra/directory/activePublicProfiles";
+import type { PublicProfileCard } from "@/types/publicProfile";
 
 const STEPS = [
   {
@@ -15,19 +16,21 @@ const STEPS = [
   },
   {
     icon: QrCode,
-    title: "El perfil se imprime o se comparte",
-    body: "Un QR en el collar o la mochila lleva al carnet público.",
+    title: "El QR se comparte",
+    body: "Un QR en el collar o la mochila muestra la ficha básica para ayudar a la mascota.",
   },
   {
     icon: ShieldCheck,
     title: "Cualquiera puede ayudar",
-    body: "Quien encuentre a la mascota ve teléfono, salud y cómo reportarla.",
+    body: "Quien la encuentre ve la zona aproximada, el contacto elegido y los cuidados importantes.",
   },
 ];
 
 export default async function Home() {
-  const pets = await getAllPets();
-  const featuredPet = pets[0];
+  let pets: PublicProfileCard[] = [];
+  let petsFailed = false;
+  try { pets = await listActivePublicProfiles(); }
+  catch { petsFailed = true; }
 
   return (
     <AppShell>
@@ -49,16 +52,13 @@ export default async function Home() {
             Si la pierdes, que cualquiera pueda devolverla.
           </h1>
           <p className="mt-5 max-w-2xl text-lg leading-8 text-ink-2">
-            PawPass convierte los datos de tu mascota en un carnet público con QR: identidad,
-            salud y contacto de emergencia en un solo lugar, siempre a tu control.
+            PawPass guarda el carnet de tu mascota en privado y crea un QR útil para ayudarla a volver a casa. Tú eliges qué información compartir en un perfil público.
           </p>
 
           <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-            {featuredPet ? (
-              <Button href={`/perfil/${featuredPet.id}`} size="lg" iconEnd={<ArrowRight size={18} />}>
-                Ver el perfil de {featuredPet.mascota.nombre}
-              </Button>
-            ) : null}
+            <Button href="/mascotas" size="lg" iconEnd={<ArrowRight size={18} />}>
+              Explorar perfiles públicos
+            </Button>
             <Button
               href="/adopciones"
               variant="secondary"
@@ -95,13 +95,13 @@ export default async function Home() {
       <Section
         id="mascotas"
         as="h2"
-        eyebrow="Mascotas registradas"
-        title="Elige un carnet para verlo completo"
-        description="Cada perfil reúne identificación, salud y contacto de emergencia."
+        eyebrow="Perfiles voluntarios"
+        title="Mascotas para conocer"
+        description="Aquí aparecen solo las mascotas cuyos responsables activaron su perfil público."
         className="mx-auto w-full max-w-5xl px-4 py-12 sm:px-6 sm:py-16 lg:px-8"
         bodyClassName="scroll-mt-24"
       >
-        <PetsList pets={pets} />
+        <PetsList pets={pets} failed={petsFailed} />
       </Section>
     </AppShell>
   );

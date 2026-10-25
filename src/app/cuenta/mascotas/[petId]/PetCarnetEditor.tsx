@@ -18,6 +18,7 @@ import {
 } from "@/lib/account/petCarnet";
 import { createSupabaseBrowserClient } from "@/lib/infra/supabase/client";
 import { hasSupabaseEnv } from "@/lib/infra/supabase/env";
+import { setPublicRecordVisibility, type PublicRecordVisibilityClient } from "@/lib/account/petSettings";
 
 export type CarnetPet = {
   id: string; name: string; species: "perro" | "gato"; birthDate: string; breed: string; gender: string;
@@ -27,10 +28,10 @@ export type CarnetPet = {
 export type CarnetHealth = {
   allergies: string[]; conditions: string[]; medications: string[]; specialDiet: string; behavior: string; emergencyCareNote: string;
 };
-export type CarnetVaccine = { id: string; name: string; applicationDate: string; nextDose: string; batch: string; documentId: string };
+export type CarnetVaccine = { id: string; name: string; applicationDate: string; nextDose: string; batch: string; documentId: string; visiblePublic: boolean };
 export type CarnetDocument = {
   id: string; name: string; category: string; type: "pdf" | "imagen" | "otro"; bucketId: "pawpass-fotos" | "pawpass-documentos";
-  objectPath: string; mimeType: string; size: number; date: string; description: string; signedUrl: string | null;
+  objectPath: string; mimeType: string; size: number; date: string; description: string; signedUrl: string | null; visiblePublic: boolean;
 };
 type PetCarnetEditorProps = { pet: CarnetPet; health: CarnetHealth; vaccines: CarnetVaccine[]; documents: CarnetDocument[]; canEdit: boolean };
 
@@ -167,6 +168,21 @@ export function PetCarnetEditor({ pet, health, vaccines, documents, canEdit }: P
     finally { setBusy(null); }
   }
 
+  async function toggleRecordVisibility(table: "pet_documents" | "pet_vaccines", recordId: string, visible: boolean) {
+    if (!canEdit || !ready()) return;
+    clearMessages(); setBusy(`visibility:${recordId}`);
+    const result = await setPublicRecordVisibility(
+      createSupabaseBrowserClient() as unknown as PublicRecordVisibilityClient,
+      table,
+      pet.id,
+      recordId,
+      visible,
+    );
+    if (result) setError(result);
+    else { setNotice(visible ? "El registro se compartirá en el perfil público." : "El registro seguirá privado."); router.refresh(); }
+    setBusy(null);
+  }
+
   async function uploadBytes(upload: NonNullable<typeof pendingUpload>) {
     setBusy("file"); clearMessages();
     try {
@@ -260,7 +276,7 @@ export function PetCarnetEditor({ pet, health, vaccines, documents, canEdit }: P
 
     <Surface as="section" size="lg" rest={{ "aria-labelledby": "vacunas-titulo" }}>
       <div className="flex flex-wrap items-end justify-between gap-3"><div><h2 id="vacunas-titulo" className="font-display text-2xl text-ink">Vacunas</h2><p className="mt-1 text-sm leading-6 text-ink-2">Registro ingresado por el dueño; PawPass no valida clínicamente las aplicaciones.</p></div><span className="rounded-full bg-brand-soft px-3 py-1 text-xs font-semibold text-brand-ink">{vaccines.length} {vaccines.length === 1 ? "registro" : "registros"}</span></div>
-      {vaccines.length ? <ul className="mt-5 grid gap-3">{vaccines.map((vaccine) => <li key={vaccine.id} className="rounded-md border border-rule bg-surface px-4 py-3"><div className="flex flex-wrap items-start justify-between gap-3"><div><h3 className="font-semibold text-ink">{vaccine.name}</h3><p className="mt-1 text-sm text-ink-2">Aplicada: {formatDate(vaccine.applicationDate)}{vaccine.nextDose ? ` · Próxima dosis: ${formatDate(vaccine.nextDose)}` : " · Próxima dosis sin registrar"}</p>{vaccine.batch ? <p className="mt-1 text-xs text-ink-3">Lote: {vaccine.batch}</p> : null}{vaccine.documentId ? <p className="mt-1 text-xs text-ink-3">Comprobante adjunto al carnet</p> : null}</div>{canEdit ? <div className="flex gap-2"><button type="button" className="text-sm font-semibold text-brand underline" onClick={() => editVaccine(vaccine)}>Editar</button><button type="button" className="text-sm font-semibold text-danger underline disabled:opacity-50" disabled={Boolean(busy)} onClick={() => void deleteVaccine(vaccine.id)}>{busy === `vaccine:${vaccine.id}` ? "Eliminando…" : "Eliminar"}</button></div> : null}</div></li>)}</ul> : <p className="mt-4 rounded-md bg-sunken px-4 py-3 text-sm text-ink-2">Aún no hay vacunas registradas.</p>}
+      {vaccines.length ? <ul className="mt-5 grid gap-3">{vaccines.map((vaccine) => <li key={vaccine.id} className="rounded-md border border-rule bg-surface px-4 py-3"><div className="flex flex-wrap items-start justify-between gap-3"><div><h3 className="font-semibold text-ink">{vaccine.name}</h3><p className="mt-1 text-sm text-ink-2">Aplicada: {formatDate(vaccine.applicationDate)}{vaccine.nextDose ? ` · Próxima dosis: ${formatDate(vaccine.nextDose)}` : " · Próxima dosis sin registrar"}</p>{vaccine.batch ? <p className="mt-1 text-xs text-ink-3">Lote: {vaccine.batch}</p> : null}{vaccine.documentId ? <p className="mt-1 text-xs text-ink-3">Comprobante adjunto al carnet</p> : null}<label className="mt-3 flex items-start gap-2 text-xs text-ink-2"><input type="checkbox" checked={vaccine.visiblePublic} disabled={!editable} onChange={(event) => void toggleRecordVisibility("pet_vaccines", vaccine.id, event.target.checked)} className="mt-0.5 size-4 shrink-0 accent-brand" />Compartir esta vacuna en el perfil público voluntario</label></div>{canEdit ? <div className="flex gap-2"><button type="button" className="text-sm font-semibold text-brand underline" onClick={() => editVaccine(vaccine)}>Editar</button><button type="button" className="text-sm font-semibold text-danger underline disabled:opacity-50" disabled={Boolean(busy)} onClick={() => void deleteVaccine(vaccine.id)}>{busy === `vaccine:${vaccine.id}` ? "Eliminando…" : "Eliminar"}</button></div> : null}</div></li>)}</ul> : <p className="mt-4 rounded-md bg-sunken px-4 py-3 text-sm text-ink-2">Aún no hay vacunas registradas.</p>}
       {canEdit ? <form className="mt-5 grid gap-4 border-t border-rule pt-5 sm:grid-cols-2" onSubmit={saveVaccine}><h3 className="sm:col-span-2 font-semibold text-ink">{editingVaccineId ? "Editar vacuna" : "Registrar vacuna"}</h3>
         <Field id="vacuna-nombre" label="Vacuna" error={vaccineErrors.name}>{(f) => <input {...f} maxLength={200} value={vaccineInput.name} disabled={!editable} onChange={(e) => setVaccineInput({ ...vaccineInput, name: e.target.value })} />}</Field>
         <Field id="vacuna-aplicacion" label="Fecha de aplicación" error={vaccineErrors.applicationDate}>{(f) => <input {...f} type="date" max={today()} value={vaccineInput.applicationDate} disabled={!editable} onChange={(e) => setVaccineInput({ ...vaccineInput, applicationDate: e.target.value })} />}</Field>
@@ -272,8 +288,8 @@ export function PetCarnetEditor({ pet, health, vaccines, documents, canEdit }: P
     </Surface>
 
     <Surface as="section" size="lg" rest={{ "aria-labelledby": "archivos-titulo" }}>
-      <div className="flex items-center gap-3"><span className="grid size-10 place-items-center rounded-md bg-brand-soft text-brand"><FileText size={20} aria-hidden="true" /></span><div><h2 id="archivos-titulo" className="font-display text-2xl text-ink">Fotos y documentos</h2><p className="text-sm leading-6 text-ink-2">Los archivos originales se guardan en buckets privados y no aparecen en la ficha QR.</p></div></div>
-      {documents.length ? <ul className="mt-5 grid gap-3 sm:grid-cols-2">{documents.map((document) => <li key={document.id} className="overflow-hidden rounded-md border border-rule bg-surface">{document.category === "foto" && document.signedUrl ? <Image src={document.signedUrl} alt={`Foto de ${pet.name}: ${document.name}`} width={800} height={600} unoptimized className="aspect-[4/3] w-full object-cover" /> : null}<div className="flex items-start justify-between gap-3 p-4"><div className="min-w-0"><p className="text-xs font-semibold uppercase tracking-wide text-brand">{categoryLabel(document.category)}</p><h3 className="mt-1 break-words font-semibold text-ink">{document.name}</h3><p className="mt-1 text-xs text-ink-3">{formatDate(document.date)} · {formatSize(document.size)}</p>{document.description ? <p className="mt-2 text-sm leading-5 text-ink-2">{document.description}</p> : null}{document.category !== "foto" && document.signedUrl ? <a href={document.signedUrl} target="_blank" rel="noreferrer" className="mt-2 inline-block text-sm font-semibold text-brand underline">Abrir archivo privado</a> : null}</div>{canEdit ? <button type="button" title={`Eliminar ${document.name}`} aria-label={`Eliminar ${document.name}`} className="shrink-0 rounded-md p-2 text-danger hover:bg-danger-soft disabled:opacity-50" disabled={Boolean(busy)} onClick={() => void deleteDocument(document)}><Trash2 size={17} aria-hidden="true" /></button> : null}</div></li>)}</ul> : <p className="mt-4 rounded-md bg-sunken px-4 py-3 text-sm text-ink-2">Todavía no hay fotos ni documentos adicionales.</p>}
+      <div className="flex items-center gap-3"><span className="grid size-10 place-items-center rounded-md bg-brand-soft text-brand"><FileText size={20} aria-hidden="true" /></span><div><h2 id="archivos-titulo" className="font-display text-2xl text-ink">Fotos y documentos</h2><p className="text-sm leading-6 text-ink-2">Los originales permanecen en almacenamiento privado. Puedes compartir cada archivo en el perfil voluntario; el QR nunca muestra documentos.</p></div></div>
+      {documents.length ? <ul className="mt-5 grid gap-3 sm:grid-cols-2">{documents.map((document) => <li key={document.id} className="overflow-hidden rounded-md border border-rule bg-surface">{document.category === "foto" && document.signedUrl ? <Image src={document.signedUrl} alt={`Foto de ${pet.name}: ${document.name}`} width={800} height={600} unoptimized className="aspect-[4/3] w-full object-cover" /> : null}<div className="flex items-start justify-between gap-3 p-4"><div className="min-w-0"><p className="text-xs font-semibold uppercase tracking-wide text-brand">{categoryLabel(document.category)}</p><h3 className="mt-1 break-words font-semibold text-ink">{document.name}</h3><p className="mt-1 text-xs text-ink-3">{formatDate(document.date)} · {formatSize(document.size)}</p>{document.description ? <p className="mt-2 text-sm leading-5 text-ink-2">{document.description}</p> : null}{document.category !== "foto" && document.signedUrl ? <a href={document.signedUrl} target="_blank" rel="noreferrer" className="mt-2 inline-block text-sm font-semibold text-brand underline">Abrir archivo privado</a> : null}<label className="mt-3 flex items-start gap-2 text-xs text-ink-2"><input type="checkbox" checked={document.visiblePublic} disabled={!editable} onChange={(event) => void toggleRecordVisibility("pet_documents", document.id, event.target.checked)} className="mt-0.5 size-4 shrink-0 accent-brand" />Compartir en el perfil público voluntario</label></div>{canEdit ? <button type="button" title={`Eliminar ${document.name}`} aria-label={`Eliminar ${document.name}`} className="shrink-0 rounded-md p-2 text-danger hover:bg-danger-soft disabled:opacity-50" disabled={Boolean(busy)} onClick={() => void deleteDocument(document)}><Trash2 size={17} aria-hidden="true" /></button> : null}</div></li>)}</ul> : <p className="mt-4 rounded-md bg-sunken px-4 py-3 text-sm text-ink-2">Todavía no hay fotos ni documentos adicionales.</p>}
       {canEdit ? <form className="mt-6 grid gap-4 border-t border-rule pt-5 sm:grid-cols-2" onSubmit={saveFile}><div className="sm:col-span-2"><h3 className="font-semibold text-ink">Añadir archivo privado</h3><p className="mt-1 text-xs leading-5 text-ink-3">Fotos: JPEG, PNG o WebP hasta 5 MiB. Documentos: PDF o imagen hasta 10 MiB.</p></div>
         <Field id="archivo-tipo" label="Tipo de archivo">{(f) => <select {...f} value={fileKind} disabled={Boolean(pendingUpload || busy)} onChange={(e) => { const kind = e.target.value as "foto" | "documento"; setFileKind(kind); if (kind === "foto") setFileCategory("foto"); else if (fileCategory === "foto") setFileCategory("identificacion"); }}><option value="foto">Foto</option><option value="documento">Documento</option></select>}</Field>
         {fileKind === "documento" ? <Field id="archivo-categoria" label="Categoría">{(f) => <select {...f} value={fileCategory} disabled={Boolean(pendingUpload || busy)} onChange={(e) => setFileCategory(e.target.value)}><option value="identificacion">Identificación</option><option value="salud">Salud</option><option value="vacunas">Vacunas</option><option value="otro">Otro</option></select>}</Field> : null}

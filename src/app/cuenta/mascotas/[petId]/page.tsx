@@ -57,8 +57,8 @@ export default async function PetCarnetPage({ params }: { params: Promise<{ petI
   const [petResult, healthResult, vaccineResult, documentResult] = await Promise.all([
     supabase.from("pets").select("id, codigo_publico, nombre, especie, fecha_nacimiento, raza, genero, talla, color, peso_kg, esterilizado, microchip, rasgos_distintivos, notas_identificacion").eq("id", petId).maybeSingle(),
     supabase.from("pet_health").select("alergias, condiciones_medicas, medicamentos_actuales, dieta_especial, comportamiento, nota_cuidados_emergencia").eq("pet_id", petId).maybeSingle(),
-    supabase.from("pet_vaccines").select("id, nombre, fecha_aplicacion, proxima_dosis, lote, documento_id").eq("pet_id", petId).order("fecha_aplicacion", { ascending: false }),
-    supabase.from("pet_documents").select("id, nombre, categoria, tipo, bucket_id, object_path, mime_type, tamano_bytes, fecha, descripcion, created_at").eq("pet_id", petId).order("created_at", { ascending: false }).limit(100),
+    supabase.from("pet_vaccines").select("id, nombre, fecha_aplicacion, proxima_dosis, lote, documento_id, visible_publico").eq("pet_id", petId).order("fecha_aplicacion", { ascending: false }),
+    supabase.from("pet_documents").select("id, nombre, categoria, tipo, bucket_id, object_path, mime_type, tamano_bytes, fecha, descripcion, visible_publico, created_at").eq("pet_id", petId).order("created_at", { ascending: false }).limit(100),
   ]);
 
   if (!petResult.data || petResult.error) notFound();
@@ -85,7 +85,7 @@ export default async function PetCarnetPage({ params }: { params: Promise<{ petI
   };
   const vaccines: CarnetVaccine[] = (vaccineResult.data ?? []).map((item) => {
     const row = record(item);
-    return { id: text(row.id), name: text(row.nombre), applicationDate: text(row.fecha_aplicacion), nextDose: text(row.proxima_dosis), batch: text(row.lote), documentId: text(row.documento_id) };
+    return { id: text(row.id), name: text(row.nombre), applicationDate: text(row.fecha_aplicacion), nextDose: text(row.proxima_dosis), batch: text(row.lote), documentId: text(row.documento_id), visiblePublic: row.visible_publico === true };
   });
   const documents: CarnetDocument[] = await Promise.all((documentResult.data ?? []).map(async (item) => {
     const row = record(item);
@@ -93,7 +93,7 @@ export default async function PetCarnetPage({ params }: { params: Promise<{ petI
     const path = text(row.object_path);
     const { data } = await supabase.storage.from(bucketId).createSignedUrl(path, 300);
     return {
-      id: text(row.id), name: text(row.nombre), category: text(row.categoria), type: row.tipo === "pdf" || row.tipo === "otro" ? row.tipo : "imagen",
+      id: text(row.id), name: text(row.nombre), category: text(row.categoria), type: row.tipo === "pdf" || row.tipo === "otro" ? row.tipo : "imagen", visiblePublic: row.visible_publico === true,
       bucketId, objectPath: path, mimeType: text(row.mime_type), size: Number(row.tamano_bytes), date: text(row.fecha),
       description: text(row.descripcion), signedUrl: data?.signedUrl ?? null,
     };
@@ -104,7 +104,7 @@ export default async function PetCarnetPage({ params }: { params: Promise<{ petI
       <div className="space-y-7">
         <SubpageHeader eyebrow="Carnet privado" title={pet.name} description="Solo las cuentas con tutela activa pueden ver este expediente." action={<LogoutButton />} />
         <Button href="/cuenta" variant="secondary" size="sm">Volver a mis mascotas</Button>
-        <PetSettingsForm petId={petId} petName={pet.name} canEdit={ownership.rol === "administrador"} showPrivacySettings={false} />
+        <PetSettingsForm petId={petId} petName={pet.name} publicCode={publicCode} canEdit={ownership.rol === "administrador"} />
         <QRShareCard petName={pet.name} petCode={publicCode} profileUrl={getPublicProfileUrl(publicCode) ?? ""} />
         <PetCarnetEditor
           pet={pet}

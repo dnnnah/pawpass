@@ -10,10 +10,10 @@ import { hasSupabaseEnv } from "@/lib/infra/supabase/env";
 const baseLinks = [
   { href: "/", label: "Inicio", icon: PawPrint, match: (p: string) => p === "/" },
   {
-    href: "/#mascotas",
+    href: "/mascotas",
     label: "Mascotas",
     icon: Bone,
-    match: (p: string) => p.startsWith("/perfil"),
+    match: (p: string) => p.startsWith("/mascotas") || p.startsWith("/perfil"),
   },
   {
     href: "/perdidas",

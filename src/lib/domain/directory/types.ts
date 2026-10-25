@@ -1,6 +1,7 @@
 import type { PetProfile } from "@/types/pet";
 import type { Shelter } from "@/types/shelter";
 import type { PublicPetCard } from "@/types/publicPet";
+import type { PublicProfileDirectory } from "@/types/publicProfile";
 
 /**
  * Puertos de datos de directorio (FASE 9A).
@@ -37,3 +38,5 @@ export type PublicPetDirectory = {
   findPublicPet(publicCode: string): Promise<PublicPetCard | null>;
   listLostPets(): Promise<PublicPetCard[]>;
 };
+
+export type { PublicProfileDirectory };

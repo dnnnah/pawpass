@@ -108,7 +108,7 @@ Las invitaciones duran siete días por defecto. Solo el destinatario puede acept
 
 `pet_privacy` guarda `publicado`, `listar_catalogo` y consentimientos separados para nombre de contacto, teléfono, WhatsApp, secundario, email, zona, salud, veterinario, dirección veterinaria, emergencia y microchip. Todas las banderas nacen en `false`.
 
-Además, vacunas, desparasitaciones, consultas y documentos tienen `visible_publico=false` por defecto. En la vista previa, publicar salud general no publica automáticamente todos sus registros: estos necesitan también su bandera individual. Los documentos se filtran por su consentimiento individual.
+Además, vacunas, desparasitaciones, consultas y documentos tienen `visible_publico=false` por defecto. El perfil voluntario publica vacunas, fotos adicionales y documentos solo con su bandera individual; los datos de salud también requieren `mostrar_salud=true`. Los archivos originales continúan en buckets privados y Storage permite firmar solo filas elegidas mientras `publicado=true`.
 
 **Implementado:** `obtener_preview_perfil`, `listar_preview_catalogo` y `listar_preview_refugios`, que siguen restringidos a tutores/miembros autenticados y aplican los filtros de publicación pertinentes. `obtener_preview_perfil` requiere además que exista un administrador vigente y verificado. Un seed sin tutor no aparecerá en ese preview, aunque sea visible para el administrador de la base en el panel.
 
@@ -119,10 +119,17 @@ elegido, zona aproximada y nota de cuidados. Durante una pérdida añade la aler
 resumen de vacunación. No devuelve el expediente ni documentos. La ruta entrega una URL
 firmada de corta duración solo para la foto principal.
 
+El perfil voluntario usa `public.obtener_perfil_publico(text)` y el directorio
+`public.listar_perfiles_publicos(integer, integer)`. Solo aparecen mascotas en casa cuyo
+responsable activó `publicado=true`; las pérdidas activas siguen exclusivamente en su
+directorio dedicado. El RPC devuelve campos adicionales permitidos, registros de vacuna y
+archivos elegidos expresamente. No devuelve veterinario ni identificadores de tutela.
+
 El directorio público de pérdidas usa `public.listar_mascotas_perdidas(integer, integer)`;
 incluye únicamente mascotas con estado `perdido` y alerta vigente. La política anónima de
-Storage se limita a la primera foto de cada mascota en `pawpass-fotos`; no habilita el
-bucket `pawpass-documentos` ni fotos adicionales.
+Storage mantiene la lectura del QR limitada a la primera foto de cada mascota. Para un
+perfil publicado, otra política habilita únicamente objetos con `visible_publico=true` en
+las tablas de metadatos y mientras `pet_privacy.publicado=true`.
 
 ## 7. Estado de mascota y emergencia
 
@@ -218,7 +225,9 @@ Las RPC privadas de cuenta requieren `authenticated`. Los dos RPC públicos de l
 | `listar_preview_catalogo(p_limite integer, p_offset integer)` | `jsonb` | Devuelve catálogo paginado de las mascotas del tutor que cumplen publicación/disponibilidad. |
 | `listar_preview_refugios(p_limite integer, p_offset integer)` | `jsonb` | Devuelve refugios publicados del miembro, con contactos filtrados. |
 | `listar_mascotas_perdidas(p_limite integer, p_offset integer)` | `jsonb` | Público sin sesión; solo alertas activas y campos de rescate permitidos. |
+| `listar_perfiles_publicos(p_limite integer, p_offset integer)` | `jsonb` | Público sin sesión; perfiles voluntarios activos y campos de tarjeta permitidos. |
 | `obtener_ficha_publica(p_codigo text)` | `jsonb` | Público sin sesión; QR básico aunque el perfil voluntario no esté publicado. |
+| `obtener_perfil_publico(p_codigo text)` | `jsonb` | Público sin sesión; solo perfiles voluntarios publicados y elementos consentidos individualmente. |
 | `obtener_preview_perfil(p_identificador text)` | `jsonb` | Devuelve JSON filtrado por consentimiento, para tutor de perfil publicado. |
 | `revisar_adopcion(p_solicitud uuid, p_estado text)` | `void` | Revisa, cancela o completa solicitud según rol/transición. |
 | `revocar_tutor(p_pet uuid, p_usuario uuid)` | `void` | Finaliza tutela de un tutor; no permite revocar administración sin transferirla. |
@@ -1051,6 +1060,7 @@ Las políticas de Storage se evalúan sobre `storage.objects`. La política `paw
 | `storage.objects` | `pawpass_storage_insert` | `INSERT` | — | `((bucket_id = ANY (ARRAY['pawpass-documentos'::text, 'pawpass-fotos'::text])) AND private.puede_escribir_archivo(bucket_id, name))` |
 | `storage.objects` | `pawpass_storage_read` | `SELECT` | `((bucket_id = ANY (ARRAY['pawpass-documentos'::text, 'pawpass-fotos'::text])) AND private.puede_leer_archivo(bucket_id, name))` | — |
 | `storage.objects` | `pawpass_qr_photo_read` | `SELECT` | `private.puede_leer_foto_qr(bucket_id, name)` | `anon`, `authenticated` |
+| `storage.objects` | `pawpass_public_profile_file_read` | `SELECT` | `private.puede_leer_archivo_perfil_publico(bucket_id, name)` | `anon`, `authenticated` |
 | `storage.objects` | `pawpass_storage_update` | `UPDATE` | `((bucket_id = ANY (ARRAY['pawpass-documentos'::text, 'pawpass-fotos'::text])) AND private.puede_escribir_archivo(bucket_id, name))` | `((bucket_id = ANY (ARRAY['pawpass-documentos'::text, 'pawpass-fotos'::text])) AND private.puede_escribir_archivo(bucket_id, name))` |
 
 ## Apéndice C. Triggers instalados
@@ -1121,13 +1131,16 @@ No se instaló un trigger propio de creación automática de profiles en `auth.u
 | `invitar_tutor(p_pet uuid, p_usuario uuid)` | Sí | Sí | No |
 | `listar_preview_catalogo(p_limite integer, p_offset integer)` | Sí | Sí | No |
 | `listar_preview_refugios(p_limite integer, p_offset integer)` | Sí | Sí | No |
+| `listar_perfiles_publicos(p_limite integer, p_offset integer)` | Sí | Sí | Sí |
 | `obtener_preview_perfil(p_identificador text)` | Sí | Sí | No |
+| `obtener_perfil_publico(p_codigo text)` | Sí | Sí | Sí |
 | `perfil_publicado(p_pet uuid)` | Sí | Sí | No |
 | `proteger_estado()` | No | No | No |
 | `proteger_registro()` | No | No | No |
 | `puede_escribir_archivo(p_bucket text, p_path text)` | Sí | Sí | No |
 | `puede_leer_archivo(p_bucket text, p_path text)` | Sí | Sí | No |
 | `puede_leer_foto_qr(p_bucket text, p_path text)` | Sí | Sí | Sí |
+| `puede_leer_archivo_perfil_publico(p_bucket text, p_path text)` | Sí | Sí | Sí |
 | `revisar_adopcion(p_solicitud uuid, p_estado text)` | Sí | Sí | No |
 | `revocar_tutor(p_pet uuid, p_usuario uuid)` | Sí | Sí | No |
 | `solicitar_adopcion(p_codigo text, p_nombre text, p_telefono text, p_email text, p_motivo text)` | Sí | Sí | No |
