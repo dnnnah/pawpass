@@ -4,17 +4,24 @@ import { Building2, MapPin, PawPrint, ShieldCheck } from "lucide-react";
 import { AppShell } from "@/components/layout/AppShell";
 import { Badge } from "@/components/ui/Badge";
 import { SubpageHeader } from "@/components/ui/SubpageHeader";
-import { PrototypeNotice } from "@/components/features/adoption/PrototypeNotice";
 import { getMockShelters } from "@/lib/services/shelters/queries";
+import type { Shelter } from "@/types/shelter";
 
 export const metadata: Metadata = {
   title: "Refugios | PawPass",
-  description:
-    "Directorio de refugios y albergues de animales colaboradores en el prototipo de PawPass.",
+  description: "Directorio público de refugios y albergues participantes en PawPass.",
 };
 
+export const dynamic = "force-dynamic";
+
 export default async function RefugiosPage() {
-  const shelters = await getMockShelters();
+  let shelters: Shelter[] = [];
+  let unavailable = false;
+  try {
+    shelters = await getMockShelters();
+  } catch {
+    unavailable = true;
+  }
 
   return (
     <AppShell>
@@ -23,12 +30,14 @@ export default async function RefugiosPage() {
           <SubpageHeader
             eyebrow="Directorio"
             title="Refugios participantes"
-            description="Organizaciones, albergues y rescatistas independientes que colaboran en la fase piloto de PawPass para la gestión y adopción de animales."
+            description="Organizaciones y albergues con mascotas publicadas para adopción en PawPass."
           />
 
-          <PrototypeNotice />
-
-          <div className="grid gap-6 md:grid-cols-2">
+          {unavailable ? (
+            <p role="alert" className="rounded-md border border-danger-rule bg-danger-soft p-5 text-sm text-danger">No pudimos cargar el directorio de refugios. Intenta de nuevo más tarde.</p>
+          ) : shelters.length === 0 ? (
+            <p className="rounded-md border border-dashed border-rule-strong p-6 text-sm text-ink-2">Todavía no hay refugios publicados en el directorio.</p>
+          ) : <div className="grid gap-6 md:grid-cols-2">
             {shelters.map((shelter) => (
               <div
                 key={shelter.id}
@@ -75,7 +84,7 @@ export default async function RefugiosPage() {
                 </div>
               </div>
             ))}
-          </div>
+          </div>}
         </div>
       </div>
     </AppShell>

@@ -1,233 +1,88 @@
 "use client";
 
 import { useRef, useState } from "react";
-import Link from "next/link";
 import { HeartHandshake, Send } from "lucide-react";
 import { BackLink } from "@/components/ui/BackLink";
 import { Field, SubmitButton } from "@/components/ui/Field";
-import { Pill } from "@/components/ui/Pill";
 import { Surface } from "@/components/ui/Surface";
-import { validateAdoptionRequest } from "@/lib/domain/adoption";
-import {
-  buildAdoptionRequestDraft,
-  buildAdoptionRequestFromDraft,
-  mapAdoptionValidationErrors,
-  todayInMexicoISO,
-  type AdoptionFormValues,
-  type AdoptionFieldError,
-} from "@/lib/adoptionRequestForm";
-import { formatMexicanDate } from "@/lib/dateFormat";
-import { submitAdoptionRequest } from "@/lib/adoption/submitAdoptionRequest";
-import { createSupabaseBrowserClient } from "@/lib/infra/supabase/client";
-import { hasSupabaseEnv } from "@/lib/infra/supabase/env";
-import { useLostAlerts } from "@/lib/useLostAlerts";
-import { useAdoptionRequests } from "@/lib/useAdoptionRequests";
+import { validatePublicAdoptionRequest } from "@/lib/adoption/publicRequest";
 import { trackAdoptionRequestStarted } from "@/lib/services/telemetry/trackers";
 import { useTelemetryOnMount } from "@/components/telemetry/use-telemetry-on-mount";
-import type { AdoptionRequest } from "@/types/adoption";
-import type { PetProfile } from "@/types/pet";
 
 type AdoptionRequestFormProps = {
-  pet: PetProfile;
+  petId: string;
+  petName: string;
   shelterName?: string | null;
 };
 
-export function AdoptionRequestForm({ pet, shelterName = null }: AdoptionRequestFormProps) {
-  /* Una solicitud empieza cuando la persona entra al formulario, no cuando lo
-     envía. Se mide en el montaje y una sola vez, con el mismo guardia que el
-     resto de entradas a la UI. El evento dice `form` y nada más: no el nombre,
-     ni el teléfono, ni el correo, ni el motivo, ni las notas. */
-  useTelemetryOnMount(() => {
-    trackAdoptionRequestStarted("form");
-  });
+type FormValues = { name: string; phone: string; email: string; reason: string; website: string };
+const EMPTY_FORM_VALUES = Object.fromEntries(["name", "phone", "email", "reason", "website"].map((key) => [key, ""])) as FormValues;
 
-  const [values, setValues] = useState<AdoptionFormValues>({
-    nombre: "",
-    telefono: "",
-    email: "",
-    motivo: "",
-    notas: "",
-  });
-  const [fieldErrors, setFieldErrors] = useState<Partial<Record<AdoptionFieldError, string>>>({});
-  const [generalErrors, setGeneralErrors] = useState<string[]>([]);
+function createIdempotencyKey(): string {
+  if (typeof globalThis.crypto.randomUUID === "function") return globalThis.crypto.randomUUID();
+  const bytes = globalThis.crypto.getRandomValues(new Uint8Array(16));
+  return Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join("");
+}
+
+export function AdoptionRequestForm({ petId, petName, shelterName = null }: AdoptionRequestFormProps) {
+  useTelemetryOnMount(() => trackAdoptionRequestStarted("form"));
+
+  const [values, setValues] = useState<FormValues>(EMPTY_FORM_VALUES);
+  const [errors, setErrors] = useState<Record<string, string>>({});
   const [phase, setPhase] = useState<"form" | "sending" | "success">("form");
-  const [submitted, setSubmitted] = useState<AdoptionRequest | null>(null);
-  const [submissionMode, setSubmissionMode] = useState<"remote" | "local" | null>(null);
-  const [loginRequired, setLoginRequired] = useState(false);
+  const [deliveryError, setDeliveryError] = useState(false);
+  const idempotencyKey = useRef<string | null>(null);
+  const nameRef = useRef<HTMLInputElement>(null);
+  const phoneRef = useRef<HTMLInputElement>(null);
+  const reasonRef = useRef<HTMLTextAreaElement>(null);
 
-  const nombreRef = useRef<HTMLInputElement>(null);
-  const telefonoRef = useRef<HTMLInputElement>(null);
-  const emailRef = useRef<HTMLInputElement>(null);
-  const motivoRef = useRef<HTMLTextAreaElement>(null);
-
-  const fieldRefs = {
-    nombre: nombreRef,
-    telefono: telefonoRef,
-    email: emailRef,
-    motivo: motivoRef,
-  } as const;
-
-  const FIELD_ORDER: AdoptionFieldError[] = ["nombre", "telefono", "email", "motivo"];
-
-  const { alert } = useLostAlerts(pet.id);
-  const { requests, submit } = useAdoptionRequests(pet.id);
-
-  const petName = pet.mascota.nombre;
-  const viaText = shelterName ? `A través del refugio ${shelterName}` : "Adopción directa";
-
-  function handleChange(field: keyof AdoptionFormValues, value: string) {
+  function change(field: keyof FormValues, value: string) {
     setValues((current) => ({ ...current, [field]: value }));
-    setFieldErrors((current) => {
-      if (!(field in current)) {
-        return current;
-      }
-      const next = { ...current };
-      delete next[field as AdoptionFieldError];
-      return next;
-    });
+    setErrors((current) => { const next = { ...current }; delete next[field]; return next; });
   }
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-
-    if (phase === "sending") {
-      return;
-    }
-
-    const draft = buildAdoptionRequestDraft(pet.id, todayInMexicoISO(), values);
-    const validation = validateAdoptionRequest({ pet, alert, draft });
-
+    if (phase === "sending") return;
+    const validation = validatePublicAdoptionRequest({ petId, ...values });
     if (!validation.valid) {
-      const mapped = mapAdoptionValidationErrors(validation.errors);
-      setFieldErrors(mapped.fields);
-      setGeneralErrors(mapped.general);
-      setPhase("form");
-
-      const firstInvalid = FIELD_ORDER.find((field) => mapped.fields[field] !== undefined);
-      const target = firstInvalid ? fieldRefs[firstInvalid].current : null;
-      if (target) {
-        target.focus();
-        target.scrollIntoView({ block: "center", behavior: "smooth" });
-      }
+      if ("blocked" in validation) { setPhase("success"); return; }
+      setErrors(validation.errors);
+      setDeliveryError(false);
+      const first = validation.errors.name ? nameRef.current : validation.errors.phone ? phoneRef.current : reasonRef.current;
+      first?.focus();
       return;
     }
 
-    setFieldErrors({});
-    setGeneralErrors([]);
-    setLoginRequired(false);
+    setErrors({});
+    setDeliveryError(false);
     setPhase("sending");
-
-    if (hasSupabaseEnv()) {
-      try {
-        const supabase = createSupabaseBrowserClient();
-        const {
-          data: { user },
-        } = await supabase.auth.getUser();
-
-        if (!user) {
-          setLoginRequired(true);
-          setGeneralErrors(["Para enviar una solicitud real, inicia sesión o crea una cuenta."]);
-          setPhase("form");
-          return;
-        }
-
-        const result = await submitAdoptionRequest(
-          {
-            rpc: async (functionName, params) => {
-              const response = await supabase.rpc(functionName, params);
-              return { data: response.data, error: response.error };
-            },
-          },
-          {
-            publicCode: pet.identificacion.codigoPublico,
-            name: values.nombre,
-            phone: values.telefono,
-            email: values.email,
-            reason: values.motivo,
-          },
-        );
-
-        if (result.error || !result.id) {
-          setGeneralErrors([result.error ?? "No pudimos enviar la solicitud. Intenta de nuevo."]);
-          setPhase("form");
-          return;
-        }
-
-        setSubmissionMode("remote");
-        setSubmitted({
-          ...buildAdoptionRequestFromDraft(draft, result.id),
-          id: result.id,
-        });
-        setPhase("success");
-      } catch {
-        setGeneralErrors(["No pudimos enviar la solicitud. Intenta de nuevo."]);
-        setPhase("form");
-      }
-      return;
-    }
-
-    const seed =
-      typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
-        ? crypto.randomUUID()
-        : `${Date.now()}`;
-    const request = buildAdoptionRequestFromDraft(draft, seed);
-
-    window.setTimeout(() => {
-      submit(request);
-      setSubmissionMode("local");
-      setSubmitted(request);
+    idempotencyKey.current ??= createIdempotencyKey();
+    try {
+      const response = await fetch("/api/adopciones", {
+        method: "POST",
+        headers: { "content-type": "application/json", "idempotency-key": idempotencyKey.current },
+        body: JSON.stringify(validation.value),
+      });
+      if (!response.ok) throw new Error("delivery_failed");
       setPhase("success");
-    }, 900);
+    } catch {
+      setDeliveryError(true);
+      setPhase("form");
+    }
   }
 
-  if (phase === "success" && submitted) {
-    const formattedDate = formatMexicanDate(submitted.fechaEnviada) ?? submitted.fechaEnviada;
-
+  if (phase === "success") {
     return (
       <Surface className="p-6 sm:p-8">
         <div className="max-w-xl">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-adoption">
-            Adopción
-          </p>
-          <h2 className="mt-2 font-display text-2xl leading-snug text-ink sm:text-3xl">
-            Solicitud registrada
-          </h2>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-adoption">Adopción</p>
+          <h2 className="mt-2 font-display text-2xl leading-snug text-ink sm:text-3xl">Solicitud entregada</h2>
           <p className="mt-2.5 text-sm leading-6 text-ink-2">
-            Gracias por querer darle un hogar a {petName}. Registramos tu solicitud con el estado{" "}
-            <strong className="font-semibold text-ink">Enviada</strong>.
+            Gracias por tu interés en {petName}. Compartimos tu mensaje con {shelterName ? `el refugio ${shelterName}` : "la persona responsable"}; el seguimiento continúa directamente con ellos fuera de PawPass.
           </p>
-
-          <dl className="mt-6 divide-y divide-rule border-y border-rule">
-            {[
-              ["Folio", submitted.id],
-              ["Fecha", formattedDate],
-              ["Mascota", petName],
-              ["A través de", shelterName ?? "Adopción directa"],
-            ].map(([term, value]) => (
-              <div key={term} className="flex items-center justify-between gap-4 py-2.5">
-                <dt className="text-sm text-ink-2">{term}</dt>
-                <dd className="text-sm font-medium text-ink">{value}</dd>
-              </div>
-            ))}
-            <div className="flex items-center justify-between gap-4 py-2.5">
-              <dt className="text-sm text-ink-2">Estado</dt>
-              <dd>
-                <Pill tone="adoption" size="sm">
-                  Enviada
-                </Pill>
-              </dd>
-            </div>
-          </dl>
-
-          <p className="mt-5 rounded-md border border-dashed border-rule-strong bg-sunken p-4 text-xs leading-5 text-ink-2">
-            {submissionMode === "remote"
-              ? "Tu solicitud quedó registrada y la organización podrá revisarla desde PawPass."
-              : "Esto es un prototipo: tu solicitud no llegó a ningún refugio real. Quedó guardada solo en este navegador para demostrar el flujo."}
-          </p>
-
-          <div className="mt-6">
-            <BackLink href={`/perfil/${pet.id}`}>Volver al perfil de {petName}</BackLink>
-          </div>
+          <p className="mt-4 text-xs leading-5 text-ink-3">Esto confirma la entrega del mensaje, no la aceptación ni la finalización de una adopción.</p>
+          <div className="mt-6"><BackLink href={`/adopciones/${petId}`}>Volver a la ficha de {petName}</BackLink></div>
         </div>
       </Surface>
     );
@@ -235,165 +90,37 @@ export function AdoptionRequestForm({ pet, shelterName = null }: AdoptionRequest
 
   return (
     <div className="space-y-4">
-      {generalErrors.length > 0 ? (
-        <div
-          role="alert"
-          className="rounded-md border border-danger-rule bg-danger-soft p-4 text-sm text-danger"
-        >
-          <p className="font-semibold">No se pudo enviar la solicitud:</p>
-          <ul className="mt-1.5 list-inside list-disc space-y-1">
-            {generalErrors.map((error) => (
-              <li key={error}>{error}</li>
-            ))}
-          </ul>
-          {loginRequired ? (
-            <Link
-              href={`/login?next=${encodeURIComponent(`/perfil/${pet.id}/adopcion`)}`}
-              className="mt-3 inline-flex font-semibold underline underline-offset-2"
-            >
-              Iniciar sesión o crear cuenta
-            </Link>
-          ) : null}
-        </div>
-      ) : null}
-
+      {deliveryError ? <p role="alert" className="rounded-md border border-danger-rule bg-danger-soft p-4 text-sm text-danger">No pudimos entregar tu solicitud. Revisa tu conexión e intenta de nuevo.</p> : null}
       <Surface className="p-6 sm:p-8">
         <div className="flex items-start gap-3">
-          <span
-            aria-hidden="true"
-            className="grid h-11 w-11 shrink-0 place-items-center rounded-md bg-adoption-soft text-adoption"
-          >
-            <HeartHandshake size={21} />
-          </span>
+          <span aria-hidden="true" className="grid h-11 w-11 shrink-0 place-items-center rounded-md bg-adoption-soft text-adoption"><HeartHandshake size={21} /></span>
           <div>
-            <h2 className="font-display text-xl leading-snug text-ink">
-              Solicitud de adopción de {petName}
-            </h2>
-            <p className="mt-1 text-sm text-ink-2">
-              {viaText} · {hasSupabaseEnv() ? "Solicitud real · requiere cuenta" : "Prototipo, sin envío real"}
-            </p>
+            <h2 className="font-display text-xl leading-snug text-ink">Escribe a la persona responsable</h2>
+            <p className="mt-1 text-sm text-ink-2">No necesitas una cuenta · {shelterName ? `Refugio ${shelterName}` : "Adopción directa"}</p>
           </div>
         </div>
-
         <form onSubmit={handleSubmit} noValidate className="mt-6 grid gap-5 sm:grid-cols-2">
-          <Field
-            id="adopcion-nombre"
-            label="Tu nombre completo"
-            error={fieldErrors.nombre}
-          >
-            {(control) => (
-              <input
-                {...control}
-                ref={nombreRef}
-                name="nombre"
-                type="text"
-                autoComplete="name"
-                value={values.nombre}
-                onChange={(event) => handleChange("nombre", event.target.value)}
-                placeholder="Ej: Ana López"
-              />
-            )}
+          <Field id="adopcion-nombre" label="Tu nombre completo" error={errors.name}>
+            {(control) => <input {...control} ref={nameRef} autoComplete="name" value={values.name} onChange={(e) => change("name", e.target.value)} placeholder="Ej: Ana López" />}
           </Field>
-
-          <Field
-            id="adopcion-telefono"
-            label="Teléfono (WhatsApp)"
-            error={fieldErrors.telefono}
-            help="10 dígitos o formato México (52/521)."
-          >
-            {(control) => (
-              <input
-                {...control}
-                ref={telefonoRef}
-                name="telefono"
-                type="tel"
-                autoComplete="tel"
-                inputMode="numeric"
-                value={values.telefono}
-                onChange={(event) => handleChange("telefono", event.target.value)}
-                placeholder="10 dígitos"
-              />
-            )}
+          <Field id="adopcion-telefono" label="Teléfono (WhatsApp)" error={errors.phone} help="Incluye lada, entre 10 y 15 dígitos.">
+            {(control) => <input {...control} ref={phoneRef} type="tel" autoComplete="tel" value={values.phone} onChange={(e) => change("phone", e.target.value)} placeholder="10 dígitos" />}
           </Field>
-
-          <Field
-            id="adopcion-email"
-            label="Correo electrónico"
-            optional
-            error={fieldErrors.email}
-          >
-            {(control) => (
-              <input
-                {...control}
-                ref={emailRef}
-                name="email"
-                type="email"
-                autoComplete="email"
-                value={values.email}
-                onChange={(event) => handleChange("email", event.target.value)}
-                placeholder="opcional@correo.mx"
-              />
-            )}
+          <Field id="adopcion-email" label="Correo electrónico" optional error={errors.email}>
+            {(control) => <input {...control} type="email" autoComplete="email" value={values.email} onChange={(e) => change("email", e.target.value)} placeholder="opcional@correo.mx" />}
           </Field>
-
-          <Field
-            id="adopcion-motivo"
-            label={`¿Por qué quieres adoptar a ${petName}?`}
-            error={fieldErrors.motivo}
-            className="sm:col-span-2"
-          >
-            {(control) => (
-              <textarea
-                {...control}
-                ref={motivoRef}
-                name="motivo"
-                rows={3}
-                value={values.motivo}
-                onChange={(event) => handleChange("motivo", event.target.value)}
-                placeholder="Cuéntanos sobre tu hogar y el cuidado que le ofrecerías."
-                className={`${control.className} resize-none`}
-              />
-            )}
+          <Field id="adopcion-motivo" label={`¿Por qué te interesa ${petName}?`} error={errors.reason} className="sm:col-span-2">
+            {(control) => <textarea {...control} ref={reasonRef} rows={4} value={values.reason} onChange={(e) => change("reason", e.target.value)} placeholder="Cuéntanos brevemente sobre el hogar y cuidado que le ofrecerías." className={`${control.className} resize-none`} />}
           </Field>
-
-          {!hasSupabaseEnv() ? (
-            <Field id="adopcion-notas" label="Notas adicionales" optional className="sm:col-span-2">
-              {(control) => (
-                <textarea
-                  {...control}
-                  name="notas"
-                  rows={2}
-                  value={values.notas}
-                  onChange={(event) => handleChange("notas", event.target.value)}
-                  placeholder="Ej: vivo en un departamento, tengo espacio para pasearla."
-                  className={`${control.className} resize-none`}
-                />
-              )}
-            </Field>
-          ) : null}
-
-          <div className="sm:col-span-2">
-            <SubmitButton
-              busy={phase === "sending"}
-              busyLabel="Enviando…"
-              icon={<Send size={17} aria-hidden="true" />}
-            >
-              Enviar solicitud
-            </SubmitButton>
+          <div aria-hidden="true" className="absolute -left-[10000px] top-auto h-px w-px overflow-hidden">
+            <label htmlFor="adopcion-sitio">Deja vacío</label>
+            <input id="adopcion-sitio" tabIndex={-1} autoComplete="off" value={values.website} onChange={(e) => change("website", e.target.value)} />
           </div>
+          <div className="sm:col-span-2"><SubmitButton busy={phase === "sending"} busyLabel="Entregando…" icon={<Send size={17} aria-hidden="true" />}>Enviar solicitud</SubmitButton></div>
         </form>
-
         <div className="mt-6 flex flex-wrap items-center justify-between gap-3 rounded-md border border-dashed border-rule-strong bg-sunken p-4">
-          <p className="max-w-md text-xs leading-5 text-ink-2">
-            {hasSupabaseEnv()
-              ? "Necesitas una cuenta para enviar la solicitud. La información se registra mediante el flujo seguro de PawPass."
-              : `Prototipo: la solicitud no se envía a ningún servidor. Queda registrada solo en este navegador.${
-                  requests.length > 0
-                    ? ` Solicitudes guardadas en este dispositivo: ${requests.length}.`
-                    : ""
-                }`}
-          </p>
-          <BackLink href={`/perfil/${pet.id}`}>Cancelar y volver al perfil</BackLink>
+          <p className="max-w-md text-xs leading-5 text-ink-2">Tu nombre, teléfono y mensaje se entregan por correo al responsable. La conversación continúa fuera de PawPass y no se crea una cuenta ni historial en la plataforma.</p>
+          <BackLink href={`/adopciones/${petId}`}>Cancelar y volver</BackLink>
         </div>
       </Surface>
     </div>

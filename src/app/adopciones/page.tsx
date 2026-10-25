@@ -4,20 +4,28 @@ import { Building2, PawPrint } from "lucide-react";
 import { AppShell } from "@/components/layout/AppShell";
 import { SubpageHeader } from "@/components/ui/SubpageHeader";
 import { AdoptionCatalog, type ShelterFilterOption } from "@/components/features/adoption/AdoptionCatalog";
-import { PrototypeNotice } from "@/components/features/adoption/PrototypeNotice";
 import { buildCatalogCard } from "@/lib/mapping/adoptionPresentation";
 import { getAdoptionCatalogEntries } from "@/lib/services/adoption/queries";
 import { getMockShelters } from "@/lib/services/shelters/queries";
+import type { AdoptionCatalogEntry } from "@/types/adoption";
+import type { Shelter } from "@/types/shelter";
 
 export const metadata: Metadata = {
   title: "Adopciones | PawPass",
-  description:
-    "Encuentra mascotas en adopción a través del prototipo de PawPass: conoce sus perfiles y envía una solicitud de demostración.",
+  description: "Encuentra mascotas publicadas para adopción por sus responsables y refugios.",
 };
 
+export const dynamic = "force-dynamic";
+
 export default async function AdopcionesPage() {
-  const entries = await getAdoptionCatalogEntries();
-  const shelters = await getMockShelters();
+  let entries: AdoptionCatalogEntry[] = [];
+  let shelters: Shelter[] = [];
+  let unavailable = false;
+  try {
+    [entries, shelters] = await Promise.all([getAdoptionCatalogEntries(), getMockShelters()]);
+  } catch {
+    unavailable = true;
+  }
   const cards = entries.map(buildCatalogCard);
 
   const shelterOptions: ShelterFilterOption[] = [];
@@ -36,12 +44,14 @@ export default async function AdopcionesPage() {
           <SubpageHeader
             eyebrow="Adopción"
             title="Mascotas en adopción"
-            description="Perfiles de mascotas que buscan un hogar. Esta vista es parte del prototipo de PawPass y usa datos simulados para demostrar el flujo de adopción."
+            description="Conoce a las mascotas publicadas por sus responsables y envía una solicitud inicial sin crear una cuenta."
           />
 
-          <PrototypeNotice />
-
-          <AdoptionCatalog cards={cards} shelters={shelterOptions} />
+          {unavailable ? (
+            <div role="alert" className="rounded-md border border-danger-rule bg-danger-soft p-5 text-sm leading-6 text-danger">
+              No pudimos cargar el catálogo de adopción. Intenta de nuevo más tarde.
+            </div>
+          ) : <AdoptionCatalog cards={cards} shelters={shelterOptions} />}
 
           <section aria-labelledby="refugios-titulo">
             <h2

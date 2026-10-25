@@ -4,7 +4,6 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { telemetryClient } from "@/lib/infra/telemetry/noop-client";
-import { getPetByIdAny } from "@/lib/services/pets/queries";
 import { createMountObserver } from "./mount-observer";
 import * as trackModule from "./trackers";
 import { ProfileViewTracker } from "@/components/telemetry/ProfileViewTracker";
@@ -155,10 +154,7 @@ describe("SSR: renderizar en el servidor no emite nada", () => {
   });
 
   it("el formulario de adopción se renderiza sin emitir", async () => {
-    const pet = await getPetByIdAny("lucca");
-    if (!pet) throw new Error("falta la mascota de prueba");
-
-    const html = renderToStaticMarkup(createElement(AdoptionRequestForm, { pet }));
+    const html = renderToStaticMarkup(createElement(AdoptionRequestForm, { petId: "PC-LUCCA-001", petName: "Lucca" }));
 
     expect(html).toContain("Enviar solicitud");
     expect(track).not.toHaveBeenCalled();
