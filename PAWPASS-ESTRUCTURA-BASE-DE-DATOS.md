@@ -209,7 +209,7 @@ Todas las RPC de esta tabla están en `public`, son SECURITY INVOKER y solo tien
 |---|---|---|
 | `aceptar_invitacion(p_invitacion uuid)` | `void` | Acepta una invitación propia vigente y crea tutela. |
 | `cambiar_estado_mascota(p_pet uuid, p_estado text, p_fecha date, p_zona text, p_mensaje text, p_recompensa numeric)` | `void` | Cambia estado y coordina apertura/cierre de pérdida. |
-| `crear_mascota(p_nombre text, p_especie text, p_nacimiento date)` | `uuid` | Crea mascota, primera tutela administradora, contacto vacío y privacidad cerrada; devuelve UUID. |
+| `crear_mascota(p_nombre text, p_especie text, p_nacimiento date, p_medio_contacto text, p_valor_contacto text, p_foto_nombre text, p_foto_mime text, p_foto_tamano bigint)` | `jsonb` | Requiere cuenta verificada, fecha no futura, un teléfono/WhatsApp/correo válido y foto privada JPEG/PNG/WebP de hasta 5 MiB. Crea mascota, tutela administradora, contacto elegido, privacidad cerrada y metadata de foto; devuelve UUID de mascota/documento, ruta privada y código público. Los bytes se suben después con la sesión del tutor y RLS de Storage. |
 | `crear_refugio(p_nombre text)` | `uuid` | Crea refugio y primera membresía administradora. |
 | `invitar_tutor(p_pet uuid, p_usuario uuid)` | `uuid` | Invita a una cuenta existente; devuelve UUID de invitación. |
 | `listar_preview_catalogo(p_limite integer, p_offset integer)` | `jsonb` | Devuelve catálogo paginado de las mascotas del tutor que cumplen publicación/disponibilidad. |

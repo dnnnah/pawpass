@@ -8,6 +8,7 @@ export type AccountPet = {
   status: PetStatus;
   slug: string | null;
   breed: string | null;
+  photoUrl?: string | null;
   role: string;
   startedAt: string;
 };
