@@ -198,8 +198,10 @@
   --color-muted-soft: var(--muted-soft);
   --color-muted-rule: var(--muted-rule);
 
-  --font-sans: var(--pc-font-sans), ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
-  --font-display: var(--pc-font-display), ui-serif, Georgia, "Times New Roman", serif;
+  /* Las fuentes se mantienen locales al sistema para que el build no dependa
+     de una descarga de Google Fonts durante CI o despliegues aislados. */
+  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-display: ui-serif, Georgia, "Times New Roman", serif;
 
   --radius-xs: 4px;
   --radius-sm: 6px;

@@ -13,6 +13,7 @@ import { listAccountAdoptionRequests } from "@/lib/account/adoptionRequests";
 import { LogoutButton } from "./LogoutButton";
 import { CreatePetForm } from "./CreatePetForm";
 import { AdoptionRequestsPanel } from "./AdoptionRequestsPanel";
+import { PetSettingsForm } from "./PetSettingsForm";
 import { LostStatusForm } from "./LostStatusForm";
 
 export const metadata: Metadata = {
@@ -199,6 +200,11 @@ export default async function CuentaPage() {
                           Rol: {pet.role}
                         </span>
                       </div>
+                      <PetSettingsForm
+                        petId={pet.id}
+                        petName={pet.name}
+                        canEdit={pet.role === "administrador"}
+                      />
                       <LostStatusForm
                         petId={pet.id}
                         petName={pet.name}
