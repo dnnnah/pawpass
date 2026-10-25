@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Apple, ArrowRight, Globe2, LogIn, UserPlus } from "lucide-react";
+import { Apple, Globe2, LogIn, UserPlus } from "lucide-react";
 import { Field, SubmitButton } from "@/components/ui/Field";
 import { Surface } from "@/components/ui/Surface";
 import { validateAuthInput, type AuthErrors, type AuthMode } from "@/lib/authValidation";
@@ -247,11 +247,6 @@ export function LoginForm() {
           {isSignup ? "Crear cuenta" : "Iniciar sesión"}
         </SubmitButton>
       </form>
-
-      <p className="mt-5 flex items-start gap-2 text-xs leading-5 text-ink-3">
-        <ArrowRight size={14} className="mt-0.5 shrink-0" aria-hidden="true" />
-        Las fichas públicas y sus QR siguen disponibles sin iniciar sesión.
-      </p>
     </Surface>
   );
 }
