@@ -12,6 +12,7 @@ import { createSupabaseServerClient } from "@/lib/infra/supabase/server";
 import { normalizeAccountPetRow, type AccountPet } from "@/lib/account/pets";
 import { LogoutButton } from "./LogoutButton";
 import { CreatePetForm } from "./CreatePetForm";
+import { LostStatusForm } from "./LostStatusForm";
 
 export const metadata: Metadata = {
   title: "Mi cuenta | PawPass",
@@ -134,6 +135,10 @@ export default async function CuentaPage() {
                           <dd className="mt-1 flex items-center gap-1.5 font-semibold text-ink"><CalendarDays size={14} aria-hidden="true" />{formatDate(pet.startedAt)}</dd>
                         </div>
                       </dl>
+                      <Button href={`/cuenta/mascotas/${pet.id}`} variant="secondary" className="mt-5 w-full">
+                        Abrir carnet privado
+                      </Button>
+                      {pet.role === "administrador" ? <LostStatusForm petId={pet.id} petName={pet.name} status={pet.status} canEdit /> : null}
                     </Surface>
                   ))}
                 </div>

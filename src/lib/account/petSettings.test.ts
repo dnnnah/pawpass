@@ -5,8 +5,10 @@ import {
   normalizePetPrivacy,
   updatePetContact,
   updatePetPrivacy,
+  validateQrContact,
   type PetSettingsClient,
 } from "./petSettings";
+import * as petSettingsModule from "./petSettings";
 
 function makeClient() {
   const update = vi.fn().mockReturnValue({
@@ -37,8 +39,10 @@ describe("normalizePetContact", () => {
         zona_segura: null,
         zona_habitual: "  Parque  ",
         mensaje_whatsapp: null,
+        medio_contacto_qr: "whatsapp",
       }),
     ).toEqual({
+      contactMethod: "whatsapp",
       publicName: "Ana",
       phone: "",
       whatsapp: "+525500000000",
@@ -48,6 +52,14 @@ describe("normalizePetContact", () => {
       usualZone: "Parque",
       whatsappMessage: "",
     });
+  });
+
+  it("infiere solo cuando no hay columna y no elige un canal ambiguo de un registro existente", () => {
+    const contact = normalizePetContact({ telefono_principal: "525500000000" });
+    expect(contact.contactMethod).toBe("phone");
+    expect(validateQrContact(contact)).toBeNull();
+    expect(normalizePetContact({ telefono_principal: "525500000000", whatsapp: "5215550000000", medio_contacto_qr: null }).contactMethod).toBe("");
+    expect(validateQrContact({ ...contact, contactMethod: "email" })).toBeTruthy();
   });
 });
 
@@ -95,6 +107,7 @@ describe("updatePetContact y updatePetPrivacy", () => {
 
     await expect(
       updatePetContact(client, "pet-1", {
+        contactMethod: "phone",
         publicName: "Ana",
         phone: "525500000000",
         whatsapp: "",
@@ -128,5 +141,23 @@ describe("updatePetContact y updatePetPrivacy", () => {
     expect(from).toHaveBeenNthCalledWith(2, "pet_privacy");
     expect(update).toHaveBeenNthCalledWith(1, expect.objectContaining({ nombre_publico: "Ana" }));
     expect(update).toHaveBeenNthCalledWith(2, expect.objectContaining({ publicado: true }));
+  });
+});
+
+describe("setPublicRecordVisibility", () => {
+  it("actualiza solo la publicación del registro perteneciente a la mascota", async () => {
+    const eqSecond = vi.fn().mockReturnValue({
+      select: vi.fn().mockReturnValue({ maybeSingle: vi.fn().mockResolvedValue({ data: { id: "record-1" }, error: null }) }),
+    });
+    const eqFirst = vi.fn().mockReturnValue({ eq: eqSecond });
+    const update = vi.fn().mockReturnValue({ eq: eqFirst });
+    const from = vi.fn().mockReturnValue({ update });
+    const setVisibility = (petSettingsModule as unknown as { setPublicRecordVisibility: (client: unknown, table: string, petId: string, recordId: string, visible: boolean) => Promise<string | null> }).setPublicRecordVisibility;
+
+    await expect(setVisibility({ from }, "pet_documents", "pet-1", "record-1", true)).resolves.toBeNull();
+    expect(from).toHaveBeenCalledWith("pet_documents");
+    expect(update).toHaveBeenCalledWith({ visible_publico: true });
+    expect(eqFirst).toHaveBeenCalledWith("pet_id", "pet-1");
+    expect(eqSecond).toHaveBeenCalledWith("id", "record-1");
   });
 });

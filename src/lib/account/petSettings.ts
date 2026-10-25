@@ -1,4 +1,5 @@
 export type PetContact = {
+  contactMethod: "phone" | "whatsapp" | "email" | "";
   publicName: string;
   phone: string;
   whatsapp: string;
@@ -55,7 +56,21 @@ export type PetSettingsClient = {
   from: (table: "pet_contacts" | "pet_privacy") => PetSettingsQuery & PetSettingsUpdate;
 };
 
+export type PublicRecordTable = "pet_documents" | "pet_vaccines";
+export type PublicRecordVisibilityClient = {
+  from: (table: PublicRecordTable) => {
+    update: (values: { visible_publico: boolean }) => {
+      eq: (column: "pet_id", value: string) => {
+        eq: (column: "id", value: string) => {
+          select: (columns: "id") => { maybeSingle: () => Promise<QueryResult> };
+        };
+      };
+    };
+  };
+};
+
 const emptyContact: PetContact = {
+  contactMethod: "",
   publicName: "",
   phone: "",
   whatsapp: "",
@@ -99,12 +114,21 @@ function record(value: unknown): Record<string, unknown> {
 
 export function normalizePetContact(value: unknown): PetContact {
   const row = record(value);
+  const phone = text(row.telefono_principal);
+  const whatsapp = text(row.whatsapp);
+  const email = text(row.email);
+  const storedMethod = row.medio_contacto_qr;
+  const hasStoredMethod = Object.hasOwn(row, "medio_contacto_qr");
+  const contactMethod = storedMethod === "phone" || storedMethod === "whatsapp" || storedMethod === "email"
+    ? storedMethod
+    : hasStoredMethod ? "" : phone ? "phone" : whatsapp ? "whatsapp" : email ? "email" : "";
   return {
+    contactMethod,
     publicName: text(row.nombre_publico),
-    phone: text(row.telefono_principal),
-    whatsapp: text(row.whatsapp),
+    phone,
+    whatsapp,
     secondaryPhone: text(row.telefono_secundario),
-    email: text(row.email),
+    email,
     safeZone: text(row.zona_segura),
     usualZone: text(row.zona_habitual),
     whatsappMessage: text(row.mensaje_whatsapp),
@@ -130,6 +154,17 @@ export function normalizePetPrivacy(value: unknown): PetPrivacy {
   };
 }
 
+export function validateQrContact(contact: PetContact): string | null {
+  const selectedValue = contact.contactMethod === "phone"
+    ? contact.phone
+    : contact.contactMethod === "whatsapp"
+      ? contact.whatsapp
+      : contact.contactMethod === "email"
+        ? contact.email
+        : "";
+  return selectedValue.trim() ? null : "Elige un canal QR que tenga un teléfono, WhatsApp o correo válido.";
+}
+
 export async function loadPetSettings(
   client: PetSettingsClient,
   petId: string,
@@ -138,7 +173,7 @@ export async function loadPetSettings(
     const [contactResponse, privacyResponse] = await Promise.all([
       client
         .from("pet_contacts")
-        .select("nombre_publico, telefono_principal, whatsapp, telefono_secundario, email, zona_segura, zona_habitual, mensaje_whatsapp")
+        .select("nombre_publico, telefono_principal, whatsapp, telefono_secundario, email, zona_segura, zona_habitual, mensaje_whatsapp, medio_contacto_qr")
         .eq("pet_id", petId)
         .maybeSingle(),
       client
@@ -171,6 +206,7 @@ export async function updatePetContact(
     const { error } = await client
       .from("pet_contacts")
       .update({
+        medio_contacto_qr: contact.contactMethod || null,
         nombre_publico: contact.publicName.trim() || null,
         telefono_principal: contact.phone.trim() || null,
         whatsapp: contact.whatsapp.trim() || null,
@@ -214,6 +250,26 @@ export async function updatePetPrivacy(
       .eq("pet_id", petId);
 
     return error ? SAVE_ERROR : null;
+  } catch {
+    return SAVE_ERROR;
+  }
+}
+
+export async function setPublicRecordVisibility(
+  client: PublicRecordVisibilityClient,
+  table: PublicRecordTable,
+  petId: string,
+  recordId: string,
+  visible: boolean,
+): Promise<string | null> {
+  try {
+    const { data, error } = await client.from(table)
+      .update({ visible_publico: visible })
+      .eq("pet_id", petId)
+      .eq("id", recordId)
+      .select("id")
+      .maybeSingle();
+    return error || !data ? SAVE_ERROR : null;
   } catch {
     return SAVE_ERROR;
   }

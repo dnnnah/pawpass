@@ -3,17 +3,23 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Bone, HeartHandshake, LogIn, PawPrint, UserRound } from "lucide-react";
+import { AlertTriangle, Bone, HeartHandshake, LogIn, PawPrint, UserRound } from "lucide-react";
 import { createSupabaseBrowserClient } from "@/lib/infra/supabase/client";
 import { hasSupabaseEnv } from "@/lib/infra/supabase/env";
 
 const baseLinks = [
   { href: "/", label: "Inicio", icon: PawPrint, match: (p: string) => p === "/" },
   {
-    href: "/#mascotas",
+    href: "/mascotas",
     label: "Mascotas",
     icon: Bone,
-    match: (p: string) => p.startsWith("/perfil"),
+    match: (p: string) => p.startsWith("/mascotas") || p.startsWith("/perfil"),
+  },
+  {
+    href: "/perdidas",
+    label: "Perdidas",
+    icon: AlertTriangle,
+    match: (p: string) => p.startsWith("/perdidas"),
   },
   {
     href: "/adopciones",

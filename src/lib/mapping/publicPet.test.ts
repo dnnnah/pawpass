@@ -25,8 +25,12 @@ const lostPayload = {
     name: "Donnovan",
     phone: "5512345678",
     whatsapp: "5215512345678",
-    email: "privado@example.com",
+    email: "contacto@example.com",
   },
+  contactMethod: "phone",
+  zone: "Colonia Roma",
+  emergencyCareNote: "No ofrecer pollo.",
+  vaccinationStatus: "al_dia",
   recentPhotos: Array.from({ length: 8 }, (_, index) => ({ url: `/foto-${index}.jpg` })),
   health: { alergias: ["privado"] },
 };
@@ -40,6 +44,9 @@ describe("toPublicPetCard", () => {
       species: "Perro",
       breed: "Schnauzer",
       status: "perdido",
+      zone: "Colonia Roma",
+      emergencyCareNote: "No ofrecer pollo.",
+      vaccinationStatus: "al_dia",
       lost: {
         zona: "Parque México",
         fechaPerdida: "2026-10-18",
@@ -50,36 +57,36 @@ describe("toPublicPetCard", () => {
         name: "Donnovan",
         phone: "5512345678",
         whatsapp: null,
+        email: null,
       },
       recentPhotos: Array.from({ length: 6 }, (_, index) => ({ url: `/foto-${index}.jpg` })),
     });
   });
 
-  it("no expone contacto ni pérdida fuera del estado perdido", () => {
+  it("expone el canal QR elegido y los cuidados básicos aunque siga en casa", () => {
     const card = toPublicPetCard({
       ...lostPayload,
       status: "en_casa",
-      contact: { name: "Donnovan", phone: "5512345678", whatsapp: "5215512345678" },
+      contactMethod: "email",
+      contact: { name: "Donnovan", phone: "5512345678", whatsapp: "5215512345678", email: "contacto@example.com" },
       lost: lostPayload.lost,
     });
 
-    expect(card?.contact).toBeNull();
+    expect(card?.contact).toEqual({ name: "Donnovan", phone: null, whatsapp: null, email: "contacto@example.com" });
+    expect(card?.zone).toBe("Colonia Roma");
+    expect(card?.emergencyCareNote).toBe("No ofrecer pollo.");
+    expect(card?.vaccinationStatus).toBeNull();
     expect(card?.lost).toBeNull();
   });
 
-  it("omite contacto cuando no hay ningún canal autorizado", () => {
+  it("no revela campos de contacto distintos al canal QR seleccionado", () => {
     const card = toPublicPetCard({
       ...lostPayload,
-      privacy: {
-        mostrarNombreContacto: true,
-        mostrarTelefono: false,
-        mostrarWhatsapp: false,
-        mostrarZona: true,
-        mostrarEmergencia: true,
-      },
+      contactMethod: "phone",
+      privacy: { ...lostPayload.privacy, mostrarNombreContacto: false },
     });
 
-    expect(card?.contact).toBeNull();
+    expect(card?.contact).toEqual({ name: null, phone: "5512345678", whatsapp: null, email: null });
   });
 
   it("rechaza identificadores y enums inválidos", () => {

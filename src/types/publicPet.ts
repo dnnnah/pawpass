@@ -7,6 +7,9 @@ export type PublicPetCard = {
   species: PetSpecies;
   breed: string | null;
   status: PetStatus;
+  zone: string | null;
+  emergencyCareNote: string | null;
+  vaccinationStatus: "al_dia" | "pendiente" | "sin_informacion" | null;
   lost: {
     zona: string | null;
     fechaPerdida: string | null;
@@ -17,6 +20,7 @@ export type PublicPetCard = {
     name: string | null;
     phone: string | null;
     whatsapp: string | null;
+    email: string | null;
   } | null;
   recentPhotos: { url: string }[];
 };

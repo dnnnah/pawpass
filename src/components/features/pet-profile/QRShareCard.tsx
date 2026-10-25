@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { BadgeCheck, Check, Download, FileCode2, Link2, Printer, QrCode, TriangleAlert } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 import { Surface } from "@/components/ui/Surface";
@@ -20,6 +20,8 @@ type QRShareCardProps = {
 
 type BusyAction = "png" | "svg" | null;
 type CopyKind = "url" | "id" | null;
+
+const subscribeToNothing = () => () => {};
 
 function cleanQrSvg(svg: SVGSVGElement): string {
   const clone = svg.cloneNode(true) as SVGSVGElement;
@@ -75,6 +77,15 @@ export function QRShareCard({ petName, profileUrl, petCode, className }: QRShare
   const [copyFailed, setCopyFailed] = useState(false);
   const [downloadFailed, setDownloadFailed] = useState(false);
   const [liveMessage, setLiveMessage] = useState("");
+  const shareUrl = useSyncExternalStore(
+    subscribeToNothing,
+    () => /^https?:\/\//i.test(profileUrl)
+      ? profileUrl
+      : profileUrl.startsWith("/")
+        ? new URL(profileUrl, window.location.origin).toString()
+        : "",
+    () => /^https?:\/\//i.test(profileUrl) ? profileUrl : ""
+  );
 
   const later = useCallback((fn: () => void, ms: number) => {
     timers.current.push(window.setTimeout(fn, ms));
@@ -97,7 +108,7 @@ export function QRShareCard({ petName, profileUrl, petCode, className }: QRShare
 
   const handleCopy = useCallback(
     async (kind: "url" | "id") => {
-      const target = kind === "url" ? profileUrl : petCode;
+      const target = kind === "url" ? shareUrl : petCode;
       const ok = await copyText(target);
       setCopied(kind);
       later(() => setCopied(null), 1800);
@@ -113,7 +124,7 @@ export function QRShareCard({ petName, profileUrl, petCode, className }: QRShare
         later(() => setCopyFailed(false), 3000);
       }
     },
-    [profileUrl, petCode, announce, later]
+    [shareUrl, petCode, announce, later]
   );
 
   const handleDownloadPng = useCallback(async () => {
@@ -209,13 +220,13 @@ export function QRShareCard({ petName, profileUrl, petCode, className }: QRShare
           </span>
           <div className="min-w-0">
             <h2 className="font-display text-lg leading-snug text-ink [overflow-wrap:anywhere]">
-              Comparte el perfil de {petName}
+              Comparte el QR de {petName}
             </h2>
-            <p className="mt-1 text-sm text-ink-2">Escanea con la cámara para ver el perfil.</p>
+            <p className="mt-1 text-sm text-ink-2">Quien lo escanee verá datos básicos para ayudar a que vuelva a casa. El carnet sigue privado.</p>
           </div>
         </div>
 
-        {!profileUrl ? (
+        {!shareUrl ? (
           <div className="rounded-md border border-dashed border-rule-strong p-4">
             <p className="text-sm font-medium text-ink">QR no disponible</p>
             <p className="mt-1 text-sm text-ink-2">
@@ -230,7 +241,7 @@ export function QRShareCard({ petName, profileUrl, petCode, className }: QRShare
                 className="grid size-44 shrink-0 place-items-center rounded-md bg-white p-2 ring-1 ring-rule sm:size-48"
               >
                 <QRCodeSVG
-                  value={profileUrl}
+                  value={shareUrl}
                   size={QR_EXPORT_SIZE}
                   marginSize={4}
                   level="M"
@@ -251,7 +262,7 @@ export function QRShareCard({ petName, profileUrl, petCode, className }: QRShare
                   izquierda, descentrando el codigo dentro de la tarjeta. */}
               <p className="mt-2 flex w-full items-center justify-center gap-1 text-xs text-ink-3">
                 <Link2 size={12} aria-hidden="true" className="shrink-0" />
-                <span className="truncate [overflow-wrap:anywhere]">{profileUrl}</span>
+                <span className="truncate [overflow-wrap:anywhere]">{shareUrl}</span>
               </p>
               <p className="mt-1 w-full break-words text-center text-xs text-ink-2">ID PawPass: {petCode}</p>
             </div>
