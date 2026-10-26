@@ -10,6 +10,8 @@ type VaccineTimelineProps = {
   petName: string;
   totalCount: number;
   vaccines: ReadonlyArray<VaccineItemViewModel>;
+  showDetailsLink?: boolean;
+  showStatus?: boolean;
 };
 
 type VaccineVisual = {
@@ -27,7 +29,7 @@ function visualFor(vaccine: VaccineItemViewModel): VaccineVisual {
   return { icon: Check, tone: "success" };
 }
 
-export function VaccineTimeline({ petId, petName, totalCount, vaccines }: VaccineTimelineProps) {
+export function VaccineTimeline({ petId, petName, totalCount, vaccines, showDetailsLink = true, showStatus = true }: VaccineTimelineProps) {
   return (
     <Section
       title="Registro de vacunas"
@@ -40,13 +42,15 @@ export function VaccineTimeline({ petId, petName, totalCount, vaccines }: Vaccin
       action={
         <div className="flex flex-wrap items-center gap-3">
           {totalCount > 0 ? <Pill tone="muted">{totalCount}</Pill> : null}
-          <Link
-            href={`/perfil/${petId}/vacunas`}
-            className="inline-flex min-h-11 items-center gap-1 rounded-md text-sm font-semibold text-brand underline-offset-4 hover:underline"
-          >
-            Ver cartilla completa
-            <ChevronRight size={16} aria-hidden="true" />
-          </Link>
+          {showDetailsLink ? (
+            <Link
+              href={`/perfil/${petId}/vacunas`}
+              className="inline-flex min-h-11 items-center gap-1 rounded-md text-sm font-semibold text-brand underline-offset-4 hover:underline"
+            >
+              Ver cartilla completa
+              <ChevronRight size={16} aria-hidden="true" />
+            </Link>
+          ) : null}
         </div>
       }
     >
@@ -54,8 +58,8 @@ export function VaccineTimeline({ petId, petName, totalCount, vaccines }: Vaccin
         <ul className="space-y-3.5">
           {vaccines.map((vaccine) => {
             const visual = visualFor(vaccine);
-            const Icon = visual.icon;
-            const tone = resolveTone(visual.tone);
+            const Icon = showStatus ? visual.icon : ShieldCheck;
+            const tone = resolveTone(showStatus ? visual.tone : "muted");
 
             return (
               <li key={vaccine.id} className="flex items-start gap-3.5">
@@ -73,11 +77,8 @@ export function VaccineTimeline({ petId, petName, totalCount, vaccines }: Vaccin
                   <p className="mt-0.5 text-sm text-ink-2">
                     {vaccine.applicationDate ?? "Fecha no registrada"}
                   </p>
-                  <div className="mt-1.5">
-                    <Pill tone={visual.tone} size="sm">
-                      {vaccine.alert ? vaccine.alert.label : "Al día"}
-                    </Pill>
-                  </div>
+                  {vaccine.nextDoseDate ? <p className="mt-0.5 text-sm text-ink-2">Próxima dosis: {vaccine.nextDoseDate}</p> : null}
+                  {showStatus ? <div className="mt-1.5"><Pill tone={visual.tone} size="sm">{vaccine.alert ? vaccine.alert.label : vaccine.status ?? "Al día"}</Pill></div> : null}
                 </div>
               </li>
             );

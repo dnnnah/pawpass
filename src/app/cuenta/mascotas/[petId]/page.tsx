@@ -3,7 +3,9 @@ import { cookies } from "next/headers";
 import { notFound, redirect } from "next/navigation";
 import { AppShell } from "@/components/layout/AppShell";
 import { Button } from "@/components/ui/Button";
-import { SubpageHeader } from "@/components/ui/SubpageHeader";
+import { PetHeader } from "@/components/features/pet-profile/PetHeader";
+import { ProfileNav } from "@/components/features/pet-profile/ProfileNav";
+import { Pill } from "@/components/ui/Pill";
 import { Surface } from "@/components/ui/Surface";
 import { hasSupabaseEnv } from "@/lib/infra/supabase/env";
 import { createSupabaseServerClient } from "@/lib/infra/supabase/server";
@@ -12,6 +14,7 @@ import { LogoutButton } from "../../LogoutButton";
 import { PetSettingsForm } from "../../PetSettingsForm";
 import { QRShareCard } from "@/components/features/pet-profile/QRShareCard";
 import { getPublicProfileUrl } from "@/lib/publicProfileUrl";
+import { getPetAgeText } from "@/lib/dateFormat";
 import { PetCarnetEditor, type CarnetDocument, type CarnetHealth, type CarnetPet, type CarnetVaccine } from "./PetCarnetEditor";
 
 export const metadata: Metadata = {
@@ -103,12 +106,41 @@ export default async function PetCarnetPage({ params }: { params: Promise<{ petI
       description: text(row.descripcion), signedUrl: data?.signedUrl ?? null,
     };
   }));
+  const profilePhoto = documents.find((document) => document.category === "foto" && document.signedUrl)?.signedUrl ?? null;
+  const genderLabel = pet.gender.toLowerCase() === "macho" ? "Macho" : pet.gender.toLowerCase() === "hembra" ? "Hembra" : null;
 
   return <AppShell>
-    <div className="mx-auto max-w-5xl px-4 pb-12 sm:px-6 lg:px-8">
-      <div className="space-y-7">
-        <SubpageHeader eyebrow="Carnet privado" title={pet.name} description="Solo las cuentas con tutela activa pueden ver este expediente." action={<LogoutButton />} />
-        <Button href="/cuenta" variant="secondary" size="sm">Volver a mis mascotas</Button>
+    <div className="mx-auto max-w-6xl px-4 pb-12 sm:px-6 lg:px-8">
+      <div className="space-y-8">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <Button href="/cuenta" variant="secondary" size="sm">Volver a mis mascotas</Button>
+          <LogoutButton />
+        </div>
+        <PetHeader
+          pet={{
+            name: pet.name,
+            species: pet.species === "perro" ? "Perro" : "Gato",
+            breed: pet.breed,
+            age: pet.birthDate ? getPetAgeText(pet.birthDate) : null,
+            gender: genderLabel,
+            size: pet.size || null,
+            id: publicCode,
+            image: profilePhoto,
+            status: {
+              vaccines: vaccines.length ? `${vaccines.length} registradas` : null,
+              sterilized: pet.sterilized === null ? null : pet.sterilized ? "Sí" : "No",
+              microchip: pet.microchip || null,
+            },
+          }}
+          statusBadge={<Pill tone="muted">Carnet privado</Pill>}
+        />
+        <ProfileNav sectionIds={["contacto", "info", "salud", "vacunas", "documentos"]} />
+        <div id="contacto" className="grid scroll-mt-24 items-start gap-6 lg:grid-cols-[minmax(0,1fr)_20rem]">
+          <div>
+            <PetSettingsForm petId={petId} petName={pet.name} publicCode={publicCode} canEdit={ownership.rol === "administrador"} />
+          </div>
+          <QRShareCard petName={pet.name} petCode={publicCode} profileUrl={getPublicProfileUrl(publicCode) ?? ""} className="lg:sticky lg:top-24" />
+        </div>
         <PetCarnetEditor
           pet={pet}
           health={healthFrom(record(healthResult.data))}
@@ -116,13 +148,6 @@ export default async function PetCarnetPage({ params }: { params: Promise<{ petI
           documents={documents}
           canEdit={ownership.rol === "administrador"}
         />
-        <details className="rounded-lg border border-rule bg-surface p-5">
-          <summary className="cursor-pointer font-semibold text-ink">Privacidad, contacto y QR</summary>
-          <div className="mt-4 space-y-5">
-        <PetSettingsForm petId={petId} petName={pet.name} publicCode={publicCode} canEdit={ownership.rol === "administrador"} />
-        <QRShareCard petName={pet.name} petCode={publicCode} profileUrl={getPublicProfileUrl(publicCode) ?? ""} />
-          </div>
-        </details>
         {ownership.rol === "administrador" ? <DeleteDataControl petId={petId} petName={pet.name} /> : null}
       </div>
     </div>

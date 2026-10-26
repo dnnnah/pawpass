@@ -32,6 +32,8 @@ import type { PhysicalPetCard } from "@/types/carnet";
 
 type CarnetDocumentProps = {
   card: PhysicalPetCard;
+  /** The public profile carries only fields whose owner has shared them. */
+  sharedOnly?: boolean;
 };
 
 function DocLabel({ children }: { children: React.ReactNode }) {
@@ -158,7 +160,7 @@ function EstadoBand({ card, className }: { card: PhysicalPetCard; className?: st
   );
 }
 
-function IdentityBlock({ card }: { card: PhysicalPetCard }) {
+function IdentityBlock({ card, sharedOnly = false }: { card: PhysicalPetCard; sharedOnly?: boolean }) {
   const age = card.mascota.fechaNacimiento
     ? getPetAgeText(card.mascota.fechaNacimiento)
     : null;
@@ -166,7 +168,7 @@ function IdentityBlock({ card }: { card: PhysicalPetCard }) {
 
   return (
     <section aria-label="Identidad de la mascota">
-      <div className="flex items-start gap-5">
+      <div className="flex min-w-0 flex-col items-start gap-5 min-[480px]:flex-row">
         {card.mascota.fotoUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
@@ -180,7 +182,7 @@ function IdentityBlock({ card }: { card: PhysicalPetCard }) {
           </span>
         )}
         <div className="min-w-0">
-          <h2 className="text-3xl leading-tight text-ink">
+          <h2 className="break-words text-3xl leading-tight text-ink">
             {card.mascota.nombre ?? "Nombre no registrado"}
           </h2>
           {specieRaza ? (
@@ -207,18 +209,11 @@ function IdentityBlock({ card }: { card: PhysicalPetCard }) {
       </div>
 
       <div className="mt-5 grid grid-cols-2 gap-x-6 gap-y-4 sm:grid-cols-3">
-        <DocRow label="Genero" value={card.mascota.genero ?? "No registrado"} />
-        <DocRow label="Talla" value={card.mascota.talla ?? "No registrada"} />
-        <DocRow label="Peso" value={formatCarnetPeso(card.mascota.pesoKg)} />
-        <DocRow
-          label="Nacimiento"
-          value={
-            card.mascota.fechaNacimiento
-              ? formatCarnetDate(card.mascota.fechaNacimiento)
-              : "No registrada"
-          }
-        />
-        <DocRow label="Edad" value={age} />
+        {!sharedOnly || card.mascota.genero ? <DocRow label="Genero" value={card.mascota.genero ?? "No registrado"} /> : null}
+        {!sharedOnly || card.mascota.talla ? <DocRow label="Talla" value={card.mascota.talla ?? "No registrada"} /> : null}
+        {!sharedOnly ? <DocRow label="Peso" value={formatCarnetPeso(card.mascota.pesoKg)} /> : null}
+        {!sharedOnly || card.mascota.fechaNacimiento ? <DocRow label="Nacimiento" value={card.mascota.fechaNacimiento ? formatCarnetDate(card.mascota.fechaNacimiento) : "No registrada"} /> : null}
+        {!sharedOnly || age ? <DocRow label="Edad" value={age} /> : null}
         <DocRow label="ID PawPass" value={card.identificacion.codigoPublico || "Sin código"} />
       </div>
 
@@ -305,7 +300,7 @@ function QrBlock({ card }: { card: PhysicalPetCard }) {
   );
 }
 
-function ContactBlock({ card }: { card: PhysicalPetCard }) {
+function ContactBlock({ card, sharedOnly = false }: { card: PhysicalPetCard; sharedOnly?: boolean }) {
   const phoneHref = card.contacto.telefono ? `tel:${card.contacto.telefono.replace(/\s/g, "")}` : null;
   const hasAny =
     card.contacto.nombrePublico ||
@@ -314,6 +309,8 @@ function ContactBlock({ card }: { card: PhysicalPetCard }) {
     card.contacto.email ||
     card.contacto.zonaHabitual ||
     card.contacto.zonaSegura;
+
+  if (sharedOnly && !hasAny) return null;
 
   return (
     <section aria-label="Contacto público">
@@ -334,7 +331,7 @@ function ContactBlock({ card }: { card: PhysicalPetCard }) {
               </a>
             }
           />
-        ) : (
+        ) : sharedOnly ? null : (
           <DocRow label="Telefono" value={<span className="text-ink-3">No registrado</span>} />
         )}
         {card.contacto.telefonoSecundario ? (
@@ -398,7 +395,8 @@ function ChipsBlock({
   );
 }
 
-function SaludBlock({ card }: { card: PhysicalPetCard }) {
+function SaludBlock({ card, sharedOnly = false }: { card: PhysicalPetCard; sharedOnly?: boolean }) {
+  if (sharedOnly && !card.salud.vacunas.length && !card.salud.alergias.length && !card.salud.condicionesMedicas.length && !card.salud.medicamentosActuales.length) return null;
   return (
     <section aria-label="Salud y vacunación">
       <SectionHeading icon={<Stethoscope size={17} aria-hidden="true" />} title="Salud y vacunación" />
@@ -432,11 +430,11 @@ function SaludBlock({ card }: { card: PhysicalPetCard }) {
               })}
             </ul>
           ) : (
-            <p className="mt-2 text-sm italic text-ink-3">Sin vacunas registradas</p>
+            <p className="mt-2 text-sm italic text-ink-3">{sharedOnly ? "Sin vacunas compartidas" : "Sin vacunas registradas"}</p>
           )}
         </div>
 
-        <div className="border-t border-rule pt-4">
+        {!sharedOnly || card.salud.desparasitaciones.length ? <div className="border-t border-rule pt-4">
           <div className="flex items-center gap-2">
             <Bug size={16} className="text-rescue" aria-hidden="true" />
             <p className="text-sm font-semibold uppercase tracking-[0.12em] text-ink">Desparasitación</p>
@@ -459,9 +457,9 @@ function SaludBlock({ card }: { card: PhysicalPetCard }) {
           ) : (
             <p className="mt-2 text-sm italic text-ink-3">Sin desparasitaciones registradas</p>
           )}
-        </div>
+        </div> : null}
 
-        {card.salud.historialMedico.length > 0 ? (
+        {!sharedOnly && card.salud.historialMedico.length > 0 ? (
           <div className="border-t border-rule pt-4">
             <div className="flex items-center gap-2">
               <ClipboardList size={16} className="text-info" aria-hidden="true" />
@@ -483,7 +481,7 @@ function SaludBlock({ card }: { card: PhysicalPetCard }) {
               ))}
             </ul>
           </div>
-        ) : (
+        ) : sharedOnly ? null : (
           <div className="border-t border-rule pt-4">
             <div className="flex items-center gap-2">
               <ClipboardList size={16} className="text-ink-3" aria-hidden="true" />
@@ -493,7 +491,7 @@ function SaludBlock({ card }: { card: PhysicalPetCard }) {
           </div>
         )}
 
-        {card.salud.veterinario ? (
+        {!sharedOnly && card.salud.veterinario ? (
           <div className="border-t border-rule pt-4">
             <div className="flex items-center gap-2">
               <Stethoscope size={16} className="text-ink-3" aria-hidden="true" />
@@ -563,7 +561,7 @@ function AmbulanciaBand({ card }: { card: PhysicalPetCard }) {
  * (PNG / SVG / PDF). El QR se renderiza con `qrcode.react` desde
  * `card.qr.url`; nunca se reconstruye la URL en componentes.
  */
-export function CarnetDocument({ card }: CarnetDocumentProps) {
+export function CarnetDocument({ card, sharedOnly = false }: CarnetDocumentProps) {
   const vm = toCarnetViewModel(card);
   const horizontal = vm.orientacion === "horizontal";
 
@@ -595,17 +593,17 @@ export function CarnetDocument({ card }: CarnetDocumentProps) {
 
       <div className={`gap-x-10 gap-y-9 p-6 sm:p-8 ${horizontal ? "sm:grid sm:grid-cols-2" : "space-y-9"}`}>
         <div className={horizontal ? "space-y-9" : ""}>
-          <IdentityBlock card={card} />
+          <IdentityBlock card={card} sharedOnly={sharedOnly} />
           <QrBlock card={card} />
         </div>
 
         <div className={`space-y-9 ${horizontal ? "mt-9 sm:mt-0" : ""}`}>
-          <ContactBlock card={card} />
-          <AmbulanciaBand card={card} />
+          <ContactBlock card={card} sharedOnly={sharedOnly} />
+          {!sharedOnly || card.estado.perdido ? <AmbulanciaBand card={card} /> : null}
         </div>
 
         <div className={horizontal ? "sm:col-span-2" : ""}>
-          <SaludBlock card={card} />
+          <SaludBlock card={card} sharedOnly={sharedOnly} />
         </div>
       </div>
 

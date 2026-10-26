@@ -8,9 +8,10 @@ import type { PetDocument } from "@/types/pet";
 type DocumentsCardProps = {
   documents: ReadonlyArray<PetDocument>;
   documentsPath: string;
+  showAllLink?: boolean;
 };
 
-export function DocumentsCard({ documents, documentsPath }: DocumentsCardProps) {
+export function DocumentsCard({ documents, documentsPath, showAllLink = true }: DocumentsCardProps) {
   return (
     // `@container` + consultas de contenedor en vez de `md:`/`lg:`: esta tarjeta
     // se usa en una columna estrecha del perfil (488px a 1280px de ventana) y en
@@ -23,13 +24,15 @@ export function DocumentsCard({ documents, documentsPath }: DocumentsCardProps) 
           <Folder size={20} className="shrink-0 text-ink-3" aria-hidden="true" />
           Documentos
         </h2>
-        <Link
-          href={documentsPath}
-          className="inline-flex min-h-11 items-center gap-1.5 rounded-md px-2 text-sm font-semibold text-brand transition-colors hover:text-brand-hover"
-        >
-          Ver todos
-          <ChevronRight size={16} aria-hidden="true" />
-        </Link>
+        {showAllLink ? (
+          <Link
+            href={documentsPath}
+            className="inline-flex min-h-11 items-center gap-1.5 rounded-md px-2 text-sm font-semibold text-brand transition-colors hover:text-brand-hover"
+          >
+            Ver todos
+            <ChevronRight size={16} aria-hidden="true" />
+          </Link>
+        ) : null}
       </div>
 
       {documents.length > 0 ? (

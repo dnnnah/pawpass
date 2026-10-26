@@ -1,5 +1,5 @@
 import Image from "next/image";
-import { Heart, Mars, Microchip, Ruler, ShieldCheck, Venus } from "lucide-react";
+import { Heart, Mars, Microchip, PawPrint, Ruler, ShieldCheck, Venus } from "lucide-react";
 import { Pill } from "@/components/ui/Pill";
 import { CopyButton } from "@/components/ui/CopyButton";
 import { DataList } from "@/components/ui/DataList";
@@ -11,15 +11,15 @@ type PetHeaderProps = {
     name: string;
     species: string;
     breed: string;
-    age: string;
-    gender: string;
-    size: string;
+    age: string | null;
+    gender: string | null;
+    size: string | null;
     id: string;
-    image: string;
+    image: string | null;
     status: {
-      vaccines: string;
-      sterilized: string;
-      microchip: string;
+      vaccines: string | null;
+      sterilized: string | null;
+      microchip: string | null;
     };
   };
   statusBadge?: React.ReactNode;
@@ -60,14 +60,21 @@ export function PetHeader({ pet, statusBadge }: PetHeaderProps) {
       <div className="grid items-start gap-7 sm:gap-9 lg:grid-cols-[380px_1fr]">
         <div className="mx-auto w-full max-w-[240px] sm:max-w-[300px] lg:mx-0 lg:max-w-none">
           <div className="overflow-hidden rounded-lg bg-sunken ring-1 ring-rule">
-            <Image
-              src={pet.image}
-              alt={`Foto de ${pet.name}`}
-              width={900}
-              height={900}
-              priority
-              className="aspect-square w-full object-cover"
-            />
+            {pet.image ? (
+              <Image
+                src={pet.image}
+                alt={`Foto de ${pet.name}`}
+                width={900}
+                height={900}
+                priority
+                unoptimized
+                className="aspect-square w-full object-cover"
+              />
+            ) : (
+              <div role="img" aria-label={`Foto no compartida de ${pet.name}`} className="grid aspect-square place-items-center text-ink-3">
+                {SpeciesIcon ? <SpeciesIcon size={72} strokeWidth={1.25} aria-hidden="true" /> : <PawPrint size={72} strokeWidth={1.25} aria-hidden="true" />}
+              </div>
+            )}
           </div>
         </div>
 
@@ -82,7 +89,7 @@ export function PetHeader({ pet, statusBadge }: PetHeaderProps) {
             {pet.name}
           </h1>
           <p className="mt-2.5 flex flex-wrap items-center gap-x-2 text-lg text-ink-2">
-            <span>{pet.breed}</span>
+            {pet.breed ? <span>{pet.breed}</span> : null}
             {SpeciesIcon ? (
               <SpeciesIcon size={16} strokeWidth={1.75} className="text-ink-3" aria-hidden="true" />
             ) : (
@@ -93,13 +100,9 @@ export function PetHeader({ pet, statusBadge }: PetHeaderProps) {
 
           <div className="mt-5 flex flex-wrap items-center gap-2">
             {statusBadge}
-            <Pill tone="muted">{pet.age}</Pill>
-            <Pill tone="muted" icon={<GenderIcon size={13} />}>
-              {pet.gender}
-            </Pill>
-            <Pill tone="muted" icon={<Ruler size={13} />}>
-              {pet.size}
-            </Pill>
+            {pet.age ? <Pill tone="muted">{pet.age}</Pill> : null}
+            {pet.gender ? <Pill tone="muted" icon={<GenderIcon size={13} />}>{pet.gender}</Pill> : null}
+            {pet.size ? <Pill tone="muted" icon={<Ruler size={13} />}>{pet.size}</Pill> : null}
           </div>
 
           <div className="mt-6 flex flex-wrap items-center gap-2 border-y border-rule py-2.5">

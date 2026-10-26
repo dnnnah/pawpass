@@ -106,6 +106,38 @@ describe("createSupabasePublicPetDirectory", () => {
     expect(createSignedUrl).toHaveBeenCalledTimes(3);
   });
 
+  it("conserva la foto pública histórica que el RPC devuelve cuando falta el objeto de Storage", async () => {
+    const publicProfile = {
+      publicCode: "PC-LUCCA-001",
+      name: "Lucca",
+      species: "Perro",
+      status: "en_casa",
+      photoPath: null,
+      photoUrl: "/pets/lucca.jpeg",
+      contact: {},
+      vaccines: [],
+      photos: [],
+      documents: [],
+    };
+    const rpc = vi.fn().mockResolvedValue({ data: publicProfile, error: null });
+    const directory = createSupabasePublicPetDirectory({ rpc });
+
+    await expect(directory.findPublicProfile("PC-LUCCA-001")).resolves.toMatchObject({
+      publicCode: "PC-LUCCA-001",
+      photoUrl: "/pets/lucca.jpeg",
+    });
+
+    const mismatchedRpc = vi.fn().mockResolvedValue({
+      data: { ...publicProfile, publicCode: "PC-NIKO-002" },
+      error: null,
+    });
+    const mismatchedDirectory = createSupabasePublicPetDirectory({ rpc: mismatchedRpc });
+    await expect(mismatchedDirectory.findPublicProfile("PC-NIKO-002")).resolves.toMatchObject({
+      publicCode: "PC-NIKO-002",
+      photoUrl: null,
+    });
+  });
+
   it("convierte los errores del RPC en un error del adaptador", async () => {
     const directory = createSupabasePublicPetDirectory({
       rpc: vi.fn().mockResolvedValue({ data: null, error: { message: "RPC unavailable" } }),

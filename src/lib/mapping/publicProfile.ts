@@ -1,8 +1,17 @@
 import type { PetSpecies, PetStatus } from "@/types/pet";
 import type { PublicProfile, PublicProfileCard } from "@/types/publicProfile";
+import type { PhysicalPetCard, PhysicalPetCardFormato } from "@/types/carnet";
+import { getPublicProfileUrl } from "@/lib/publicProfileUrl";
+import { toE164Digits } from "@/lib/phone";
+import { todayIsoDate } from "@/lib/domain/dateRules";
 
 const speciesValues: readonly PetSpecies[] = ["Perro", "Gato"];
 const statusValues: readonly PetStatus[] = ["en_casa", "perdido", "en_adopcion", "adoptado", "rescatado", "fallecido"];
+const printOrientations: Record<PhysicalPetCardFormato, "vertical" | "horizontal"> = {
+  tarjeta_imprimible: "vertical",
+  credencial: "horizontal",
+  placa_dije: "vertical",
+};
 
 function record(value: unknown): Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value) ? value as Record<string, unknown> : {};
@@ -102,5 +111,70 @@ export function toPublicProfile(raw: unknown): PublicProfile | null {
     vaccines,
     photos,
     documents,
+  };
+}
+
+/** Builds the printable card exclusively from fields already allowlisted for the public profile. */
+export function toPublicPhysicalPetCard(
+  profile: PublicProfile,
+  formato: PhysicalPetCardFormato = "tarjeta_imprimible",
+  today?: string,
+): PhysicalPetCard {
+  const qrUrl = getPublicProfileUrl(profile.publicCode);
+  const whatsappUrl = profile.contact.whatsapp
+    ? `https://wa.me/${toE164Digits(profile.contact.whatsapp)}`
+    : null;
+
+  return {
+    mascota: {
+      nombre: profile.name,
+      especie: profile.species,
+      raza: profile.breed,
+      fotoUrl: profile.photoUrl,
+      genero: profile.gender,
+      talla: profile.size,
+      color: profile.color,
+      pesoKg: null,
+      fechaNacimiento: profile.birthDate,
+      rasgosDistintivos: profile.traits,
+      esterilizado: profile.sterilized === true,
+      verificado: false,
+    },
+    identificacion: { codigoPublico: profile.publicCode, microchip: profile.microchip },
+    qr: { url: qrUrl, disponible: Boolean(qrUrl) },
+    estado: {
+      status: profile.status,
+      esTerminal: profile.status === "adoptado" || profile.status === "fallecido",
+      perdido: profile.status === "perdido",
+    },
+    contacto: {
+      nombrePublico: profile.contact.name,
+      telefono: profile.contact.phone,
+      telefonoSecundario: profile.contact.secondaryPhone,
+      email: profile.contact.email,
+      whatsapp: profile.contact.whatsapp,
+      whatsappUrl,
+      zonaSegura: profile.zone,
+      zonaHabitual: null,
+    },
+    emergencia: {
+      activo: profile.status === "perdido",
+      zonaPerdida: null,
+      fechaPerdida: null,
+      mensaje: profile.emergencyCareNote,
+      recompensa: null,
+      instrucciones: [],
+    },
+    salud: {
+      alergias: profile.health?.allergies ?? [],
+      condicionesMedicas: profile.health?.conditions ?? [],
+      medicamentosActuales: profile.health?.medications ?? [],
+      vacunas: profile.vaccines.map((vaccine) => ({ nombre: vaccine.name, estatus: null })),
+      desparasitaciones: [],
+      historialMedico: [],
+      veterinario: null,
+    },
+    print: { formato, orientacion: printOrientations[formato], qrMinimoMm: 25 },
+    generadoEn: todayIsoDate(today),
   };
 }
