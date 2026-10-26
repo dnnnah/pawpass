@@ -40,11 +40,12 @@ export type AdoptionCatalogEntry = {
   nombre: string;
   especie: PetSpecies;
   raza: string;
-  genero: PetGender;
-  talla: PetSize;
+  genero: PetGender | null;
+  talla: PetSize | null;
   fotoUrl: string;
   codigoPublico: string;
-  fechaNacimiento: string;
+  fechaNacimiento?: string;
+  edadMeses?: number;
   zona: string;
   verificado: boolean;
   shelterId: ShelterId | null;

@@ -8,6 +8,11 @@ import { Section } from "@/components/ui/Section";
 import { listActivePublicProfiles } from "@/lib/infra/directory/activePublicProfiles";
 import type { PublicProfileCard } from "@/types/publicProfile";
 
+import { getAccountPets } from "@/app/cuenta/accountData";
+import { AccountPetsDashboard } from "@/app/cuenta/AccountPetsDashboard";
+import { PublicPetsSection } from "@/components/features/home/PublicPetsSection";
+import { SubpageHeader } from "@/components/ui/SubpageHeader";
+
 const STEPS = [
   {
     icon: UserRound,
@@ -27,6 +32,15 @@ const STEPS = [
 ];
 
 export default async function Home() {
+  const account = await getAccountPets(false);
+  if (account.authenticated) return <AppShell>
+    <div className="mx-auto max-w-5xl space-y-8 px-4 pb-12 sm:px-6 lg:px-8">
+      <SubpageHeader eyebrow="Tu familia PawPass" title="Mis mascotas" description="Primero tus mascotas. Las alertas activas tienen prioridad." action={<Button href="/cuenta" variant="secondary">Mi cuenta</Button>} />
+      <AccountPetsDashboard pets={account.pets} error={account.error} showHeading={false} />
+      <PublicPetsSection />
+    </div>
+  </AppShell>;
+
   let pets: PublicProfileCard[] = [];
   let petsFailed = false;
   try { pets = await listActivePublicProfiles(); }

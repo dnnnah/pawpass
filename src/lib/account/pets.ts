@@ -9,9 +9,15 @@ export type AccountPet = {
   slug: string | null;
   breed: string | null;
   photoUrl?: string | null;
+  adoptionPublished?: boolean;
   role: string;
   startedAt: string;
 };
+
+/** Alertas primero; dentro de cada grupo se conserva el orden de registro. */
+export function prioritizeAccountPets(pets: readonly AccountPet[]): AccountPet[] {
+  return [...pets].sort((a, b) => Number(b.status === "perdido") - Number(a.status === "perdido"));
+}
 
 type AccountPetRow = {
   pet_id?: unknown;
@@ -28,6 +34,7 @@ type AccountPetData = {
   estado?: unknown;
   slug?: unknown;
   raza?: unknown;
+  adopcion_publicada?: unknown;
 };
 
 const petStatuses = new Set<PetStatus>([
@@ -72,6 +79,7 @@ export function normalizeAccountPetRow(value: unknown): AccountPet | null {
     status,
     slug: asText(pet?.slug),
     breed: asText(pet?.raza),
+    adoptionPublished: pet?.adopcion_publicada === true,
     role: asText(row?.rol) ?? "tutor",
     startedAt,
   };

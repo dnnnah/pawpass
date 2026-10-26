@@ -38,11 +38,11 @@ begin
   end if;
 
   if p_medio_contacto in ('phone', 'whatsapp') then
-    if v_contact !~ '^\\+?[0-9]{10,15}$' then
+    if v_contact !~ '^\+?[0-9]{10,15}$' then
       raise exception 'El teléfono de contacto no es válido' using errcode = '22023';
     end if;
   elsif p_medio_contacto = 'email' then
-    if char_length(v_contact) > 254 or v_contact !~ '^[^[:space:]@]+@[^[:space:]@]+\\.[^[:space:]@]+$' then
+    if char_length(v_contact) > 254 or v_contact !~ '^[^[:space:]@]+@[^[:space:]@]+\.[^[:space:]@]+$' then
       raise exception 'El correo de contacto no es válido' using errcode = '22023';
     end if;
     v_email := lower(v_contact);

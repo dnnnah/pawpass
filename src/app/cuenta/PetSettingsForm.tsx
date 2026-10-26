@@ -40,7 +40,7 @@ const contactFields: Array<{ key: keyof PetContact; label: string; type?: "email
 const privacyFields: Array<{ key: keyof PetPrivacy; label: string; help?: string }> = [
   { key: "published", label: "Activar perfil público voluntario", help: "La mascota aparecerá en el listado público. Los archivos y vacunas requieren una elección individual en el carnet." },
   { key: "showContactName", label: "Mostrar el nombre del contacto" },
-  { key: "showPhone", label: "Mostrar también el teléfono principal", help: "El canal seleccionado para el QR ya es visible en la ficha básica." },
+  { key: "showPhone", label: "Mostrar también el teléfono principal", help: "Este dato solo se compartirá cuando actives su publicación." },
   { key: "showWhatsapp", label: "Mostrar también WhatsApp" },
   { key: "showSecondaryPhone", label: "Mostrar el teléfono secundario" },
   { key: "showEmail", label: "Mostrar también el correo" },

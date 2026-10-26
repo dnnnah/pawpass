@@ -43,6 +43,12 @@ describe("buildCatalogCard", () => {
     expect(card.age.length).toBeGreaterThan(0);
   });
 
+  it.each([[0, "0 meses"], [1, "1 mes"], [11, "11 meses"], [12, "1 año"], [25, "2 años"]])("presenta %i meses sin fecha de nacimiento", async (months, expected) => {
+    const pets = await getAdoptionDemoPets();
+    const entry = buildAdoptionCatalogEntry(pets[0], null);
+    expect(buildCatalogCard({ ...entry, fechaNacimiento: undefined, edadMeses: months }).age).toBe(expected);
+  });
+
   it("usa la zona del refugio cuando la mascota pertenece a uno", () => {
     expect(card.zone).toContain("Roma Norte");
   });

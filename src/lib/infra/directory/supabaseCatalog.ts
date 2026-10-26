@@ -29,6 +29,7 @@ type RawCatalogEntry = {
   genero?: unknown;
   talla?: unknown;
   fechaNacimiento?: unknown;
+  edadMeses?: unknown;
   photoPath?: unknown;
   zona?: unknown;
   verificado?: unknown;
@@ -66,7 +67,9 @@ function normalizeEntry(value: unknown): { entry: AdoptionCatalogEntry; photoPat
   const fechaNacimiento =
     typeof row.fechaNacimiento === "string" ? row.fechaNacimiento.trim() : "";
 
-  if (!petId || !codigoPublico || !nombre || !especie || !genero || !talla || !fechaNacimiento) {
+  const edadMeses = typeof row.edadMeses === "number" && Number.isInteger(row.edadMeses) && row.edadMeses >= 0 ? row.edadMeses : undefined;
+
+  if (!petId || !codigoPublico || !nombre || !especie || (edadMeses === undefined && !fechaNacimiento)) {
     return null;
   }
 
@@ -80,7 +83,7 @@ function normalizeEntry(value: unknown): { entry: AdoptionCatalogEntry; photoPat
       talla,
       fotoUrl: "",
       codigoPublico,
-      fechaNacimiento,
+      ...(edadMeses !== undefined ? { edadMeses } : { fechaNacimiento }),
       zona: typeof row.zona === "string" ? row.zona.trim() : "",
       verificado: row.verificado === true,
       shelterId:

@@ -7,6 +7,7 @@ import { SubpageHeader } from "@/components/ui/SubpageHeader";
 import { Surface } from "@/components/ui/Surface";
 import { hasSupabaseEnv } from "@/lib/infra/supabase/env";
 import { createSupabaseServerClient } from "@/lib/infra/supabase/server";
+import { DeleteDataControl } from "../../DeleteDataControl";
 import { LogoutButton } from "../../LogoutButton";
 import { PetSettingsForm } from "../../PetSettingsForm";
 import { QRShareCard } from "@/components/features/pet-profile/QRShareCard";
@@ -36,6 +37,10 @@ function healthFrom(row: Row): CarnetHealth {
   };
 }
 
+function CarnetLoadError() {
+  return <AppShell><div className="mx-auto max-w-4xl px-4 pb-10 sm:px-6"><Surface variant="accent" tone="danger" size="md" rest={{ role: "alert" }}><h1 className="font-display text-2xl text-ink">No pudimos cargar el carnet</h1><p className="mt-2 text-sm leading-6 text-ink-2">Tu mascota sigue registrada. Intenta recargar el carnet o vuelve a tu lista.</p><Button href="/cuenta" variant="secondary" className="mt-4">Volver a mis mascotas</Button></Surface></div></AppShell>;
+}
+
 export default async function PetCarnetPage({ params }: { params: Promise<{ petId: string }> }) {
   const { petId } = await params;
   if (!hasSupabaseEnv()) notFound();
@@ -52,7 +57,8 @@ export default async function PetCarnetPage({ params }: { params: Promise<{ petI
 
   const { data: ownership, error: ownershipError } = await supabase.from("pet_ownerships")
     .select("rol").eq("pet_id", petId).eq("user_id", user.id).is("ended_at", null).maybeSingle();
-  if (ownershipError || !ownership) notFound();
+  if (ownershipError) return <CarnetLoadError />;
+  if (!ownership) notFound();
 
   const [petResult, healthResult, vaccineResult, documentResult] = await Promise.all([
     supabase.from("pets").select("id, codigo_publico, nombre, especie, fecha_nacimiento, raza, genero, talla, color, peso_kg, esterilizado, microchip, rasgos_distintivos, notas_identificacion").eq("id", petId).maybeSingle(),
@@ -61,10 +67,9 @@ export default async function PetCarnetPage({ params }: { params: Promise<{ petI
     supabase.from("pet_documents").select("id, nombre, categoria, tipo, bucket_id, object_path, mime_type, tamano_bytes, fecha, descripcion, visible_publico, created_at").eq("pet_id", petId).order("created_at", { ascending: false }).limit(100),
   ]);
 
-  if (!petResult.data || petResult.error) notFound();
-  if (healthResult.error || vaccineResult.error || documentResult.error) {
-    return <AppShell><div className="mx-auto max-w-4xl px-4 py-10 sm:px-6"><Surface variant="accent" tone="danger" size="md" rest={{ role: "alert" }}><h1 className="font-semibold text-ink">No pudimos cargar el carnet</h1><p className="mt-1 text-sm leading-6 text-ink-2">Intenta volver a cargar esta página.</p><Button href="/cuenta" variant="secondary" className="mt-4">Volver a tus mascotas</Button></Surface></div></AppShell>;
-  }
+  if (petResult.error) return <CarnetLoadError />;
+  if (!petResult.data) notFound();
+  if (healthResult.error || vaccineResult.error || documentResult.error) return <CarnetLoadError />;
 
   const petRow = record(petResult.data);
   const publicCode = text(petRow.codigo_publico);
@@ -104,8 +109,6 @@ export default async function PetCarnetPage({ params }: { params: Promise<{ petI
       <div className="space-y-7">
         <SubpageHeader eyebrow="Carnet privado" title={pet.name} description="Solo las cuentas con tutela activa pueden ver este expediente." action={<LogoutButton />} />
         <Button href="/cuenta" variant="secondary" size="sm">Volver a mis mascotas</Button>
-        <PetSettingsForm petId={petId} petName={pet.name} publicCode={publicCode} canEdit={ownership.rol === "administrador"} />
-        <QRShareCard petName={pet.name} petCode={publicCode} profileUrl={getPublicProfileUrl(publicCode) ?? ""} />
         <PetCarnetEditor
           pet={pet}
           health={healthFrom(record(healthResult.data))}
@@ -113,6 +116,14 @@ export default async function PetCarnetPage({ params }: { params: Promise<{ petI
           documents={documents}
           canEdit={ownership.rol === "administrador"}
         />
+        <details className="rounded-lg border border-rule bg-surface p-5">
+          <summary className="cursor-pointer font-semibold text-ink">Privacidad, contacto y QR</summary>
+          <div className="mt-4 space-y-5">
+        <PetSettingsForm petId={petId} petName={pet.name} publicCode={publicCode} canEdit={ownership.rol === "administrador"} />
+        <QRShareCard petName={pet.name} petCode={publicCode} profileUrl={getPublicProfileUrl(publicCode) ?? ""} />
+          </div>
+        </details>
+        {ownership.rol === "administrador" ? <DeleteDataControl petId={petId} petName={pet.name} /> : null}
       </div>
     </div>
   </AppShell>;

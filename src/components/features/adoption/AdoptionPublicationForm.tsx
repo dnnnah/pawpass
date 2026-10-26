@@ -18,6 +18,7 @@ type AdoptionPublicationFormProps = {
   canEdit: boolean;
   shelterId?: string;
   actorLabel?: string;
+  publicationActive?: boolean;
 };
 
 export function AdoptionPublicationForm({
@@ -27,16 +28,18 @@ export function AdoptionPublicationForm({
   canEdit,
   shelterId,
   actorLabel = "tu cuenta",
+  publicationActive,
 }: AdoptionPublicationFormProps) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [consent, setConsent] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
-  const published = status === "en_adopcion";
-  const eligible = status === "en_casa" || published;
+  const published = publicationActive ?? status === "en_adopcion";
+  const eligible = status === "en_casa" || status === "en_adopcion";
 
   async function updatePublication() {
-    if (busy || !canEdit || !eligible) return;
+    if (busy || !canEdit || !eligible || (!published && !consent)) return;
     if (!hasSupabaseEnv()) {
       setError("La publicación necesita conexión con PawPass. Intenta de nuevo más tarde.");
       return;
@@ -90,18 +93,22 @@ export function AdoptionPublicationForm({
           <p className="text-xs leading-5 text-ink-2">
             {published
               ? `La mascota aparece públicamente y las solicitudes se entregan al correo responsable de ${actorLabel}.`
-              : `Al publicar, cualquier visitante verá el nombre, especie, zona aproximada y foto principal de ${petName}. Las solicitudes se enviarán al correo responsable de ${actorLabel}.`}
+              : `Al publicar, cualquier visitante verá el nombre, especie, raza, edad, sexo, talla, zona aproximada y foto principal de ${petName}. Las solicitudes se enviarán al correo responsable de ${actorLabel}.`}
           </p>
           <p className="text-xs leading-5 text-ink-3">
             El carnet, el QR, la salud, los documentos y los teléfonos o correos privados no se muestran en el catálogo.
           </p>
+          {!published ? <label className="flex items-start gap-2 text-sm leading-5 text-ink">
+            <input type="checkbox" checked={consent} onChange={(event) => setConsent(event.target.checked)} disabled={busy} className="mt-0.5 size-4 shrink-0 accent-brand" />
+            Quiero publicar estos datos y la foto principal en el catálogo de adopción.
+          </label> : null}
           {error ? <p role="alert" className="text-sm text-danger">{error}</p> : null}
           {notice ? <p role="status" className="text-sm text-success">{notice}</p> : null}
           <Button
             type="button"
             variant={published ? "secondary" : "primary"}
             size="sm"
-            disabled={busy}
+            disabled={busy || (!published && !consent)}
             onClick={() => void updatePublication()}
           >
             {busy ? "Guardando…" : published ? "Retirar del catálogo" : "Publicar en adopción"}
