@@ -24,6 +24,7 @@ const FORMATO_ICONS: Record<PhysicalPetCardFormato, typeof KeyRound> = {
 type CarnetStudioProps = {
   petName: string;
   cards: Record<PhysicalPetCardFormato, PhysicalPetCard>;
+  sharedOnly?: boolean;
 };
 
 /**
@@ -35,7 +36,7 @@ type CarnetStudioProps = {
  * qué variante se muestra y expone los metadatos para impresión
  * (especificación, no estilos).
  */
-export function CarnetStudio({ petName, cards }: CarnetStudioProps) {
+export function CarnetStudio({ petName, cards, sharedOnly = false }: CarnetStudioProps) {
   const [formato, setFormato] = useState<PhysicalPetCardFormato>("tarjeta_imprimible");
   const card = cards[formato];
   const vm = toCarnetViewModel(card);
@@ -77,7 +78,7 @@ export function CarnetStudio({ petName, cards }: CarnetStudioProps) {
         Referencia de impresión · QR mínimo {card.print.qrMinimoMm} mm
       </p>
 
-      <CarnetDocument card={card} />
+      <CarnetDocument card={card} sharedOnly={sharedOnly} />
     </div>
   );
 }

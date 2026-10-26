@@ -5,12 +5,12 @@ import { DataList } from "@/components/ui/DataList";
 type InfoCardProps = {
   petName: string;
   info: {
-    species: string;
-    breed: string;
-    color: string;
-    weight: string;
-    birthDate: string;
-    distinctive: ReadonlyArray<string>;
+    species: string | null;
+    breed: string | null;
+    color: string | null;
+    weight: string | null;
+    birthDate: string | null;
+    distinctive: ReadonlyArray<string> | null;
   };
 };
 
@@ -30,8 +30,7 @@ export function InfoCard({ petName, info }: InfoCardProps) {
           { label: "Nacimiento", value: info.birthDate },
           {
             label: "Rasgos distintivos",
-            value:
-              info.distinctive.length > 0 ? (
+            value: info.distinctive === null ? null : info.distinctive.length > 0 ? (
                 <ul className="list-disc space-y-1 pl-5">
                   {info.distinctive.map((item) => (
                     <li key={item}>{item}</li>

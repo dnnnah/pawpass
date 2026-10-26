@@ -8,6 +8,7 @@ type PhysicalCardCtaProps = {
   petId: string;
   petName: string;
   card: PhysicalPetCard;
+  sharedOnly?: boolean;
 };
 
 /**
@@ -15,7 +16,7 @@ type PhysicalCardCtaProps = {
  * en su formato por defecto) con acceso al estudio de formatos. El modelo
  * llega ya construido por la página (server) desde el Core.
  */
-export function PhysicalCardCta({ petId, petName, card }: PhysicalCardCtaProps) {
+export function PhysicalCardCta({ petId, petName, card, sharedOnly = false }: PhysicalCardCtaProps) {
   const vm = toCarnetViewModel(card);
 
   return (
@@ -51,7 +52,7 @@ export function PhysicalCardCta({ petId, petName, card }: PhysicalCardCtaProps) 
         {vm.formatoLabel} · orientación {vm.orientacionLabel.toLowerCase()} · QR mínimo {card.print.qrMinimoMm} mm
       </p>
 
-      <CarnetDocument card={card} />
+          <CarnetDocument card={card} sharedOnly={sharedOnly} />
     </section>
   );
 }

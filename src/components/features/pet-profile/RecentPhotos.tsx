@@ -17,7 +17,7 @@ type Photo = {
 
 type RecentPhotosProps = {
   photos: ReadonlyArray<Photo>;
-  profilePhoto: string;
+  profilePhoto: string | null;
 };
 
 export function RecentPhotos({ photos, profilePhoto }: RecentPhotosProps) {
@@ -72,18 +72,21 @@ export function RecentPhotos({ photos, profilePhoto }: RecentPhotosProps) {
           </Pill>
         </div>
 
-        <div className="mt-5 flex items-center gap-3">
-          <Image
-            src={profilePhoto}
-            alt="Foto de perfil de la mascota"
-            width={80}
-            height={80}
-            className="size-16 shrink-0 rounded-md object-cover ring-1 ring-rule sm:size-20"
-          />
-          <p className="text-sm text-ink-2">
-            <span className="font-medium text-ink">Perfil</span> · foto principal
-          </p>
-        </div>
+        {profilePhoto ? (
+          <div className="mt-5 flex items-center gap-3">
+            <Image
+              src={profilePhoto}
+              alt="Foto de perfil de la mascota"
+              width={80}
+              height={80}
+              unoptimized
+              className="size-16 shrink-0 rounded-md object-cover ring-1 ring-rule sm:size-20"
+            />
+            <p className="text-sm text-ink-2">
+              <span className="font-medium text-ink">Perfil</span> · foto principal
+            </p>
+          </div>
+        ) : null}
 
         <div className="mt-5 grid grid-cols-3 gap-2 sm:grid-cols-4 lg:gap-3">
           {photos.map((photo, index) => (
@@ -94,10 +97,11 @@ export function RecentPhotos({ photos, profilePhoto }: RecentPhotosProps) {
               className="group relative aspect-square overflow-hidden rounded-md ring-1 ring-rule transition-colors hover:ring-brand-rule"
             >
               <Image
-                src={failedPhotos.has(photo.id) ? profilePhoto : photo.url}
+                src={failedPhotos.has(photo.id) && profilePhoto ? profilePhoto : photo.url}
                 alt={photo.name}
                 width={400}
                 height={400}
+                unoptimized
                 onError={() => handleImageError(photo.id)}
                 className="size-full object-cover"
               />
@@ -161,10 +165,11 @@ export function RecentPhotos({ photos, profilePhoto }: RecentPhotosProps) {
             >
               <div className="relative max-h-[60vh] overflow-hidden bg-sunken">
                 <Image
-                  src={failedPhotos.has(selected.id) ? profilePhoto : selected.url}
+                  src={failedPhotos.has(selected.id) && profilePhoto ? profilePhoto : selected.url}
                   alt={selected.name}
                   width={900}
                   height={900}
+                  unoptimized
                   className="h-full w-full object-contain"
                 />
               </div>

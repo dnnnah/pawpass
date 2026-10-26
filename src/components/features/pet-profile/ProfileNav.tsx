@@ -34,21 +34,23 @@ const defaultNavItems: NavItem[] = [
 
 type ProfileNavProps = {
   hasPhotos?: boolean;
+  /** Restricts the navigation to sections present in this profile view. */
+  sectionIds?: readonly string[];
 };
 
 
-export function ProfileNav({ hasPhotos = true }: ProfileNavProps) {
+export function ProfileNav({ hasPhotos = true, sectionIds }: ProfileNavProps) {
   // Arranca marcada la primera sección en vez de `""`: sin sección activa el
   // nav queda sin ningun estado visible hasta que el observador de interseccion
   // registra la primera, que ocurre tras el primer scroll.
-  const [active, setActive] = useState(defaultNavItems[0].id);
+  const [active, setActive] = useState(sectionIds?.[0] ?? defaultNavItems[0].id);
   // En tablet el carril arranca plegado en iconos y se despliega al bajar, que
   // es cuando la persona ya esta leyendo y le sirve saber donde esta. En
   // escritorio y en movil el estado no cambia nada: lo decide el CSS.
   const [scrolled, setScrolled] = useState(false);
   const navItems = useMemo(
-    () => defaultNavItems.filter((item) => item.id !== "fotos" || hasPhotos),
-    [hasPhotos]
+    () => defaultNavItems.filter((item) => sectionIds ? sectionIds.includes(item.id) : item.id !== "fotos" || hasPhotos),
+    [hasPhotos, sectionIds]
   );
 
   useEffect(() => {

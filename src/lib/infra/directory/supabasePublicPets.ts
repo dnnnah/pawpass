@@ -27,6 +27,14 @@ export class SupabasePublicPetDirectoryError extends Error {
   }
 }
 
+const historicalPublicPhotoByCode: Readonly<Record<string, string>> = {
+  "PC-LUCCA-001": "/pets/lucca.jpeg",
+  "PC-NIKO-002": "/pets/niko.jpeg",
+  "PC-ALIX-003": "/pets/alix.jpeg",
+  "PC-LOKI-001": "/pets/loki.jpeg",
+  "PC-VISERYS-001": "/pets/viserys.jpeg",
+};
+
 function unwrapRpcData(data: unknown): unknown {
   // PostgREST returns the jsonb value directly. The array branch keeps the
   // adapter tolerant of clients that wrap a single RPC row in an array.
@@ -38,6 +46,17 @@ function paths(raw: unknown, field: "photoPath" | "recentPhotoPaths"): string[] 
   const value = (raw as Record<string, unknown>)[field];
   const items = field === "photoPath" ? [value] : Array.isArray(value) ? value : [];
   return items.filter((item): item is string => typeof item === "string" && item.length > 0).slice(0, 6);
+}
+
+function historicalPublicPhoto(raw: unknown): string | null {
+  if (typeof raw !== "object" || raw === null || Array.isArray(raw)) return null;
+  const payload = raw as Record<string, unknown>;
+  const publicCode = payload.publicCode;
+  const photoUrl = payload.photoUrl;
+  if (typeof publicCode !== "string" || typeof photoUrl !== "string" || paths(payload, "photoPath").length > 0) {
+    return null;
+  }
+  return historicalPublicPhotoByCode[publicCode] === photoUrl ? photoUrl : null;
 }
 
 async function signPhotoPaths(client: PublicPetRpcClient, raw: unknown, card: NonNullable<ReturnType<typeof toPublicPetCard>>) {
@@ -109,12 +128,13 @@ export function createSupabasePublicPetDirectory(client: PublicPetRpcClient): Pu
         const card = toPublicProfileCard(raw);
         if (!card) return null;
         const photoPath = paths(raw, "photoPath")[0];
-        if (!photoPath || !client.storage) return card;
+        if (!photoPath) return { ...card, photoUrl: historicalPublicPhoto(raw) };
+        if (!client.storage) return { ...card, photoUrl: null };
         try {
           const { data: signed } = await client.storage.from("pawpass-fotos").createSignedUrl(photoPath, 300);
-          return signed?.signedUrl ? { ...card, photoUrl: signed.signedUrl } : card;
+          return signed?.signedUrl ? { ...card, photoUrl: signed.signedUrl } : { ...card, photoUrl: historicalPublicPhoto(raw) };
         } catch {
-          return card;
+          return { ...card, photoUrl: historicalPublicPhoto(raw) };
         }
       })).then((cards) => cards.filter((card): card is NonNullable<typeof card> => card !== null));
     },
@@ -126,6 +146,7 @@ export function createSupabasePublicPetDirectory(client: PublicPetRpcClient): Pu
       const raw = unwrapRpcData(data);
       if (typeof raw !== "object" || raw === null || Array.isArray(raw)) return null;
       const payload = raw as Record<string, unknown>;
+      const primaryPath = paths(payload, "photoPath")[0];
       const signPath = async (bucket: "pawpass-fotos" | "pawpass-documentos", path: unknown) => {
         if (typeof path !== "string" || !path || !client.storage) return null;
         try {
@@ -136,7 +157,7 @@ export function createSupabasePublicPetDirectory(client: PublicPetRpcClient): Pu
         }
       };
       const [photoUrl, photos, documents] = await Promise.all([
-        signPath("pawpass-fotos", payload.photoPath),
+        signPath("pawpass-fotos", primaryPath),
         Promise.all((Array.isArray(payload.photos) ? payload.photos : []).map(async (item) => {
           const row = typeof item === "object" && item !== null ? item as Record<string, unknown> : {};
           const url = row.visible === true ? await signPath("pawpass-fotos", row.path) : null;
@@ -153,7 +174,7 @@ export function createSupabasePublicPetDirectory(client: PublicPetRpcClient): Pu
       // QR's primary photo is also the identity image for the voluntary profile.
       const profile = toPublicProfile({
         ...payload,
-        photoUrl: photoUrl ?? null,
+        photoUrl: photoUrl ?? historicalPublicPhoto(payload),
         photos: signedPhotos,
         documents: documents.filter((item) => item !== null),
       });
