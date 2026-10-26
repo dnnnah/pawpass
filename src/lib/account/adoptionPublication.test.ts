@@ -38,3 +38,14 @@ describe("setPetAdoptionPublication", () => {
     expect(result).toBe("No pudimos actualizar la publicación. Intenta de nuevo.");
   });
 });
+
+describe("errores recuperables al publicar", () => {
+  it.each([
+    ["Sube una foto válida antes de publicar en adopción", "foto en el carnet privado"],
+    ["Agrega un correo de entrega válido antes de publicar", "correo de contacto válido"],
+    ["Una alerta de pérdida activa bloquea la publicación de adopción", "alerta de pérdida activa"],
+  ])("explica el requisito que falta", async (message, expected) => {
+    const rpc = vi.fn().mockResolvedValue({ error: { message } });
+    expect(await setPetAdoptionPublication({ rpc }, "pet-1", true)).toContain(expected);
+  });
+});

@@ -22,7 +22,7 @@ export default async function AdopcionesPage() {
   let shelters: Shelter[] = [];
   let unavailable = false;
   try {
-    [entries, shelters] = await Promise.all([getAdoptionCatalogEntries(), getMockShelters()]);
+    [entries, shelters] = await Promise.all([getAdoptionCatalogEntries(), getMockShelters().catch(() => [])]);
   } catch {
     unavailable = true;
   }

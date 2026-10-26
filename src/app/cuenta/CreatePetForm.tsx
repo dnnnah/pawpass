@@ -142,7 +142,7 @@ export function CreatePetForm() {
         <div>
           <h2 id="registrar-mascota-titulo" className="font-display text-xl text-ink">Registrar una mascota</h2>
           <p className="mt-1 text-sm leading-6 text-ink-2">
-            Solo pedimos los datos necesarios para crear su cuenta. Puedes completar el resto después.
+            Solo pedimos los datos necesarios para crear su carnet. Puedes completar el resto después.
           </p>
         </div>
       </div>

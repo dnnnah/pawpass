@@ -27,9 +27,13 @@ export function buildCatalogCard(entry: AdoptionCatalogEntry): AdoptionCatalogCa
     name: entry.nombre,
     species: entry.especie,
     breed: entry.raza,
-    gender: entry.genero,
-    size: entry.talla,
-    age: getPetAgeText(entry.fechaNacimiento),
+    gender: entry.genero ?? "Sexo sin registrar",
+    size: entry.talla ?? "Talla sin registrar",
+    age: entry.edadMeses !== undefined
+      ? entry.edadMeses < 12
+        ? `${entry.edadMeses} ${entry.edadMeses === 1 ? "mes" : "meses"}`
+        : `${Math.floor(entry.edadMeses / 12)} ${Math.floor(entry.edadMeses / 12) === 1 ? "año" : "años"}`
+      : getPetAgeText(entry.fechaNacimiento ?? ""),
     image: entry.fotoUrl,
     code: entry.codigoPublico,
     zone: entry.zona,

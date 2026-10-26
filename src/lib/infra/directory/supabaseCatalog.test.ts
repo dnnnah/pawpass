@@ -67,7 +67,7 @@ describe("createSupabaseAdoptionCatalog", () => {
 
   it("descarta filas incompletas para no pintar tarjetas inseguras", async () => {
     const rpc = vi.fn().mockResolvedValue({
-      data: [{ ...VALID_ROW, genero: "" }, VALID_ROW],
+      data: [{ ...VALID_ROW, nombre: "" }, VALID_ROW],
       error: null,
     });
 
@@ -85,5 +85,30 @@ describe("createSupabaseAdoptionCatalog", () => {
     await expect(createSupabaseAdoptionCatalog({ rpc }).listAdoptionCatalog()).rejects.toBeInstanceOf(
       SupabaseAdoptionCatalogError,
     );
+  });
+});
+
+
+describe("mascotas recién registradas", () => {
+  it("incluye registros válidos aunque todavía no tengan sexo ni talla", async () => {
+    const rpc = vi.fn().mockResolvedValue({ data: [{ ...VALID_ROW, genero: null, talla: null }], error: null });
+    const entries = await createSupabaseAdoptionCatalog({ rpc }).listAdoptionCatalog();
+    expect(entries).toHaveLength(1);
+    expect(entries[0]).toMatchObject({ genero: null, talla: null, nombre: "Mila" });
+  });
+});
+
+
+describe("edad pública aproximada", () => {
+  it("admite edad en meses sin fecha exacta y descarta la fecha si llega junto a la edad", async () => {
+    const rpc = vi.fn().mockResolvedValue({ data: [
+      { ...VALID_ROW, fechaNacimiento: undefined, edadMeses: 18 },
+      { ...VALID_ROW, edadMeses: 24 },
+    ], error: null });
+    const entries = await createSupabaseAdoptionCatalog({ rpc }).listAdoptionCatalog();
+    expect(entries).toHaveLength(2);
+    expect(entries[0].edadMeses).toBe(18);
+    expect(entries[1].edadMeses).toBe(24);
+    for (const entry of entries) expect(entry).not.toHaveProperty("fechaNacimiento");
   });
 });

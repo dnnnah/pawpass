@@ -12,10 +12,10 @@ type AppShellProps = {
 
 const footerLinks = [
   { href: "/", label: "Inicio" },
-  { href: "/mascotas", label: "Mascotas" },
+  { href: "/mascotas", label: "Mascotas públicas" },
   { href: "/perdidas", label: "Mascotas perdidas" },
   { href: "/adopciones", label: "Adopciones" },
-  { href: "/login", label: "Iniciar sesión" },
+  { href: "/cuenta", label: "Mi cuenta" },
 ];
 
 export function AppShell({ children }: AppShellProps) {
@@ -28,18 +28,18 @@ export function AppShell({ children }: AppShellProps) {
         Saltar al contenido
       </a>
 
-      <header className="border-b border-rule bg-canvas">
-        <div className="mx-auto flex w-full max-w-5xl flex-wrap items-center justify-between gap-x-4 gap-y-3 px-4 py-3.5 sm:px-6 sm:py-4 lg:px-8">
+      <header className="sticky top-0 z-40 border-b border-rule bg-canvas/95 shadow-sm backdrop-blur supports-[backdrop-filter]:bg-canvas/90">
+        <div className="relative mx-auto flex w-full max-w-5xl items-center justify-between gap-3 px-4 py-3 sm:px-6 sm:py-3.5 lg:px-8">
           <Link
             href="/"
             className="flex min-h-11 min-w-0 items-center gap-2.5"
             aria-label="PawPass, inicio"
           >
-            <span className="grid h-9 w-9 shrink-0 place-items-center rounded-md bg-brand text-on-solid">
+              <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-brand text-on-solid shadow-sm">
               <PawPrint size={20} aria-hidden="true" />
             </span>
             <span className="min-w-0">
-              <span className="block font-display text-xl font-semibold leading-none tracking-tight text-ink">
+              <span className="block font-display text-xl font-bold leading-none tracking-tight text-ink">
                 PawPass
               </span>
               <span className="mt-0.5 block text-[11px] font-medium leading-none text-ink-3">
@@ -48,9 +48,10 @@ export function AppShell({ children }: AppShellProps) {
             </span>
           </Link>
 
-          <ThemeToggle />
-
-          <SiteNav />
+          <div className="ml-auto flex shrink-0 items-center gap-2">
+            <SiteNav />
+            <ThemeToggle className="rounded-full border border-rule bg-surface hover:border-rule-strong" />
+          </div>
         </div>
       </header>
 
@@ -71,7 +72,7 @@ export function AppShell({ children }: AppShellProps) {
 
       <footer className="mt-16 border-t border-rule bg-surface">
         <div className="mx-auto w-full max-w-5xl px-4 py-10 sm:px-6 lg:px-8">
-          <div className="flex flex-wrap items-start justify-between gap-x-8 gap-y-6">
+          <div className="grid grid-cols-1 items-start gap-x-8 gap-y-6 sm:grid-cols-[minmax(0,1fr)_auto]">
             <div className="max-w-xs">
               <p className="font-display text-lg font-semibold text-ink">PawPass</p>
               <p className="mt-1.5 text-sm leading-6 text-ink-2">
@@ -79,13 +80,13 @@ export function AppShell({ children }: AppShellProps) {
                 solo lugar.
               </p>
             </div>
-            <nav aria-label="Menú del pie">
-              <ul className="flex flex-wrap gap-x-6 gap-y-2">
+            <nav aria-label="Menú del pie" className="min-w-0 sm:justify-self-end">
+              <ul className="grid grid-cols-2 gap-x-2 gap-y-1 sm:grid-cols-1">
                 {footerLinks.map((link) => (
                   <li key={link.href}>
                     <Link
                       href={link.href}
-                      className="-mx-2 inline-flex min-h-11 items-center rounded-xs px-2 text-sm font-medium text-ink-2 transition-colors hover:text-brand"
+                      className="inline-flex min-h-11 min-w-0 w-full items-center rounded-md px-2 text-left text-sm font-medium leading-5 text-ink-2 transition-colors hover:bg-sunken hover:text-brand focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand sm:w-auto sm:justify-end sm:text-right"
                     >
                       {link.label}
                     </Link>
@@ -103,7 +104,7 @@ export function AppShell({ children }: AppShellProps) {
                 ninguna. */}
             <div
               aria-hidden="true"
-              className="marcas-entran flex shrink-0 items-end gap-2 text-brand opacity-[0.16] print:hidden"
+              className="marcas-entran flex shrink-0 items-end justify-self-end gap-2 text-brand opacity-[0.16] print:hidden sm:col-span-2"
             >
               <PawPrint size={30} strokeWidth={1.6} />
               <Sparkles size={16} strokeWidth={1.6} className="mb-1" />

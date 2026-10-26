@@ -2,14 +2,15 @@ import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { createSupabaseServerClient } from "@/lib/infra/supabase/server";
 import { hasSupabaseEnv } from "@/lib/infra/supabase/env";
-
-function safeNextPath(value: string | null) {
-  return value && value.startsWith("/") && !value.startsWith("//") ? value : "/";
-}
+import { safeAuthNextPath } from "@/lib/authRedirect";
 
 export async function GET(request: Request) {
   const url = new URL(request.url);
-  const nextPath = safeNextPath(url.searchParams.get("next"));
+  const nextPath = safeAuthNextPath(url.searchParams.get("next"));
+  const failureUrl = new URL("/login", request.url);
+  failureUrl.searchParams.set("error", "callback");
+  failureUrl.searchParams.set("next", nextPath);
+  if (url.searchParams.has("error")) return NextResponse.redirect(failureUrl);
 
   if (!hasSupabaseEnv()) {
     return NextResponse.redirect(new URL("/login", request.url));
@@ -27,13 +28,15 @@ export async function GET(request: Request) {
   if (code) {
     const { error } = await supabase.auth.exchangeCodeForSession(code);
     if (error) {
-      return NextResponse.redirect(new URL("/login?error=callback", request.url));
+      return NextResponse.redirect(failureUrl);
     }
   }
 
   const {
     data: { user },
   } = await supabase.auth.getUser();
+
+  if (!user) return NextResponse.redirect(failureUrl);
 
   if (user) {
     const fullName = typeof user.user_metadata?.full_name === "string" ? user.user_metadata.full_name : null;
