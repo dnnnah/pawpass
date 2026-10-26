@@ -65,11 +65,13 @@ describe("normalizePetContact", () => {
 
 describe("normalizePetPrivacy", () => {
   it("aplica false a banderas ausentes y conserva las consentidas", () => {
-    expect(normalizePetPrivacy({ publicado: true, mostrar_telefono: true })).toMatchObject({
+    expect(normalizePetPrivacy({ publicado: true, mostrar_telefono: true, mostrar_archivos: true, mostrar_emergencia: true })).toMatchObject({
       published: true,
       showPhone: true,
       showWhatsapp: false,
       showHealth: false,
+      showFiles: true,
+      showEmergency: true,
     });
   });
 });
@@ -132,6 +134,7 @@ describe("updatePetContact y updatePetPrivacy", () => {
         showVeterinarian: false,
         showVetAddress: false,
         showEmergency: true,
+        showFiles: true,
         showMicrochip: false,
         listInCatalog: false,
       }),
@@ -140,7 +143,20 @@ describe("updatePetContact y updatePetPrivacy", () => {
     expect(from).toHaveBeenNthCalledWith(1, "pet_contacts");
     expect(from).toHaveBeenNthCalledWith(2, "pet_privacy");
     expect(update).toHaveBeenNthCalledWith(1, expect.objectContaining({ nombre_publico: "Ana" }));
-    expect(update).toHaveBeenNthCalledWith(2, expect.objectContaining({ publicado: true }));
+    expect(update).toHaveBeenNthCalledWith(2, expect.objectContaining({ publicado: true, mostrar_emergencia: true }));
+    expect(update.mock.calls[1]?.[0]).not.toHaveProperty("mostrar_salud");
+    expect(update.mock.calls[1]?.[0]).not.toHaveProperty("mostrar_archivos");
+  });
+});
+
+describe("actualización aislada de controles por sección", () => {
+  it("guarda solo la bandera de publicación de salud o de archivos", async () => {
+    const { client, update } = makeClient();
+    const { updatePetPrivacyFlag } = await import("./petSettings");
+    await expect(updatePetPrivacyFlag(client, "pet-1", "showFiles", true)).resolves.toBeNull();
+    await expect(updatePetPrivacyFlag(client, "pet-1", "showHealth", false)).resolves.toBeNull();
+    expect(update).toHaveBeenNthCalledWith(1, { mostrar_archivos: true });
+    expect(update).toHaveBeenNthCalledWith(2, { mostrar_salud: false });
   });
 });
 

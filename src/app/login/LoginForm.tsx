@@ -24,7 +24,7 @@ async function ensureProfile(supabase: ReturnType<typeof createSupabaseBrowserCl
 }
 
 function getNextPath(): string {
-  if (typeof window === "undefined") return "/cuenta";
+  if (typeof window === "undefined") return "/mis-mascotas";
 
   const value = new URLSearchParams(window.location.search).get("next");
   return safeAuthNextPath(value);

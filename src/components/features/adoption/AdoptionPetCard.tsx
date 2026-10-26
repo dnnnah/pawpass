@@ -22,7 +22,7 @@ export function AdoptionPetCard({ card }: AdoptionPetCardProps) {
             width={640}
             height={480}
             unoptimized
-            className="h-full w-full object-cover"
+            className="h-full w-full object-contain"
           />
         ) : (
           <div className="grid h-full place-items-center text-sm text-ink-3">Foto no disponible</div>

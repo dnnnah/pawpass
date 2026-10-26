@@ -338,10 +338,10 @@ describe("FASE 6 — carnet físico: identidad e identificación", () => {
     }
   });
 
-  it("10. URL pública: colapsa a ruta relativa sin base y compone absoluta con base", () => {
+  it("10. URL pública: usa dominio canónico sin base y compone absoluta con base", () => {
     vi.stubEnv("NEXT_PUBLIC_APP_URL", "");
     const relative = buildCard(makePet(), { today: TODAY });
-    expect(relative.qr.url).toBe("/p/PC-LUNA-001");
+    expect(relative.qr.url).toBe("https://pet-carnet.vercel.app/p/PC-LUNA-001");
 
     vi.stubEnv("NEXT_PUBLIC_APP_URL", APP_URL.replace(/\/+$/, ""));
     const absolute = buildCard(makePet(), { today: TODAY });

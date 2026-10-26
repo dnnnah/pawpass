@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { BellRing, LockKeyhole, SearchCheck } from "lucide-react";
+import { AlertTriangle, BellRing, Download, LockKeyhole, SearchCheck } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { Field, SubmitButton } from "@/components/ui/Field";
@@ -99,21 +99,29 @@ export function LostStatusForm({ petId, petName, status, canEdit }: LostStatusFo
   return (
     <div className="mt-4 border-t border-rule pt-4">
       {isLost ? (
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <Pill tone="danger" size="sm" icon={<BellRing size={13} />}>
-            Alerta perdida activa
-          </Pill>
-          <Button
-            type="button"
-            variant="secondary"
-            size="sm"
-            disabled={busy}
-            onClick={() => void submitStatus("en_casa")}
-            icon={<SearchCheck size={15} />}
-          >
-            Marcar como encontrada
-          </Button>
-        </div>
+        <Surface as="section" variant="accent" tone="danger" size="sm" className="mt-4" rest={{ role: "alert", "aria-labelledby": `${petId}-alerta-urgente` }}>
+          <div className="flex items-start gap-3">
+            <span aria-hidden="true" className="grid size-10 shrink-0 place-items-center rounded-full bg-danger text-white"><AlertTriangle size={21} /></span>
+            <div className="min-w-0 flex-1">
+              <h4 id={`${petId}-alerta-urgente`} className="font-display text-xl font-bold text-danger">URGENTE: {petName} está perdida</h4>
+              <p className="mt-1 text-sm leading-5 text-ink">Difunde la alerta para ayudar a que vuelva a casa. Descarga su imagen y compártela.</p>
+              <div className="mt-3 flex flex-wrap gap-2">
+                <Button href={`/cuenta/mascotas/${encodeURIComponent(petId)}/alerta`} size="sm" variant="danger" icon={<Download size={15} />}>Generar imagen para compartir</Button>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  disabled={busy}
+                  onClick={() => void submitStatus("en_casa")}
+                  icon={<SearchCheck size={15} />}
+                >
+                  Marcar como encontrada
+                </Button>
+              </div>
+            </div>
+          </div>
+          <Pill tone="danger" size="sm" icon={<BellRing size={13} />} className="mt-3">Alerta pública activa</Pill>
+        </Surface>
       ) : (
         <>
           <Button

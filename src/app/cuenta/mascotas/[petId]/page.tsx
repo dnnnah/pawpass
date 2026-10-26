@@ -15,6 +15,7 @@ import { PetSettingsForm } from "../../PetSettingsForm";
 import { QRShareCard } from "@/components/features/pet-profile/QRShareCard";
 import { getPublicProfileUrl } from "@/lib/publicProfileUrl";
 import { getPetAgeText } from "@/lib/dateFormat";
+import { isMissingColumnError } from "@/lib/account/petSettings";
 import { PetCarnetEditor, type CarnetDocument, type CarnetHealth, type CarnetPet, type CarnetVaccine } from "./PetCarnetEditor";
 
 export const metadata: Metadata = {
@@ -25,6 +26,7 @@ export const metadata: Metadata = {
 export const dynamic = "force-dynamic";
 
 type Row = Record<string, unknown>;
+type PrivacyRow = { mostrar_salud?: boolean | null; mostrar_archivos?: boolean | null } | null;
 function record(value: unknown): Row { return typeof value === "object" && value !== null ? value as Row : {}; }
 function text(value: unknown): string { return typeof value === "string" ? value.trim() : ""; }
 function list(value: unknown): string[] { return Array.isArray(value) ? value.filter((item): item is string => typeof item === "string") : []; }
@@ -41,7 +43,7 @@ function healthFrom(row: Row): CarnetHealth {
 }
 
 function CarnetLoadError() {
-  return <AppShell><div className="mx-auto max-w-4xl px-4 pb-10 sm:px-6"><Surface variant="accent" tone="danger" size="md" rest={{ role: "alert" }}><h1 className="font-display text-2xl text-ink">No pudimos cargar el carnet</h1><p className="mt-2 text-sm leading-6 text-ink-2">Tu mascota sigue registrada. Intenta recargar el carnet o vuelve a tu lista.</p><Button href="/cuenta" variant="secondary" className="mt-4">Volver a mis mascotas</Button></Surface></div></AppShell>;
+  return <AppShell><div className="mx-auto max-w-4xl px-4 pb-10 sm:px-6"><Surface variant="accent" tone="danger" size="md" rest={{ role: "alert" }}><h1 className="font-display text-2xl text-ink">No pudimos cargar el carnet</h1><p className="mt-2 text-sm leading-6 text-ink-2">Tu mascota sigue registrada. Intenta recargar el carnet o vuelve a tu lista.</p><Button href="/mis-mascotas" variant="secondary" className="mt-4">Volver a mis mascotas</Button></Surface></div></AppShell>;
 }
 
 export default async function PetCarnetPage({ params }: { params: Promise<{ petId: string }> }) {
@@ -63,16 +65,27 @@ export default async function PetCarnetPage({ params }: { params: Promise<{ petI
   if (ownershipError) return <CarnetLoadError />;
   if (!ownership) notFound();
 
-  const [petResult, healthResult, vaccineResult, documentResult] = await Promise.all([
+  const [petResult, healthResult, vaccineResult, documentResult, initialPrivacyResult] = await Promise.all([
     supabase.from("pets").select("id, codigo_publico, nombre, especie, fecha_nacimiento, raza, genero, talla, color, peso_kg, esterilizado, microchip, rasgos_distintivos, notas_identificacion").eq("id", petId).maybeSingle(),
     supabase.from("pet_health").select("alergias, condiciones_medicas, medicamentos_actuales, dieta_especial, comportamiento, nota_cuidados_emergencia").eq("pet_id", petId).maybeSingle(),
     supabase.from("pet_vaccines").select("id, nombre, fecha_aplicacion, proxima_dosis, lote, documento_id, visible_publico").eq("pet_id", petId).order("fecha_aplicacion", { ascending: false }),
     supabase.from("pet_documents").select("id, nombre, categoria, tipo, bucket_id, object_path, mime_type, tamano_bytes, fecha, descripcion, visible_publico, created_at").eq("pet_id", petId).order("created_at", { ascending: false }).limit(100),
+    supabase.from("pet_privacy").select("mostrar_salud, mostrar_archivos").eq("pet_id", petId).maybeSingle(),
   ]);
+
+  let privacyData: PrivacyRow = initialPrivacyResult.data;
+  let privacyError = initialPrivacyResult.error;
+  let filePrivacySupported = true;
+  if (isMissingColumnError(privacyError, "mostrar_archivos")) {
+    filePrivacySupported = false;
+    const fallbackPrivacy = await supabase.from("pet_privacy").select("mostrar_salud").eq("pet_id", petId).maybeSingle();
+    privacyData = fallbackPrivacy.data;
+    privacyError = fallbackPrivacy.error;
+  }
 
   if (petResult.error) return <CarnetLoadError />;
   if (!petResult.data) notFound();
-  if (healthResult.error || vaccineResult.error || documentResult.error) return <CarnetLoadError />;
+  if (healthResult.error || vaccineResult.error || documentResult.error || privacyError) return <CarnetLoadError />;
 
   const petRow = record(petResult.data);
   const publicCode = text(petRow.codigo_publico);
@@ -113,7 +126,7 @@ export default async function PetCarnetPage({ params }: { params: Promise<{ petI
     <div className="mx-auto max-w-6xl px-4 pb-12 sm:px-6 lg:px-8">
       <div className="space-y-8">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <Button href="/cuenta" variant="secondary" size="sm">Volver a mis mascotas</Button>
+          <Button href="/mis-mascotas" variant="secondary" size="sm">Volver a mis mascotas</Button>
           <LogoutButton />
         </div>
         <PetHeader
@@ -147,6 +160,8 @@ export default async function PetCarnetPage({ params }: { params: Promise<{ petI
           vaccines={vaccines}
           documents={documents}
           canEdit={ownership.rol === "administrador"}
+          privacy={{ showHealth: privacyData?.mostrar_salud === true, showFiles: filePrivacySupported && privacyData?.mostrar_archivos === true }}
+          filePrivacySupported={filePrivacySupported}
         />
         {ownership.rol === "administrador" ? <DeleteDataControl petId={petId} petName={pet.name} /> : null}
       </div>

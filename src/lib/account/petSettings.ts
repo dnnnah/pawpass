@@ -19,6 +19,7 @@ export type PetPrivacy = {
   showEmail: boolean;
   showZone: boolean;
   showHealth: boolean;
+  showFiles: boolean;
   showVeterinarian: boolean;
   showVetAddress: boolean;
   showEmergency: boolean;
@@ -35,7 +36,7 @@ export type PetSettingsResult = PetSettings & { error: string | null };
 
 type QueryResult = {
   data: unknown;
-  error: { message?: string } | null;
+  error: { message?: string; code?: string } | null;
 };
 
 type PetSettingsQuery = {
@@ -90,6 +91,7 @@ const emptyPrivacy: PetPrivacy = {
   showEmail: false,
   showZone: false,
   showHealth: false,
+  showFiles: false,
   showVeterinarian: false,
   showVetAddress: false,
   showEmergency: false,
@@ -99,6 +101,13 @@ const emptyPrivacy: PetPrivacy = {
 
 const LOAD_ERROR = "No pudimos cargar la configuración de la ficha.";
 const SAVE_ERROR = "No pudimos guardar los cambios. Revisa los datos e intenta de nuevo.";
+
+export function isMissingColumnError(error: { message?: string; code?: string } | null, column: string): boolean {
+  if (!error || !error.message?.toLowerCase().includes(column.toLowerCase())) return false;
+  return error.code === "42703"
+    || error.code === "PGRST204"
+    || /column .* does not exist|could not find .*column/i.test(error.message);
+}
 
 function text(value: unknown): string {
   return typeof value === "string" ? value.trim() : "";
@@ -146,6 +155,7 @@ export function normalizePetPrivacy(value: unknown): PetPrivacy {
     showEmail: boolean(row.mostrar_email),
     showZone: boolean(row.mostrar_zona),
     showHealth: boolean(row.mostrar_salud),
+    showFiles: boolean(row.mostrar_archivos),
     showVeterinarian: boolean(row.mostrar_veterinario),
     showVetAddress: boolean(row.mostrar_direccion_vet),
     showEmergency: boolean(row.mostrar_emergencia),
@@ -170,7 +180,7 @@ export async function loadPetSettings(
   petId: string,
 ): Promise<PetSettingsResult> {
   try {
-    const [contactResponse, privacyResponse] = await Promise.all([
+    const [contactResponse, initialPrivacyResponse] = await Promise.all([
       client
         .from("pet_contacts")
         .select("nombre_publico, telefono_principal, whatsapp, telefono_secundario, email, zona_segura, zona_habitual, mensaje_whatsapp, medio_contacto_qr")
@@ -178,10 +188,19 @@ export async function loadPetSettings(
         .maybeSingle(),
       client
         .from("pet_privacy")
-        .select("publicado, mostrar_nombre_contacto, mostrar_telefono, mostrar_whatsapp, mostrar_telefono_secundario, mostrar_email, mostrar_zona, mostrar_salud, mostrar_veterinario, mostrar_direccion_vet, mostrar_emergencia, mostrar_microchip, listar_catalogo")
+        .select("publicado, mostrar_nombre_contacto, mostrar_telefono, mostrar_whatsapp, mostrar_telefono_secundario, mostrar_email, mostrar_zona, mostrar_salud, mostrar_archivos, mostrar_veterinario, mostrar_direccion_vet, mostrar_emergencia, mostrar_microchip, listar_catalogo")
         .eq("pet_id", petId)
         .maybeSingle(),
     ]);
+
+    let privacyResponse = initialPrivacyResponse;
+    if (isMissingColumnError(privacyResponse.error, "mostrar_archivos")) {
+      privacyResponse = await client
+        .from("pet_privacy")
+        .select("publicado, mostrar_nombre_contacto, mostrar_telefono, mostrar_whatsapp, mostrar_telefono_secundario, mostrar_email, mostrar_zona, mostrar_salud, mostrar_veterinario, mostrar_direccion_vet, mostrar_emergencia, mostrar_microchip, listar_catalogo")
+        .eq("pet_id", petId)
+        .maybeSingle();
+    }
 
     if (contactResponse.error || privacyResponse.error) {
       return { contact: { ...emptyContact }, privacy: { ...emptyPrivacy }, error: LOAD_ERROR };
@@ -240,7 +259,6 @@ export async function updatePetPrivacy(
         mostrar_telefono_secundario: privacy.showSecondaryPhone,
         mostrar_email: privacy.showEmail,
         mostrar_zona: privacy.showZone,
-        mostrar_salud: privacy.showHealth,
         mostrar_veterinario: privacy.showVeterinarian,
         mostrar_direccion_vet: privacy.showVetAddress,
         mostrar_emergencia: privacy.showEmergency,
@@ -249,6 +267,29 @@ export async function updatePetPrivacy(
       })
       .eq("pet_id", petId);
 
+    return error ? SAVE_ERROR : null;
+  } catch {
+    return SAVE_ERROR;
+  }
+}
+
+const privacyFlagColumns = {
+  showHealth: "mostrar_salud",
+  showFiles: "mostrar_archivos",
+} as const;
+
+export type PetPrivacySectionFlag = keyof typeof privacyFlagColumns;
+
+export async function updatePetPrivacyFlag(
+  client: PetSettingsClient,
+  petId: string,
+  flag: PetPrivacySectionFlag,
+  enabled: boolean,
+): Promise<string | null> {
+  try {
+    const { error } = await client.from("pet_privacy")
+      .update({ [privacyFlagColumns[flag]]: enabled })
+      .eq("pet_id", petId);
     return error ? SAVE_ERROR : null;
   } catch {
     return SAVE_ERROR;

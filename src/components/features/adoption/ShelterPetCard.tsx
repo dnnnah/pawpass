@@ -25,7 +25,7 @@ export function ShelterPetCard({ pet }: ShelterPetCardProps) {
           alt=""
           width={128}
           height={128}
-          className="h-24 w-24 rounded-md object-cover sm:h-28 sm:w-28"
+          className="h-24 w-24 rounded-md bg-sunken object-contain sm:h-28 sm:w-28"
         />
       </Link>
 
