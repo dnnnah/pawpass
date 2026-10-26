@@ -57,8 +57,6 @@ export function RecentPhotos({ photos, profilePhoto }: RecentPhotosProps) {
     return () => window.removeEventListener("keydown", onKey);
   }, [selectedIndex, move]);
 
-  if (photos.length === 0) return null;
-
   return (
     <MotionConfig reducedMotion="user">
       <Surface className="p-5 sm:p-6">
@@ -72,13 +70,20 @@ export function RecentPhotos({ photos, profilePhoto }: RecentPhotosProps) {
           </Pill>
         </div>
 
-        {profilePhoto ? (
+        {photos.length === 0 ? (
+          <p className="mt-4 rounded-md bg-sunken px-4 py-3 text-sm leading-5 text-ink-2">
+            Aún no hay fotos compartidas.
+          </p>
+        ) : null}
+
+        {profilePhoto && photos.length > 0 ? (
           <div className="mt-5 flex items-center gap-3">
             <Image
               src={profilePhoto}
               alt="Foto de perfil de la mascota"
               width={80}
               height={80}
+              loading="lazy"
               unoptimized
               className="size-16 shrink-0 rounded-md object-cover ring-1 ring-rule sm:size-20"
             />
@@ -88,7 +93,7 @@ export function RecentPhotos({ photos, profilePhoto }: RecentPhotosProps) {
           </div>
         ) : null}
 
-        <div className="mt-5 grid grid-cols-3 gap-2 sm:grid-cols-4 lg:gap-3">
+        {photos.length > 0 ? <div className="mt-5 grid grid-cols-3 gap-2 sm:grid-cols-4 lg:gap-3">
           {photos.map((photo, index) => (
             <button
               key={photo.id}
@@ -101,6 +106,8 @@ export function RecentPhotos({ photos, profilePhoto }: RecentPhotosProps) {
                 alt={photo.name}
                 width={400}
                 height={400}
+                sizes="(min-width: 1024px) 12vw, (min-width: 640px) 20vw, 30vw"
+                loading="lazy"
                 unoptimized
                 onError={() => handleImageError(photo.id)}
                 className="size-full object-cover"
@@ -110,7 +117,7 @@ export function RecentPhotos({ photos, profilePhoto }: RecentPhotosProps) {
               </span>
             </button>
           ))}
-        </div>
+        </div> : null}
       </Surface>
 
       <AnimatePresence>
@@ -163,12 +170,14 @@ export function RecentPhotos({ photos, profilePhoto }: RecentPhotosProps) {
               className="max-h-[85vh] w-full max-w-xl overflow-hidden rounded-lg bg-surface ring-1 ring-rule"
               onClick={(event) => event.stopPropagation()}
             >
-              <div className="relative max-h-[60vh] overflow-hidden bg-sunken">
+              <div className="relative h-[60vh] max-h-[60vh] overflow-hidden bg-sunken">
                 <Image
                   src={failedPhotos.has(selected.id) && profilePhoto ? profilePhoto : selected.url}
                   alt={selected.name}
                   width={900}
                   height={900}
+                  sizes="(max-width: 768px) 100vw, 576px"
+                  loading="eager"
                   unoptimized
                   className="h-full w-full object-contain"
                 />

@@ -10,6 +10,7 @@ export type AccountPet = {
   breed: string | null;
   photoUrl?: string | null;
   adoptionPublished?: boolean;
+  publicProfilePublished?: boolean;
   role: string;
   startedAt: string;
 };

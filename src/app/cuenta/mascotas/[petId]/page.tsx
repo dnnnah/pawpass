@@ -26,7 +26,7 @@ export const metadata: Metadata = {
 export const dynamic = "force-dynamic";
 
 type Row = Record<string, unknown>;
-type PrivacyRow = { mostrar_salud?: boolean | null; mostrar_archivos?: boolean | null } | null;
+type PrivacyRow = { publicado?: boolean | null; mostrar_salud?: boolean | null; mostrar_archivos?: boolean | null } | null;
 function record(value: unknown): Row { return typeof value === "object" && value !== null ? value as Row : {}; }
 function text(value: unknown): string { return typeof value === "string" ? value.trim() : ""; }
 function list(value: unknown): string[] { return Array.isArray(value) ? value.filter((item): item is string => typeof item === "string") : []; }
@@ -70,7 +70,7 @@ export default async function PetCarnetPage({ params }: { params: Promise<{ petI
     supabase.from("pet_health").select("alergias, condiciones_medicas, medicamentos_actuales, dieta_especial, comportamiento, nota_cuidados_emergencia").eq("pet_id", petId).maybeSingle(),
     supabase.from("pet_vaccines").select("id, nombre, fecha_aplicacion, proxima_dosis, lote, documento_id, visible_publico").eq("pet_id", petId).order("fecha_aplicacion", { ascending: false }),
     supabase.from("pet_documents").select("id, nombre, categoria, tipo, bucket_id, object_path, mime_type, tamano_bytes, fecha, descripcion, visible_publico, created_at").eq("pet_id", petId).order("created_at", { ascending: false }).limit(100),
-    supabase.from("pet_privacy").select("mostrar_salud, mostrar_archivos").eq("pet_id", petId).maybeSingle(),
+    supabase.from("pet_privacy").select("publicado, mostrar_salud, mostrar_archivos").eq("pet_id", petId).maybeSingle(),
   ]);
 
   let privacyData: PrivacyRow = initialPrivacyResult.data;
@@ -78,7 +78,7 @@ export default async function PetCarnetPage({ params }: { params: Promise<{ petI
   let filePrivacySupported = true;
   if (isMissingColumnError(privacyError, "mostrar_archivos")) {
     filePrivacySupported = false;
-    const fallbackPrivacy = await supabase.from("pet_privacy").select("mostrar_salud").eq("pet_id", petId).maybeSingle();
+    const fallbackPrivacy = await supabase.from("pet_privacy").select("publicado, mostrar_salud").eq("pet_id", petId).maybeSingle();
     privacyData = fallbackPrivacy.data;
     privacyError = fallbackPrivacy.error;
   }
@@ -150,7 +150,7 @@ export default async function PetCarnetPage({ params }: { params: Promise<{ petI
         <ProfileNav sectionIds={["contacto", "info", "salud", "vacunas", "documentos"]} />
         <div id="contacto" className="grid scroll-mt-24 items-start gap-6 lg:grid-cols-[minmax(0,1fr)_20rem]">
           <div>
-            <PetSettingsForm petId={petId} petName={pet.name} publicCode={publicCode} canEdit={ownership.rol === "administrador"} />
+          <PetSettingsForm petId={petId} petName={pet.name} publicCode={publicCode} canEdit={ownership.rol === "administrador"} initialPublished={privacyData?.publicado === true} />
           </div>
           <QRShareCard petName={pet.name} petCode={publicCode} profileUrl={getPublicProfileUrl(publicCode) ?? ""} className="lg:sticky lg:top-24" />
         </div>

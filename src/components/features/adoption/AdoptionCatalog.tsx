@@ -95,7 +95,7 @@ export function AdoptionCatalog({ cards, shelters }: AdoptionCatalogProps) {
       ) : (
         <div
           className="mt-4 grid gap-5 sm:grid-cols-2 lg:grid-cols-3"
-          aria-label="Resultados del catálogo de adopción"
+          aria-label="Resultados de mascotas en adopción"
         >
           {filtered.map((card) => (
             <AdoptionPetCard key={card.petId} card={card} />

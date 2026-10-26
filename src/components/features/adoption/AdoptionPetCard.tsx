@@ -21,6 +21,8 @@ export function AdoptionPetCard({ card }: AdoptionPetCardProps) {
             alt={`Foto de ${card.name}`}
             width={640}
             height={480}
+            sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
+            loading="lazy"
             unoptimized
             className="h-full w-full object-contain"
           />

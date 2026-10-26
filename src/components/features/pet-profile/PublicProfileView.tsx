@@ -183,19 +183,17 @@ export function PublicProfileView({ profile }: { profile: PublicProfile }) {
             </div>
           ) : null}
 
-          {profile.photos.length ? (
-            <div id="fotos" className="scroll-mt-24">
-              <RecentPhotos
-                profilePhoto={profilePhoto}
-                photos={profile.photos.map((photo, index) => ({
-                  id: `${profile.publicCode}-shared-photo-${index}`,
-                  name: `${profile.name} · foto ${index + 1}`,
-                  url: photo.url,
-                  date: "",
-                }))}
-              />
-            </div>
-          ) : null}
+          <div id="fotos" className="scroll-mt-24">
+            <RecentPhotos
+              profilePhoto={profilePhoto}
+              photos={profile.photos.map((photo, index) => ({
+                id: `${profile.publicCode}-shared-photo-${index}`,
+                name: `${profile.name} · foto ${index + 1}`,
+                url: photo.url,
+                date: "",
+              }))}
+            />
+          </div>
 
           {profile.vaccines.length ? (
             <div id="vacunas" className="scroll-mt-24">

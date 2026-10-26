@@ -49,7 +49,7 @@ export default async function AdopcionesPage() {
 
           {unavailable ? (
             <div role="alert" className="rounded-md border border-danger-rule bg-danger-soft p-5 text-sm leading-6 text-danger">
-              No pudimos cargar el catálogo de adopción. Intenta de nuevo más tarde.
+              No pudimos cargar las mascotas en adopción. Intenta de nuevo más tarde.
             </div>
           ) : <AdoptionCatalog cards={cards} shelters={shelterOptions} />}
 
