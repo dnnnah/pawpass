@@ -18,7 +18,7 @@ import {
 } from "@/lib/account/petCarnet";
 import { createSupabaseBrowserClient } from "@/lib/infra/supabase/client";
 import { hasSupabaseEnv } from "@/lib/infra/supabase/env";
-import { setPublicRecordVisibility, type PublicRecordVisibilityClient } from "@/lib/account/petSettings";
+import { setPublicRecordVisibility, updatePetPrivacyFlag, type PetSettingsClient, type PetPrivacySectionFlag, type PublicRecordVisibilityClient } from "@/lib/account/petSettings";
 
 export type CarnetPet = {
   id: string; name: string; species: "perro" | "gato"; birthDate: string; breed: string; gender: string;
@@ -33,7 +33,7 @@ export type CarnetDocument = {
   id: string; name: string; category: string; type: "pdf" | "imagen" | "otro"; bucketId: "pawpass-fotos" | "pawpass-documentos";
   objectPath: string; mimeType: string; size: number; date: string; description: string; signedUrl: string | null; visiblePublic: boolean;
 };
-type PetCarnetEditorProps = { pet: CarnetPet; health: CarnetHealth; vaccines: CarnetVaccine[]; documents: CarnetDocument[]; canEdit: boolean };
+type PetCarnetEditorProps = { pet: CarnetPet; health: CarnetHealth; vaccines: CarnetVaccine[]; documents: CarnetDocument[]; canEdit: boolean; privacy: { showHealth: boolean; showFiles: boolean }; filePrivacySupported?: boolean };
 
 const today = () => new Date().toISOString().slice(0, 10);
 function initialIdentity(pet: CarnetPet): PetIdentityInput {
@@ -62,7 +62,7 @@ function formatSize(bytes: number): string {
   return bytes < 1024 * 1024 ? `${Math.max(1, Math.round(bytes / 1024))} KB` : `${(bytes / (1024 * 1024)).toFixed(1)} MiB`;
 }
 
-export function PetCarnetEditor({ pet, health, vaccines, documents, canEdit }: PetCarnetEditorProps) {
+export function PetCarnetEditor({ pet, health, vaccines, documents, canEdit, privacy: initialPrivacy, filePrivacySupported = true }: PetCarnetEditorProps) {
   const router = useRouter();
   const [identity, setIdentity] = useState(() => initialIdentity(pet));
   const [healthInput, setHealthInput] = useState(() => initialHealth(health));
@@ -81,6 +81,7 @@ export function PetCarnetEditor({ pet, health, vaccines, documents, canEdit }: P
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const [privacy, setPrivacy] = useState(initialPrivacy);
 
   function ready(): boolean {
     if (hasSupabaseEnv()) return true;
@@ -183,6 +184,24 @@ export function PetCarnetEditor({ pet, health, vaccines, documents, canEdit }: P
     setBusy(null);
   }
 
+  async function toggleSectionVisibility(flag: PetPrivacySectionFlag, enabled: boolean) {
+    if (!canEdit || !ready()) return;
+    clearMessages(); setBusy(`privacy:${flag}`);
+    const result = await updatePetPrivacyFlag(
+      createSupabaseBrowserClient() as unknown as PetSettingsClient,
+      pet.id,
+      flag,
+      enabled,
+    );
+    if (result) setError(result);
+    else {
+      setPrivacy((current) => ({ ...current, [flag]: enabled }));
+      setNotice(enabled ? "Sección pública activada." : "Sección oculta del perfil público.");
+      router.refresh();
+    }
+    setBusy(null);
+  }
+
   async function uploadBytes(upload: NonNullable<typeof pendingUpload>) {
     setBusy("file"); clearMessages();
     try {
@@ -261,8 +280,14 @@ export function PetCarnetEditor({ pet, health, vaccines, documents, canEdit }: P
     </Surface>
 
     <Surface id="salud" as="section" size="lg" className="scroll-mt-24" rest={{ "aria-labelledby": "salud-titulo" }}>
-      <h2 id="salud-titulo" className="font-display text-2xl text-ink">Salud y cuidados</h2>
-      <p className="mt-1 text-sm leading-6 text-ink-2">Esta información queda en el carnet privado. La nota de emergencia se usará en el QR cuando se habilite esa ficha.</p>
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div><h2 id="salud-titulo" className="font-display text-2xl text-ink">Salud y cuidados</h2>
+          <p className="mt-1 max-w-2xl text-sm leading-6 text-ink-2">El historial queda privado salvo que actives su resumen en el perfil voluntario. La nota del QR se controla por separado.</p></div>
+        <label className="flex max-w-sm items-start gap-3 rounded-md border border-rule bg-surface px-3 py-2.5 text-sm text-ink">
+          <input type="checkbox" checked={privacy.showHealth} disabled={!editable} onChange={(event) => void toggleSectionVisibility("showHealth", event.target.checked)} className="mt-0.5 size-4 shrink-0 accent-brand" />
+          <span><span className="block font-medium">Mostrar el resumen de salud en el perfil público voluntario</span><span className="mt-0.5 block text-xs leading-5 text-ink-3">No activa la ficha ni comparte archivos clínicos.</span></span>
+        </label>
+      </div>
       <form className="mt-5 grid gap-4 sm:grid-cols-2" onSubmit={saveHealth}>
         <Field id="salud-alergias" label="Alergias" help="Una por línea." error={healthErrors.allergies}>{(f) => <textarea {...f} rows={3} value={healthInput.allergies} disabled={!editable} onChange={(e) => setHealthInput({ ...healthInput, allergies: e.target.value })} />}</Field>
         <Field id="salud-condiciones" label="Condiciones" help="Una por línea." error={healthErrors.conditions}>{(f) => <textarea {...f} rows={3} value={healthInput.conditions} disabled={!editable} onChange={(e) => setHealthInput({ ...healthInput, conditions: e.target.value })} />}</Field>
@@ -288,8 +313,14 @@ export function PetCarnetEditor({ pet, health, vaccines, documents, canEdit }: P
     </Surface>
 
     <Surface id="documentos" as="section" size="lg" className="scroll-mt-24" rest={{ "aria-labelledby": "archivos-titulo" }}>
-      <div className="flex items-center gap-3"><span className="grid size-10 place-items-center rounded-md bg-brand-soft text-brand"><FileText size={20} aria-hidden="true" /></span><div><h2 id="archivos-titulo" className="font-display text-2xl text-ink">Fotos y documentos</h2><p className="text-sm leading-6 text-ink-2">Los originales permanecen en almacenamiento privado. Puedes compartir cada archivo en el perfil voluntario; el QR nunca muestra documentos.</p></div></div>
-      {documents.length ? <ul className="mt-5 grid gap-3 sm:grid-cols-2">{documents.map((document) => <li key={document.id} className="overflow-hidden rounded-md border border-rule bg-surface">{document.category === "foto" && document.signedUrl ? <Image src={document.signedUrl} alt={`Foto de ${pet.name}: ${document.name}`} width={800} height={600} unoptimized className="aspect-[4/3] w-full object-cover" /> : null}<div className="flex items-start justify-between gap-3 p-4"><div className="min-w-0"><p className="text-xs font-semibold uppercase tracking-wide text-brand">{categoryLabel(document.category)}</p><h3 className="mt-1 break-words font-semibold text-ink">{document.name}</h3><p className="mt-1 text-xs text-ink-3">{formatDate(document.date)} · {formatSize(document.size)}</p>{document.description ? <p className="mt-2 text-sm leading-5 text-ink-2">{document.description}</p> : null}{document.category !== "foto" && document.signedUrl ? <a href={document.signedUrl} target="_blank" rel="noreferrer" className="mt-2 inline-block text-sm font-semibold text-brand underline">Abrir archivo privado</a> : null}<label className="mt-3 flex items-start gap-2 text-xs text-ink-2"><input type="checkbox" checked={document.visiblePublic} disabled={!editable} onChange={(event) => void toggleRecordVisibility("pet_documents", document.id, event.target.checked)} className="mt-0.5 size-4 shrink-0 accent-brand" />Compartir en el perfil público voluntario</label></div>{canEdit ? <button type="button" title={`Eliminar ${document.name}`} aria-label={`Eliminar ${document.name}`} className="shrink-0 rounded-md p-2 text-danger hover:bg-danger-soft disabled:opacity-50" disabled={Boolean(busy)} onClick={() => void deleteDocument(document)}><Trash2 size={17} aria-hidden="true" /></button> : null}</div></li>)}</ul> : <p className="mt-4 rounded-md bg-sunken px-4 py-3 text-sm text-ink-2">Todavía no hay fotos ni documentos adicionales.</p>}
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div className="flex items-start gap-3"><span className="grid size-10 shrink-0 place-items-center rounded-md bg-brand-soft text-brand"><FileText size={20} aria-hidden="true" /></span><div><h2 id="archivos-titulo" className="font-display text-2xl text-ink">Fotos y documentos</h2><p className="max-w-2xl text-sm leading-6 text-ink-2">Cada archivo sigue privado hasta que lo selecciones. El QR de rescate nunca muestra documentos.</p></div></div>
+        {filePrivacySupported ? <label className="flex max-w-sm items-start gap-3 rounded-md border border-rule bg-surface px-3 py-2.5 text-sm text-ink">
+          <input type="checkbox" checked={privacy.showFiles} disabled={!editable} onChange={(event) => void toggleSectionVisibility("showFiles", event.target.checked)} className="mt-0.5 size-4 shrink-0 accent-brand" />
+          <span><span className="block font-medium">Mostrar los archivos seleccionados en el perfil público voluntario</span><span className="mt-0.5 block text-xs leading-5 text-ink-3">Solo aparecen los que también tengan su permiso individual activado. Puedes ocultarlos todos sin perder esas selecciones.</span></span>
+        </label> : <p className="max-w-sm rounded-md bg-sunken px-3 py-2.5 text-xs leading-5 text-ink-2">Los archivos del carnet siguen privados. El control para publicarlos estará disponible al actualizar la configuración.</p>}
+      </div>
+      {documents.length ? <ul className="mt-5 grid gap-3 sm:grid-cols-2">{documents.map((document) => <li key={document.id} className="overflow-hidden rounded-md border border-rule bg-surface">{document.category === "foto" && document.signedUrl ? <Image src={document.signedUrl} alt={`Foto de ${pet.name}: ${document.name}`} width={800} height={600} unoptimized className="aspect-[4/3] w-full bg-sunken object-contain" /> : null}<div className="flex items-start justify-between gap-3 p-4"><div className="min-w-0"><p className="text-xs font-semibold uppercase tracking-wide text-brand">{categoryLabel(document.category)}</p><h3 className="mt-1 break-words font-semibold text-ink">{document.name}</h3><p className="mt-1 text-xs text-ink-3">{formatDate(document.date)} · {formatSize(document.size)}</p>{document.description ? <p className="mt-2 text-sm leading-5 text-ink-2">{document.description}</p> : null}{document.category !== "foto" && document.signedUrl ? <a href={document.signedUrl} target="_blank" rel="noreferrer" className="mt-2 inline-block text-sm font-semibold text-brand underline">Abrir archivo privado</a> : null}<label className="mt-3 flex items-start gap-2 text-xs text-ink-2"><input type="checkbox" checked={document.visiblePublic} disabled={!editable} onChange={(event) => void toggleRecordVisibility("pet_documents", document.id, event.target.checked)} className="mt-0.5 size-4 shrink-0 accent-brand" />Compartir este archivo en el perfil público voluntario</label></div>{canEdit ? <button type="button" title={`Eliminar ${document.name}`} aria-label={`Eliminar ${document.name}`} className="shrink-0 rounded-md p-2 text-danger hover:bg-danger-soft disabled:opacity-50" disabled={Boolean(busy)} onClick={() => void deleteDocument(document)}><Trash2 size={17} aria-hidden="true" /></button> : null}</div></li>)}</ul> : <p className="mt-4 rounded-md bg-sunken px-4 py-3 text-sm text-ink-2">Todavía no hay fotos ni documentos adicionales.</p>}
       {canEdit ? <form className="mt-6 grid gap-4 border-t border-rule pt-5 sm:grid-cols-2" onSubmit={saveFile}><div className="sm:col-span-2"><h3 className="font-semibold text-ink">Añadir archivo privado</h3><p className="mt-1 text-xs leading-5 text-ink-3">Fotos: JPEG, PNG o WebP hasta 5 MiB. Documentos: PDF o imagen hasta 10 MiB.</p></div>
         <Field id="archivo-tipo" label="Tipo de archivo">{(f) => <select {...f} value={fileKind} disabled={Boolean(pendingUpload || busy)} onChange={(e) => { const kind = e.target.value as "foto" | "documento"; setFileKind(kind); if (kind === "foto") setFileCategory("foto"); else if (fileCategory === "foto") setFileCategory("identificacion"); }}><option value="foto">Foto</option><option value="documento">Documento</option></select>}</Field>
         {fileKind === "documento" ? <Field id="archivo-categoria" label="Categoría">{(f) => <select {...f} value={fileCategory} disabled={Boolean(pendingUpload || busy)} onChange={(e) => setFileCategory(e.target.value)}><option value="identificacion">Identificación</option><option value="salud">Salud</option><option value="vacunas">Vacunas</option><option value="otro">Otro</option></select>}</Field> : null}

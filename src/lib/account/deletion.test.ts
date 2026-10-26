@@ -24,6 +24,15 @@ describe("eliminación privada de mascotas", () => {
     expect(await deleteOwnedPet(deps, "pet-1")).toEqual({ ok: true });
     expect(order).toEqual(["storage", "pet"]);
   });
+  it("elimina archivos almacenados bajo la raíz real de su documento", async () => {
+    const docId = "a41c95a4-8140-49b4-85f3-d9149dbca1ce";
+    const deps = dependencies({
+      listFiles: vi.fn().mockResolvedValue([{ bucket: "pawpass-fotos", documentId: docId, path: `${docId}/foto.jpeg` }]),
+    });
+    expect(await deleteOwnedPet(deps, "pet-1")).toEqual({ ok: true });
+    expect(deps.removeFiles).toHaveBeenCalledWith("pawpass-fotos", [`${docId}/foto.jpeg`]);
+    expect(deps.deletePet).toHaveBeenCalledWith("pet-1");
+  });
   it("conserva el registro si falla la limpieza", async () => {
     const deps = dependencies({ removeFiles: vi.fn().mockRejectedValue(new Error("storage unavailable")) });
     expect(await deleteOwnedPet(deps, "pet-1")).toMatchObject({ ok: false, status: 503 });

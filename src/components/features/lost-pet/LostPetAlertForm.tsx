@@ -137,7 +137,7 @@ export function LostPetAlertForm({ pet }: LostPetAlertFormProps) {
           <img
             src={photoUrl}
             alt="Foto de la alerta"
-            className="size-20 rounded-md object-cover"
+            className="size-20 rounded-md bg-sunken object-contain"
           />
           <div className="min-w-0">
             <p className="text-sm font-medium text-ink">Foto de la alerta</p>

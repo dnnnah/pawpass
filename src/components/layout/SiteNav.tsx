@@ -10,16 +10,16 @@ import { hasSupabaseEnv } from "@/lib/infra/supabase/env";
 const baseLinks = [
   { href: "/", label: "Inicio", icon: PawPrint, match: (p: string) => p === "/" },
   {
+    href: "/perdidas",
+    label: "Mascotas perdidas",
+    icon: AlertTriangle,
+    match: (p: string) => p.startsWith("/perdidas"),
+  },
+  {
     href: "/mascotas",
     label: "Mascotas públicas",
     icon: Bone,
-    match: (p: string) => p.startsWith("/mascotas") || p.startsWith("/perfil"),
-  },
-  {
-    href: "/perdidas",
-    label: "Perdidas",
-    icon: AlertTriangle,
-    match: (p: string) => p.startsWith("/perdidas"),
+    match: (p: string) => p === "/mascotas" || p.startsWith("/mascotas/") || p.startsWith("/perfil/"),
   },
   {
     href: "/adopciones",
@@ -69,7 +69,9 @@ export function SiteNav() {
   }, [menuOpen]);
 
   const links = [
-    ...baseLinks.map((link) => ({ ...link, label: authenticated && link.href === "/" ? "Mis mascotas" : link.label })),
+    ...baseLinks.slice(0, 1),
+    ...(authenticated ? [{ href: "/mis-mascotas", label: "Mis mascotas", icon: Bone, match: (p: string) => p.startsWith("/mis-mascotas") || p.startsWith("/cuenta/mascotas/") }] : []),
+    ...baseLinks.slice(1),
     {
       href: authenticated ? "/cuenta" : "/login",
       label: authenticated ? "Mi cuenta" : "Iniciar sesión",

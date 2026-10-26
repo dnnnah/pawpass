@@ -5,7 +5,6 @@ import Link from "next/link";
 import { Check, ChevronDown, ChevronUp, LockKeyhole, Save } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Field, SubmitButton } from "@/components/ui/Field";
-import { Surface } from "@/components/ui/Surface";
 import {
   loadPetSettings,
   updatePetContact,
@@ -37,15 +36,15 @@ const contactFields: Array<{ key: keyof PetContact; label: string; type?: "email
   { key: "whatsappMessage", label: "Mensaje para WhatsApp" },
 ];
 
-const privacyFields: Array<{ key: keyof PetPrivacy; label: string; help?: string }> = [
-  { key: "published", label: "Activar perfil público voluntario", help: "La mascota aparecerá en el listado público. Los archivos y vacunas requieren una elección individual en el carnet." },
+const privacyFields: Array<{ key: Exclude<keyof PetPrivacy, "showFiles" | "showHealth">; label: string; help?: string }> = [
+  { key: "published", label: "Activar perfil público voluntario", help: "La mascota aparecerá en el catálogo. Salud, vacunas y archivos se controlan por separado; cada vacuna y archivo necesita su propio permiso." },
   { key: "showContactName", label: "Mostrar el nombre del contacto" },
   { key: "showPhone", label: "Mostrar también el teléfono principal", help: "Este dato solo se compartirá cuando actives su publicación." },
   { key: "showWhatsapp", label: "Mostrar también WhatsApp" },
   { key: "showSecondaryPhone", label: "Mostrar el teléfono secundario" },
   { key: "showEmail", label: "Mostrar también el correo" },
   { key: "showZone", label: "Mostrar zona aproximada en el perfil público" },
-  { key: "showHealth", label: "Mostrar el resumen de salud" },
+  { key: "showEmergency", label: "Mostrar la nota de emergencia en el perfil voluntario", help: "Esta opción no cambia la nota que aparece en el QR de rescate." },
   { key: "showMicrochip", label: "Mostrar el número de microchip" },
 ];
 
@@ -58,6 +57,7 @@ const defaultPrivacy: PetPrivacy = {
   showEmail: false,
   showZone: false,
   showHealth: false,
+  showFiles: false,
   showVeterinarian: false,
   showVetAddress: false,
   showEmergency: false,
@@ -71,11 +71,14 @@ function asSettingsClient(): PetSettingsClient {
 
 export function PetSettingsForm({ petId, petName, publicCode, canEdit, showPrivacySettings = true }: PetSettingsFormProps) {
   const [open, setOpen] = useState(false);
+  const [contactSectionOpen, setContactSectionOpen] = useState(true);
+  const [privacySectionOpen, setPrivacySectionOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [savingContact, setSavingContact] = useState(false);
   const [savingPrivacy, setSavingPrivacy] = useState(false);
   const [contact, setContact] = useState<PetContact | null>(null);
   const [privacy, setPrivacy] = useState<PetPrivacy>(defaultPrivacy);
+  const [savedPublished, setSavedPublished] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
 
@@ -96,6 +99,7 @@ export function PetSettingsForm({ petId, petName, publicCode, canEdit, showPriva
     } else {
       setContact(result.contact);
       setPrivacy(result.privacy);
+      setSavedPublished(result.privacy.published);
     }
     setLoading(false);
   }
@@ -128,7 +132,7 @@ export function PetSettingsForm({ petId, petName, publicCode, canEdit, showPriva
     setNotice(null);
     const result = await updatePetPrivacy(asSettingsClient(), petId, privacy);
     if (result) setError(result);
-    else setNotice("Privacidad guardada.");
+    else { setSavedPublished(privacy.published); setNotice("Privacidad guardada."); }
     setSavingPrivacy(false);
   }
 
@@ -164,64 +168,48 @@ export function PetSettingsForm({ petId, petName, publicCode, canEdit, showPriva
                 </p>
               ) : null}
 
-              <Surface as="section" variant="sunken" size="sm" rest={{ "aria-labelledby": `${petId}-contacto-titulo` }}>
-                <h4 id={`${petId}-contacto-titulo`} className="font-semibold text-ink">Contacto de emergencia</h4>
-                <form className="mt-4 grid gap-3" onSubmit={saveContact}>
-                  <Field id={`${petId}-contact-method`} label="Canal que aparecerá en el QR">
-                    {(field) => <select {...field} value={contact.contactMethod} disabled={!canEdit || savingContact} onChange={(event) => setContact((current) => current ? { ...current, contactMethod: event.target.value as PetContact["contactMethod"] } : current)}>
-                      <option value="">Elige un canal</option><option value="phone">Teléfono</option><option value="whatsapp">WhatsApp</option><option value="email">Correo</option>
-                    </select>}
-                  </Field>
-                  {contactFields.map(({ key, label, type = "text" }) => (
-                    <Field key={key} id={`${petId}-${key}`} label={label}>
-                      {(field) => (
-                        <input
-                          {...field}
-                          type={type}
-                          value={contact[key]}
-                          disabled={!canEdit || savingContact}
-                          onChange={(event) => setContact((current) => current ? { ...current, [key]: event.target.value } : current)}
-                        />
-                      )}
+              <details open={contactSectionOpen} onToggle={(event) => setContactSectionOpen(event.currentTarget.open)} className="border-y border-rule py-3">
+                <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 rounded-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand [&::-webkit-details-marker]:hidden">
+                  <span><span className="block font-semibold text-ink">Contacto del QR</span><span className="mt-0.5 block text-xs leading-5 text-ink-3">Elige cómo te contactarán si encuentran a {petName}.</span></span>
+                  {contactSectionOpen ? <ChevronUp size={17} className="shrink-0 text-brand" aria-hidden="true" /> : <ChevronDown size={17} className="shrink-0 text-brand" aria-hidden="true" />}
+                </summary>
+                <div className="mt-4 grid gap-4">
+                  <p className="text-sm leading-5 text-ink-2">El canal seleccionado aparecerá en el QR de rescate. Los otros datos solo se publican si los autorizas en Privacidad.</p>
+                  <form className="grid gap-3 sm:grid-cols-2" onSubmit={saveContact}>
+                    <Field id={`${petId}-contact-method`} label="Canal que aparecerá en el QR" className="sm:col-span-2">
+                      {(field) => <select {...field} value={contact.contactMethod} disabled={!canEdit || savingContact} onChange={(event) => setContact((current) => current ? { ...current, contactMethod: event.target.value as PetContact["contactMethod"] } : current)}>
+                        <option value="">Elige un canal</option><option value="phone">Teléfono</option><option value="whatsapp">WhatsApp</option><option value="email">Correo</option>
+                      </select>}
                     </Field>
-                  ))}
-                  {canEdit ? (
-                    <SubmitButton busy={savingContact} busyLabel="Guardando…" icon={<Save size={16} />}>
-                      Guardar contacto
-                    </SubmitButton>
-                  ) : null}
-                </form>
-              </Surface>
+                    {contactFields.map(({ key, label, type = "text" }) => (
+                      <Field key={key} id={`${petId}-${key}`} label={label}>
+                        {(field) => <input {...field} type={type} value={contact[key]} disabled={!canEdit || savingContact} onChange={(event) => setContact((current) => current ? { ...current, [key]: event.target.value } : current)} />}
+                      </Field>
+                    ))}
+                    {canEdit ? <SubmitButton busy={savingContact} busyLabel="Guardando…" icon={<Save size={16} />} className="sm:col-span-2">Guardar contacto del QR</SubmitButton> : null}
+                  </form>
+                </div>
+              </details>
 
-              {showPrivacySettings ? <Surface as="section" variant="sunken" size="sm" rest={{ "aria-labelledby": `${petId}-privacidad-titulo` }}>
-                <h4 id={`${petId}-privacidad-titulo`} className="font-semibold text-ink">Qué puede mostrar la ficha</h4>
-                {privacy.published && publicCode ? <Link href={`/perfil/${publicCode}`} className="mt-2 inline-block text-sm font-semibold text-brand underline">Ver perfil público de {petName}</Link> : null}
-                <form className="mt-4 grid gap-2" onSubmit={savePrivacy}>
-                  {privacyFields.map(({ key, label, help }) => (
-                    <label key={key} className="flex items-start gap-3 rounded-md border border-rule bg-surface px-3 py-2.5 text-sm text-ink">
-                      <input
-                        type="checkbox"
-                        checked={privacy[key]}
-                        disabled={!canEdit || savingPrivacy}
-                        onChange={(event) => setPrivacy((current) => ({ ...current, [key]: event.target.checked }))}
-                        className="mt-0.5 size-4 shrink-0 accent-brand"
-                      />
-                      <span>
-                        <span className="flex items-center gap-1.5 font-medium">
-                          {label}
-                          {privacy[key] ? <Check size={14} className="text-success" aria-hidden="true" /> : null}
-                        </span>
-                        {help ? <span className="mt-0.5 block text-xs leading-5 text-ink-3">{help}</span> : null}
-                      </span>
-                    </label>
-                  ))}
-                  {canEdit ? (
-                    <SubmitButton busy={savingPrivacy} busyLabel="Guardando…" icon={<Save size={16} />}>
-                      Guardar privacidad
-                    </SubmitButton>
-                  ) : null}
-                </form>
-              </Surface> : null}
+              {showPrivacySettings ? <details open={privacySectionOpen} onToggle={(event) => setPrivacySectionOpen(event.currentTarget.open)} className="border-b border-rule py-3">
+                <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 rounded-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand [&::-webkit-details-marker]:hidden">
+                  <span><span className="block font-semibold text-ink">Privacidad del perfil público</span><span className="mt-0.5 block text-xs leading-5 text-ink-3">Decide qué información voluntaria se puede consultar.</span></span>
+                  {privacySectionOpen ? <ChevronUp size={17} className="shrink-0 text-brand" aria-hidden="true" /> : <ChevronDown size={17} className="shrink-0 text-brand" aria-hidden="true" />}
+                </summary>
+                <div className="mt-4">
+                  {savedPublished && publicCode ? <Link href={`/perfil/${encodeURIComponent(publicCode)}`} target="_blank" rel="noreferrer" className="inline-block min-h-11 rounded-sm py-2 text-sm font-semibold text-brand underline">Vista previa del perfil de {petName}</Link>
+                    : <p className="mb-4 rounded-md bg-sunken px-3 py-2 text-sm leading-5 text-ink-2">El perfil voluntario está privado hasta que actives esta opción y guardes los cambios.</p>}
+                  <form className="grid gap-2" onSubmit={savePrivacy}>
+                    {privacyFields.map(({ key, label, help }) => (
+                      <label key={key} className="flex items-start gap-3 rounded-md border border-rule bg-surface px-3 py-2.5 text-sm text-ink">
+                        <input type="checkbox" checked={privacy[key]} disabled={!canEdit || savingPrivacy} onChange={(event) => setPrivacy((current) => ({ ...current, [key]: event.target.checked }))} className="mt-0.5 size-4 shrink-0 accent-brand" />
+                        <span><span className="flex items-center gap-1.5 font-medium">{label}{privacy[key] ? <Check size={14} className="text-success" aria-hidden="true" /> : null}</span>{help ? <span className="mt-0.5 block text-xs leading-5 text-ink-3">{help}</span> : null}</span>
+                      </label>
+                    ))}
+                    {canEdit ? <SubmitButton busy={savingPrivacy} busyLabel="Guardando…" icon={<Save size={16} />}>Guardar privacidad</SubmitButton> : null}
+                  </form>
+                </div>
+              </details> : null}
 
               {error ? <p className="text-sm text-danger" role="alert">{error}</p> : null}
               {notice ? <p className="text-sm text-success" role="status">{notice}</p> : null}

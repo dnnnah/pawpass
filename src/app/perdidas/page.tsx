@@ -1,17 +1,15 @@
 import type { Metadata } from "next";
-import { cookies } from "next/headers";
 import Image from "next/image";
-import { AlertTriangle, MapPin, MessageCircle, PawPrint, Phone } from "lucide-react";
+import Link from "next/link";
+import { AlertTriangle, Download, MapPin, MessageCircle, PawPrint, Phone } from "lucide-react";
 import { AppShell } from "@/components/layout/AppShell";
 import { Button } from "@/components/ui/Button";
 import { Surface } from "@/components/ui/Surface";
 import { buildWhatsAppHref, toE164Digits } from "@/lib/phone";
-import { createSupabasePublicPetDirectory } from "@/lib/infra/directory/supabasePublicPets";
-import { hasSupabaseEnv } from "@/lib/infra/supabase/env";
-import { createSupabaseServerClient } from "@/lib/infra/supabase/server";
-import { getLostPetCards } from "@/lib/services/pets/public";
-import { staticPublicPetDirectory } from "@/lib/infra/directory/staticPublicPets";
-import type { PublicPetCard } from "@/types/publicPet";
+import { loadPublicLostPets } from "@/app/lostDirectory";
+import { getAccountPets } from "@/app/cuenta/accountData";
+import { splitLostPetLists } from "@/lib/account/lostPets";
+import type { AccountPet } from "@/lib/account/pets";
 
 export const metadata: Metadata = {
   title: "Mascotas perdidas | PawPass",
@@ -21,26 +19,26 @@ export const metadata: Metadata = {
 
 export const dynamic = "force-dynamic";
 
-async function loadLostPets(): Promise<{ pets: PublicPetCard[]; error: string | null }> {
-  if (!hasSupabaseEnv()) return { pets: await getLostPetCards(staticPublicPetDirectory), error: null };
-  const cookieStore = await cookies();
-  const supabase = createSupabaseServerClient({
-    getAll: () => cookieStore.getAll(),
-    setAll: (cookiesToSet) => {
-      try { for (const cookie of cookiesToSet) cookieStore.set(cookie.name, cookie.value, cookie.options); }
-      catch { /* Server Components solo pueden leer cookies. */ }
-    },
-  });
-  try {
-    const pets = await getLostPetCards(createSupabasePublicPetDirectory(supabase));
-    return { pets, error: null };
-  } catch {
-    return { pets: [], error: "No pudimos cargar las alertas activas. Intenta de nuevo." };
-  }
+function OwnedLostCard({ pet }: { pet: AccountPet }) {
+  return <Surface as="article" size="md" className="flex flex-col">
+    <div className="overflow-hidden rounded-md bg-sunken">
+      {pet.photoUrl ? <Image src={pet.photoUrl} alt={`Foto de ${pet.name}`} width={960} height={720} unoptimized className="aspect-[4/3] w-full bg-sunken object-contain" />
+        : <div className="grid aspect-[4/3] place-items-center text-ink-3"><PawPrint size={38} aria-hidden="true" /></div>}
+    </div>
+    <div className="mt-4 flex-1">
+      <p className="text-xs font-semibold uppercase tracking-wide text-danger">Alerta de tu familia</p>
+      <h3 className="mt-1 font-display text-2xl text-ink">{pet.name}</h3>
+      <p className="text-sm text-ink-2">{pet.species === "perro" ? "Perro" : "Gato"}{pet.breed ? ` · ${pet.breed}` : ""}</p>
+    </div>
+    <Link href={`/cuenta/mascotas/${pet.id}`} aria-label={`Abrir carnet privado de ${pet.name}`} className="mt-5 inline-flex min-h-11 items-center rounded-sm text-sm font-semibold text-brand underline decoration-brand-rule underline-offset-4 hover:text-brand-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand">Abrir carnet privado</Link>
+    <Button href={`/cuenta/mascotas/${encodeURIComponent(pet.id)}/alerta`} size="sm" variant="secondary" className="mt-3 w-fit" icon={<Download size={15} />}>Generar imagen para compartir</Button>
+  </Surface>;
 }
 
 export default async function LostPetsPage() {
-  const { pets, error } = await loadLostPets();
+  const [directory, account] = await Promise.all([loadPublicLostPets(), getAccountPets(false)]);
+  const { owned, community } = splitLostPetLists(account.pets, directory.pets);
+  const total = owned.length + community.length;
   return <AppShell>
     <div className="mx-auto max-w-6xl px-4 pb-12 sm:px-6 lg:px-8">
       <header className="mb-7">
@@ -49,16 +47,22 @@ export default async function LostPetsPage() {
         <p className="mt-2 max-w-2xl text-sm leading-6 text-ink-2">Estas alertas están activas. Si reconoces o encuentras a una mascota, usa el canal de contacto de su familia.</p>
       </header>
 
-      {error ? <Surface variant="accent" tone="danger" size="md" rest={{ role: "alert" }}>{error}</Surface>
-        : pets.length === 0 ? <Surface variant="outline" size="lg" className="text-center">
+      {account.authenticated && account.error ? <Surface variant="accent" tone="danger" size="md" rest={{ role: "alert" }}>{account.error}</Surface> : null}
+      {owned.length ? <section aria-labelledby="tus-alertas-titulo" className="mb-8">
+        <h2 id="tus-alertas-titulo" className="mb-4 font-display text-2xl text-ink">Tus mascotas perdidas</h2>
+        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">{owned.map((pet) => <OwnedLostCard key={pet.publicCode} pet={pet} />)}</div>
+      </section> : null}
+      {directory.error ? <Surface variant="accent" tone="danger" size="md" rest={{ role: "alert" }}>{directory.error}</Surface>
+        : total === 0 ? <Surface variant="outline" size="lg" className="text-center">
           <PawPrint className="mx-auto text-brand" size={28} aria-hidden="true" />
           <h2 className="mt-3 font-display text-2xl text-ink">No hay alertas activas</h2>
           <p className="mt-1 text-sm text-ink-2">Cuando una familia reporte una mascota perdida, su ficha aparecerá aquí.</p>
         </Surface>
-        : <section aria-label="Alertas activas" className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-          {pets.map((pet) => <Surface key={pet.publicCode} as="article" size="md" className="flex flex-col">
+        : community.length ? <section aria-labelledby="otras-alertas-titulo" className="mb-8">
+          <h2 id="otras-alertas-titulo" className="mb-4 font-display text-2xl text-ink">Otras alertas activas</h2>
+          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">{community.map((pet) => <Surface key={pet.publicCode} as="article" size="md" className="flex flex-col">
             <div className="overflow-hidden rounded-md bg-sunken">
-              {pet.photoUrl ? <Image src={pet.photoUrl} alt={`Foto de ${pet.name}`} width={960} height={720} unoptimized className="aspect-[4/3] w-full object-cover" />
+              {pet.photoUrl ? <Image src={pet.photoUrl} alt={`Foto de ${pet.name}`} width={960} height={720} unoptimized className="aspect-[4/3] w-full bg-sunken object-contain" />
                 : <div className="grid aspect-[4/3] place-items-center text-ink-3"><PawPrint size={38} aria-hidden="true" /></div>}
             </div>
             <div className="mt-4 flex-1">
@@ -73,8 +77,8 @@ export default async function LostPetsPage() {
               {pet.contact?.email ? <Button href={`mailto:${pet.contact.email}`} size="sm" variant="secondary">Correo</Button> : null}
               <Button href={`/p/${encodeURIComponent(pet.publicCode)}`} size="sm" variant="quiet">Ver ficha</Button>
             </div>
-          </Surface>)}
-        </section>}
+          </Surface>)}</div>
+        </section> : null}
     </div>
   </AppShell>;
 }

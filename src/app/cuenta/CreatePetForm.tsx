@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { CalendarPlus, PawPrint, Upload } from "lucide-react";
+import { Button } from "@/components/ui/Button";
 import { Field, SubmitButton } from "@/components/ui/Field";
 import { Surface } from "@/components/ui/Surface";
 import {
@@ -37,11 +38,13 @@ export function CreatePetForm() {
   const [errors, setErrors] = useState<CreatePetErrors>({});
   const [serverError, setServerError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [successPetId, setSuccessPetId] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [pendingUpload, setPendingUpload] = useState<CreatePetResult | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const [photoInputKey, setPhotoInputKey] = useState(0);
   const photoPreviewRef = useRef<string | null>(null);
+  const nameInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     return () => {
@@ -63,6 +66,7 @@ export function CreatePetForm() {
     setErrors((current) => ({ ...current, [field]: undefined }));
     setServerError(null);
     setSuccess(null);
+    setSuccessPetId(null);
   }
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
@@ -125,6 +129,7 @@ export function CreatePetForm() {
       setPendingUpload(null);
       setPhotoInputKey((current) => current + 1);
       setSuccess("Mascota registrada. Su foto quedó guardada de forma privada.");
+      setSuccessPetId(pet.id);
       router.refresh();
     } catch {
       setServerError(createdPet ? PHOTO_UPLOAD_ERROR : "No pudimos registrar la mascota. Intenta de nuevo.");
@@ -147,51 +152,62 @@ export function CreatePetForm() {
         </div>
       </div>
 
-      <form className="mt-5 grid gap-4" onSubmit={handleSubmit} noValidate>
-        <Field id="pet-name" label="Nombre" error={errors.name}>
-          {(field) => <input {...field} type="text" autoComplete="off" maxLength={120} disabled={Boolean(pendingUpload)} value={input.name} onChange={(event) => updateField("name", event.target.value)} placeholder="Ej. Nala" />}
-        </Field>
-
-        <Field id="pet-species" label="Especie" error={errors.species}>
-          {(field) => (
-            <select {...field} disabled={Boolean(pendingUpload)} value={input.species} onChange={(event) => updateField("species", event.target.value)}>
-              <option value="">Selecciona una opción</option>
-              <option value="perro">Perro</option>
-              <option value="gato">Gato</option>
-            </select>
-          )}
-        </Field>
-
-        <Field id="pet-birth-date" label="Fecha de nacimiento" error={errors.birthDate}>
-          {(field) => <input {...field} type="date" max={today()} disabled={Boolean(pendingUpload)} value={input.birthDate} onChange={(event) => updateField("birthDate", event.target.value)} />}
-        </Field>
-
-        <fieldset className="grid gap-3">
-          <legend className="text-sm font-medium text-ink">¿Cómo pueden contactarte?</legend>
-          <div className="grid grid-cols-3 gap-2">
-            {([ ["phone", "Teléfono"], ["whatsapp", "WhatsApp"], ["email", "Correo"] ] as const).map(([value, label]) => (
-              <label key={value} className={`flex min-h-10 cursor-pointer items-center justify-center gap-2 rounded-md border px-2 text-xs font-semibold ${input.contactMethod === value ? "border-brand bg-brand-soft text-brand-ink" : "border-rule bg-surface text-ink-2"}`}>
-                <input className="sr-only" type="radio" name="contact-method" value={value} disabled={Boolean(pendingUpload)} checked={input.contactMethod === value} onChange={() => updateField("contactMethod", value)} />
-                {label}
-              </label>
-            ))}
-          </div>
-          <Field id="contact-value" label={input.contactMethod === "email" ? "Correo de contacto" : input.contactMethod === "whatsapp" ? "Número de WhatsApp" : "Teléfono de contacto"} error={errors.contactValue}>
-            {(field) => <input {...field} type={input.contactMethod === "email" ? "email" : "tel"} disabled={Boolean(pendingUpload)} autoComplete={input.contactMethod === "email" ? "email" : "tel"} inputMode={input.contactMethod === "email" ? "email" : "tel"} value={input.contactValue} onChange={(event) => updateField("contactValue", event.target.value)} placeholder={input.contactMethod === "email" ? "tu@correo.com" : "+52 55 1234 5678"} />}
+      <form className="mt-5 grid gap-5" onSubmit={handleSubmit} noValidate>
+        <fieldset className="grid gap-4 border-t border-rule pt-4 sm:grid-cols-2">
+          <legend className="px-1 font-semibold text-ink">Datos de la mascota</legend>
+          <p className="text-sm leading-5 text-ink-2 sm:col-span-2">Estos datos son necesarios para crear su carnet privado.</p>
+          <Field id="pet-name" label="Nombre" error={errors.name}>
+            {(field) => <input {...field} ref={nameInputRef} type="text" autoComplete="off" maxLength={120} disabled={Boolean(pendingUpload)} value={input.name} onChange={(event) => updateField("name", event.target.value)} placeholder="Ej. Nala" />}
+          </Field>
+          <Field id="pet-species" label="Especie" error={errors.species}>
+            {(field) => (
+              <select {...field} disabled={Boolean(pendingUpload)} value={input.species} onChange={(event) => updateField("species", event.target.value)}>
+                <option value="">Selecciona una opción</option>
+                <option value="perro">Perro</option>
+                <option value="gato">Gato</option>
+              </select>
+            )}
+          </Field>
+          <Field id="pet-birth-date" label="Fecha de nacimiento" error={errors.birthDate} help="Usa la fecha aproximada si no conoces el día exacto.">
+            {(field) => <input {...field} type="date" max={today()} disabled={Boolean(pendingUpload)} value={input.birthDate} onChange={(event) => updateField("birthDate", event.target.value)} />}
           </Field>
         </fieldset>
 
-        <Field id="pet-photo" label="Foto" error={errors.photo} help="JPEG, PNG o WebP. Máximo 5 MiB. Se guarda de forma privada.">
-          {(field) => <input key={photoInputKey} {...field} type="file" accept="image/jpeg,image/png,image/webp" disabled={busy || Boolean(pendingUpload)} onChange={(event) => selectPhoto(event.target.files?.[0] ?? null)} />}
-        </Field>
-
-        {photoPreview ? <Image src={photoPreview} alt="Vista previa de la foto elegida" width={640} height={480} unoptimized className="max-h-48 w-full rounded-md object-cover" /> : null}
+        <fieldset className="grid gap-4 border-t border-rule pt-4">
+          <legend className="px-1 font-semibold text-ink">Contacto de emergencia y foto</legend>
+          <p className="text-sm leading-5 text-ink-2">El contacto aparece en el QR para que puedan avisarte si encuentran a tu mascota. La foto se guarda privada.</p>
+          <div className="grid gap-3">
+            <p className="text-sm font-medium text-ink-2">¿Cómo pueden contactarte?</p>
+            <div className="grid grid-cols-3 gap-2">
+              {([ ["phone", "Teléfono"], ["whatsapp", "WhatsApp"], ["email", "Correo"] ] as const).map(([value, label]) => (
+                <label key={value} className={`flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-md border px-2 text-sm font-semibold focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-brand ${input.contactMethod === value ? "border-brand bg-brand-soft text-brand-ink" : "border-edge bg-surface text-ink-2"}`}>
+                  <input className="sr-only" type="radio" name="contact-method" value={value} disabled={Boolean(pendingUpload)} checked={input.contactMethod === value} onChange={() => updateField("contactMethod", value)} />
+                  {label}
+                </label>
+              ))}
+            </div>
+            <Field id="contact-value" label={input.contactMethod === "email" ? "Correo de contacto" : input.contactMethod === "whatsapp" ? "Número de WhatsApp" : "Teléfono de contacto"} error={errors.contactValue}>
+              {(field) => <input {...field} type={input.contactMethod === "email" ? "email" : "tel"} disabled={Boolean(pendingUpload)} autoComplete={input.contactMethod === "email" ? "email" : "tel"} inputMode={input.contactMethod === "email" ? "email" : "tel"} value={input.contactValue} onChange={(event) => updateField("contactValue", event.target.value)} placeholder={input.contactMethod === "email" ? "tu@correo.com" : "+52 55 1234 5678"} />}
+            </Field>
+          </div>
+          <Field id="pet-photo" label="Foto de perfil" error={errors.photo} help="JPEG, PNG o WebP; máximo 5 MiB. La vista previa muestra la foto completa.">
+            {(field) => <input key={photoInputKey} {...field} type="file" accept="image/jpeg,image/png,image/webp" disabled={busy || Boolean(pendingUpload)} onChange={(event) => selectPhoto(event.target.files?.[0] ?? null)} />}
+          </Field>
+          {photoPreview ? <Image src={photoPreview} alt="Vista previa completa de la foto elegida" width={640} height={480} unoptimized className="aspect-[4/3] w-full rounded-md bg-sunken object-contain" /> : null}
+          {pendingUpload ? <p role="status" className="rounded-md bg-warning-soft px-3.5 py-3 text-sm leading-5 text-ink">El carnet ya se creó. Solo falta subir la foto; pulsa “Reintentar foto” para terminar.</p> : null}
+        </fieldset>
 
         {serverError ? <p role="alert" className="rounded-md bg-danger-soft px-3.5 py-3 text-sm leading-6 text-danger">{serverError}</p> : null}
-        {success ? <p role="status" className="rounded-md bg-success-soft px-3.5 py-3 text-sm leading-6 text-success">{success}</p> : null}
+        {success ? <div role="status" className="grid gap-3 rounded-md bg-success-soft px-3.5 py-3 text-sm leading-6 text-success">
+          <p>{success}</p>
+          <div className="flex flex-wrap items-center gap-3">
+            {successPetId ? <Button href={`/cuenta/mascotas/${encodeURIComponent(successPetId)}`} size="sm">Abrir carnet privado</Button> : null}
+            <button type="button" onClick={() => { setSuccess(null); setSuccessPetId(null); nameInputRef.current?.focus(); }} className="min-h-9 px-2 text-sm font-semibold text-brand underline">Registrar otra mascota</button>
+          </div>
+        </div> : null}
 
-        <SubmitButton busy={busy} busyLabel={pendingUpload ? "Subiendo foto…" : "Registrando…"} icon={pendingUpload ? <Upload size={17} /> : <CalendarPlus size={17} />}>
-          {pendingUpload ? "Reintentar foto" : "Registrar mascota"}
+        <SubmitButton busy={busy} busyLabel={pendingUpload ? "Subiendo foto…" : "Creando carnet…"} icon={pendingUpload ? <Upload size={17} /> : <CalendarPlus size={17} />}>
+          {pendingUpload ? "Reintentar foto" : "Crear carnet privado"}
         </SubmitButton>
       </form>
     </Surface>

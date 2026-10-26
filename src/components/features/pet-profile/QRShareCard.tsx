@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
+import Link from "next/link";
 import { BadgeCheck, Check, Download, FileCode2, Link2, Printer, QrCode, TriangleAlert } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 import { Surface } from "@/components/ui/Surface";
@@ -265,6 +266,9 @@ export function QRShareCard({ petName, profileUrl, petCode, className }: QRShare
                 <span className="truncate [overflow-wrap:anywhere]">{shareUrl}</span>
               </p>
               <p className="mt-1 w-full break-words text-center text-xs text-ink-2">ID PawPass: {petCode}</p>
+              <Link href={shareUrl} target="_blank" rel="noreferrer" className="mt-3 inline-flex min-h-11 items-center justify-center rounded-md px-3 text-sm font-semibold text-brand underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand">
+                Abrir ficha QR como visitante
+              </Link>
             </div>
 
             <div className="grid grid-cols-2 gap-2 [&>*]:min-w-0">

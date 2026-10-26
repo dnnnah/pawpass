@@ -46,7 +46,7 @@ export function PetsList({ pets, failed = false }: PetsListProps) {
                   className="group flex min-h-16 items-center gap-3.5 py-3.5 transition-colors duration-150 hover:bg-surface sm:px-2"
                 >
                   <span className="grid h-11 w-11 shrink-0 place-items-center overflow-hidden rounded-md bg-brand-soft text-brand" aria-hidden="true">
-                    {pet.photoUrl ? <Image src={pet.photoUrl} alt="" width={88} height={88} unoptimized className="h-full w-full object-cover" /> : <PetSpeciesIcon species={pet.species} size={20} />}
+                    {pet.photoUrl ? <Image src={pet.photoUrl} alt="" width={88} height={88} unoptimized className="h-full w-full bg-sunken object-contain" /> : <PetSpeciesIcon species={pet.species} size={20} />}
                   </span>
 
                   <span className="min-w-0 flex-1">

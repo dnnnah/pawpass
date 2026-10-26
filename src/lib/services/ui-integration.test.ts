@@ -92,28 +92,29 @@ async function renderAsync<P>(
   return render(await Page({ params: params(routeParams) }));
 }
 
-describe("home: la UI lista perfiles públicos, no el catálogo de adopción", () => {
+describe("home: solo ofrece acceso a las secciones principales", () => {
   let html = "";
 
   beforeAll(async () => {
     html = render(await Home());
   });
 
-  it("enlaza los perfiles que devuelve el directorio público", async () => {
-    for (const pet of await listActivePublicProfiles()) {
-      expect(html, `falta el enlace de ${pet.publicCode}`).toContain(`href="/perfil/${pet.publicCode}"`);
-    }
-  });
-
-  it("el contador coincide con los perfiles públicos del service", async () => {
-    const profiles = await listActivePublicProfiles();
-    expect(html).toContain(`${profiles.length} ${profiles.length === 1 ? "mascota" : "mascotas"}`);
-  });
-
-  it("ofrece el directorio voluntario sin destacar una mascota por defecto", async () => {
+  it("enlaza las cuatro secciones y no mezcla sus contenidos en el home", async () => {
+    expect(html).toContain('href="/mis-mascotas"');
+    expect(html).toContain('href="/perdidas"');
     expect(html).toContain('href="/mascotas"');
-    expect(html).toContain("Perfiles voluntarios");
-    expect(html).not.toContain("Ver el perfil de");
+    expect(html).toContain('href="/adopciones"');
+    expect(html).not.toMatch(/href="\/perfil\//);
+    expect(html).not.toContain("Perfiles voluntarios");
+    expect(html).not.toContain("Cómo funciona");
+    expect(html).not.toContain("Mascotas para conocer");
+  });
+
+  it("no presenta datos de mascotas ni contadores en el selector de secciones", async () => {
+    for (const pet of await listActivePublicProfiles()) {
+      expect(html, `${pet.name} no debería aparecer en el selector`).not.toContain(pet.name);
+      expect(html).not.toContain(`href="/perfil/${pet.publicCode}"`);
+    }
   });
 
   it("no filtra mascotas del catálogo de adopción en la home", async () => {
@@ -158,8 +159,8 @@ describe("perfil: la UI resuelve el identificador a través del service", () => 
   it("el canonical y el OG apuntan al codigoPublico, no al id interno", async () => {
     const metadata = await profileMetadata({ params: params({ id: "lucca" }) });
 
-    expect(metadata.alternates?.canonical).toBe("/p/PC-LUCCA-001");
-    expect(metadata.openGraph?.url).toBe("/p/PC-LUCCA-001");
+    expect(metadata.alternates?.canonical).toBe("https://pet-carnet.vercel.app/p/PC-LUCCA-001");
+    expect(metadata.openGraph?.url).toBe("https://pet-carnet.vercel.app/p/PC-LUCCA-001");
   });
 
   it("el perfil inexistente corta con notFound() en lugar de renderizar", async () => {

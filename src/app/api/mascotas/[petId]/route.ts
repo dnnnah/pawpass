@@ -15,9 +15,9 @@ export async function DELETE(request: Request, context: { params: Promise<{ petI
       return data?.rol ?? null;
     },
     async listFiles(id) {
-      const { data, error } = await supabase.from("pet_documents").select("bucket_id, object_path").eq("pet_id", id);
+      const { data, error } = await supabase.from("pet_documents").select("id, bucket_id, object_path").eq("pet_id", id);
       if (error) throw error;
-      return (data ?? []).map(row => ({ bucket: row.bucket_id as string, path: row.object_path as string }));
+      return (data ?? []).map(row => ({ bucket: row.bucket_id as string, path: row.object_path as string, documentId: row.id as string }));
     },
     async removeFiles(bucket, paths) {
       for (let offset = 0; offset < paths.length; offset += 100) {

@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({ authorize: vi.fn(), adminFactory: vi.fn(), deleteUser: vi.fn() }));
 vi.mock("@/app/api/_account", () => ({ authorizeDeletion: mocks.authorize }));
@@ -14,9 +14,11 @@ function accountAccess(count: number | null, error: object | null = null) {
 
 beforeEach(() => {
   vi.resetAllMocks();
+  vi.stubEnv("SUPABASE_SECRET_KEY", "test-secret");
   mocks.adminFactory.mockReturnValue({ auth: { admin: { deleteUser: mocks.deleteUser } } });
   mocks.deleteUser.mockResolvedValue({ error: null });
 });
+afterEach(() => vi.unstubAllEnvs());
 
 describe("eliminar la cuenta autenticada", () => {
   it("no usa privilegios de administrador sin una sesión autorizada", async () => {
@@ -43,5 +45,15 @@ describe("eliminar la cuenta autenticada", () => {
     mocks.authorize.mockResolvedValue(accountAccess(0));
     mocks.deleteUser.mockResolvedValue({ error: { message: "internal" } });
     expect((await DELETE(new Request("https://app.test/api/cuenta"))).status).toBe(503);
+  });
+  it("explica la falta de una credencial privada sin intentar eliminar", async () => {
+    vi.stubEnv("SUPABASE_SECRET_KEY", "");
+    vi.stubEnv("SUPABASE_SERVICE_ROLE_KEY", "");
+    mocks.authorize.mockResolvedValue(accountAccess(0));
+    const response = await DELETE(new Request("https://app.test/api/cuenta"));
+    expect(response.status).toBe(503);
+    expect(await response.json()).toMatchObject({ error: expect.stringContaining("credencial privada") });
+    expect(mocks.adminFactory).not.toHaveBeenCalled();
+    expect(mocks.deleteUser).not.toHaveBeenCalled();
   });
 });
