@@ -148,7 +148,7 @@ export default async function PetCarnetPage({ params }: { params: Promise<{ petI
           statusBadge={<Pill tone="muted">Carnet privado</Pill>}
         />
         <ProfileNav sectionIds={["contacto", "info", "salud", "vacunas", "documentos"]} />
-        <div id="contacto" className="grid scroll-mt-24 items-start gap-6 lg:grid-cols-[minmax(0,1fr)_20rem]">
+        <div id="contacto" className="grid min-w-0 grid-cols-1 scroll-mt-24 items-start gap-6 lg:grid-cols-[minmax(0,1fr)_20rem]">
           <div>
           <PetSettingsForm petId={petId} petName={pet.name} publicCode={publicCode} canEdit={ownership.rol === "administrador"} initialPublished={privacyData?.publicado === true} />
           </div>

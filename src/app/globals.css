@@ -226,6 +226,7 @@
     min-height: 100%;
     background: var(--canvas);
     -webkit-text-size-adjust: 100%;
+    --app-header-height: 4.3125rem;
   }
 
   body {
@@ -268,6 +269,10 @@
     color: inherit;
   }
 
+  fieldset {
+    min-inline-size: 0;
+  }
+
   button,
   [role="button"] {
     cursor: pointer;
@@ -296,6 +301,23 @@
     background: var(--brand-soft);
     color: var(--brand-ink);
   }
+}
+
+@media (min-width: 640px) {
+  html {
+    --app-header-height: 4.5625rem;
+  }
+}
+
+@media (min-width: 1280px) {
+  html {
+    --app-header-height: 5.1875rem;
+  }
+}
+
+/* Los destinos quedan por debajo del encabezado y del menú del carnet. */
+:where(main section[id], main div[id]) {
+  scroll-margin-top: calc(var(--app-header-height) + 5rem);
 }
 
 /* Cursor con huellita. Estaba en el diseño original y se perdió en el rediseño;

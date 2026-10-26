@@ -112,7 +112,7 @@ export function PublicProfileView({ profile }: { profile: PublicProfile }) {
 
   return (
     <AppShell>
-      <div className="mx-auto max-w-6xl overflow-x-clip px-4 pb-12 sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-6xl px-4 pb-12 sm:px-6 lg:px-8">
         <div className="space-y-12">
           <PetHeader
             pet={{
@@ -208,14 +208,14 @@ export function PublicProfileView({ profile }: { profile: PublicProfile }) {
             </div>
           ) : null}
 
-          <div id="documentos" className="grid scroll-mt-24 items-start gap-6 md:grid-cols-[minmax(0,1fr)_20rem]">
+          <div id="documentos" className="grid min-w-0 grid-cols-1 scroll-mt-24 items-start gap-6 lg:grid-cols-[minmax(0,1fr)_20rem]">
             <DocumentsCard documents={documents} documentsPath="" showAllLink={false} />
             <div>
               <QRShareCard
                 petName={profile.name}
                 profileUrl={publicUrl}
                 petCode={profile.publicCode}
-                className="md:sticky md:top-24"
+                className="lg:sticky lg:top-24"
               />
             </div>
           </div>

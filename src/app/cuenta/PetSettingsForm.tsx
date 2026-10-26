@@ -161,11 +161,11 @@ export function PetSettingsForm({ petId, petName, publicCode, canEdit, showPriva
   }
 
   return (
-    <div id="perfil-publico" className="mt-4 border-t border-rule pt-4">
-      {showPrivacySettings ? <div className="mb-3 rounded-md bg-sunken p-3">
+    <div id="perfil-publico" className="mt-4 min-w-0 border-t border-rule pt-4">
+      {showPrivacySettings ? <div className="mb-3 min-w-0 rounded-md bg-sunken p-3">
         <p className="text-sm font-semibold text-ink">Perfil público voluntario · {savedPublished ? "Activo" : "Inactivo"}</p>
         <p className="mt-1 text-xs leading-5 text-ink-2">Tú eliges qué datos, fotos y archivos autorizas. Esta opción no cambia el carnet privado ni el enlace QR.</p>
-        {savedPublished && publicCode ? <Link href={`/perfil/${encodeURIComponent(publicCode)}`} className="mt-2 inline-flex min-h-11 items-center rounded-sm text-sm font-semibold text-brand underline">Abrir perfil público de {petName}</Link> : null}
+        {savedPublished && publicCode ? <Link href={`/perfil/${encodeURIComponent(publicCode)}`} className="mt-2 flex min-h-11 min-w-0 max-w-full items-center rounded-sm text-sm font-semibold text-brand underline [overflow-wrap:anywhere]">Abrir perfil público de {petName}</Link> : null}
         {canEdit && showPrivacySettings ? <Button type="button" variant="secondary" size="sm" className="mt-2" disabled={loading} onClick={() => void openPrivacyEditor()}>
           {savedPublished ? "Editar qué compartes" : "Activar y elegir qué compartir"}
         </Button> : null}

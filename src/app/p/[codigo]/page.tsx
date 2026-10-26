@@ -106,7 +106,7 @@ export default async function PublicPetPage({ params }: PublicPetPageProps) {
                 {status.label}
               </Badge>
             </div>
-            <div className="mt-5 grid gap-6 sm:grid-cols-[minmax(0,13rem)_1fr] sm:items-start">
+            <div className="mt-5 grid gap-6 sm:grid-cols-[minmax(0,13rem)_minmax(0,1fr)] sm:items-start">
               <div className="overflow-hidden rounded-lg bg-sunken ring-1 ring-rule">
                 {pet.photoUrl ? (
                   // La URL puede venir de Storage o de la demo estática; por eso
@@ -124,7 +124,7 @@ export default async function PublicPetPage({ params }: PublicPetPageProps) {
                 )}
               </div>
               <div className="min-w-0">
-                <h1 className="font-display text-5xl leading-[0.98] text-ink sm:text-6xl">{pet.name}</h1>
+                <h1 className="font-display text-[clamp(2.25rem,6vw,3.75rem)] leading-[1.08] text-ink [overflow-wrap:anywhere]">{pet.name}</h1>
                 <p className="mt-3 text-lg text-ink-2">
                   {pet.species}
                   {pet.breed ? ` · ${pet.breed}` : ""}

@@ -16,10 +16,10 @@ type ButtonProps = {
 };
 
 const base =
-  "inline-flex items-center justify-center gap-2 rounded-md font-semibold transition-colors duration-150 disabled:opacity-50 disabled:pointer-events-none";
+  "inline-flex min-w-0 max-w-full items-center justify-center gap-2 rounded-md py-2 text-center font-semibold [overflow-wrap:anywhere] transition-colors duration-150 disabled:opacity-50 disabled:pointer-events-none";
 
 const sizes = {
-  sm: "min-h-9 px-3 text-sm",
+  sm: "min-h-11 px-3 text-sm sm:min-h-9",
   md: "min-h-11 px-4 text-sm",
   lg: "min-h-12 px-5 text-base",
 };
@@ -34,7 +34,7 @@ const variants = {
   danger: resolveTone("danger").solid,
 };
 
-/** Botón del sistema. Altura mínima 36px en `sm`, 44px en `md`/`lg`. */
+/** El tamaño compacto conserva 44px táctiles en móvil y 36px desde sm. */
 export function Button({
   children,
   href,

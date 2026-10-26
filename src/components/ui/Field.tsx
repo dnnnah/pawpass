@@ -22,7 +22,7 @@ type FieldProps = {
 };
 
 const BASE_CONTROL =
-  "w-full rounded-md border bg-surface px-3.5 py-2.5 text-sm text-ink outline-none transition-colors placeholder:text-ink-3";
+  "min-w-0 max-w-full w-full rounded-md border bg-surface px-3.5 py-2.5 text-base sm:text-sm text-ink outline-none transition-colors placeholder:text-ink-3";
 
 /**
  * Campo de formulario: etiqueta, control y mensaje de error o ayuda.
@@ -35,7 +35,7 @@ export function Field({ id, label, optional, error, help, className, children }:
   const describedBy = error ? `${id}-error` : help ? `${id}-help` : undefined;
 
   return (
-    <div className={className}>
+    <div className={cx("min-w-0", className)}>
       <label htmlFor={id} className="block text-sm font-medium text-ink-2">
         {label}
         {optional ? <span className="text-ink-3"> (opcional)</span> : null}
@@ -93,7 +93,7 @@ export function SubmitButton({
       disabled={busy}
       aria-busy={busy || undefined}
       className={cx(
-        "inline-flex min-h-11 items-center justify-center gap-2 rounded-md bg-brand px-5 text-sm font-semibold text-on-solid transition-colors hover:bg-brand-hover disabled:cursor-not-allowed disabled:opacity-60",
+        "inline-flex min-h-11 min-w-0 max-w-full items-center justify-center gap-2 rounded-md bg-brand px-4 py-2 text-center text-sm font-semibold [overflow-wrap:anywhere] text-on-solid transition-colors hover:bg-brand-hover disabled:cursor-not-allowed disabled:opacity-60 [&>svg]:shrink-0",
         className,
       )}
     >

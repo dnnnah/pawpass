@@ -24,7 +24,7 @@ export function AccountPetsDashboard({ pets, error, showHeading = true }: { pets
         <h3 className="mt-3 font-display text-xl text-ink">Aún no tienes mascotas registradas</h3>
         <p className="mt-2 text-sm text-ink-2">Cuando quieras, abre el registro para crear su carnet privado.</p>
       </Surface> : null}
-      <div className="grid items-start gap-5 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="grid min-w-0 grid-cols-1 items-start gap-5 md:grid-cols-2 xl:grid-cols-3">
         {ordered.map((pet) => <Surface key={pet.id} as="article" size="md" tone={pet.status === "perdido" ? "danger" : undefined}
           variant={pet.status === "perdido" ? "accent" : "paper"} className={pet.status === "perdido" ? "border-danger-rule! bg-danger-soft! ring-1 ring-danger-rule" : ""}>
           {pet.status === "perdido" ? <div className="mb-4 flex flex-wrap items-center justify-between gap-2"><Pill tone="danger" icon={<AlertTriangle size={14} />}>Perdida · Alerta activa</Pill><Link href={`/p/${encodeURIComponent(pet.publicCode)}`} className="inline-flex min-h-11 items-center rounded-sm text-sm font-semibold text-brand underline decoration-brand-rule underline-offset-4">Ver ficha pública</Link></div> : null}

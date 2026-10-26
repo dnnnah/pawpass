@@ -59,13 +59,13 @@ export function AdoptionCatalog({ cards, shelters }: AdoptionCatalogProps) {
             }))}
           />
 
-          <label className="inline-flex min-h-11 items-center gap-1.5 rounded-md border border-rule bg-surface px-3.5 text-sm font-semibold text-ink-2 focus-within:border-brand-rule">
+          <label className="inline-flex min-h-11 min-w-0 max-w-full w-full items-center gap-1.5 rounded-md border border-rule bg-surface px-3.5 text-sm font-semibold text-ink-2 focus-within:border-brand-rule sm:w-auto">
             <span className="sr-only">Filtrar por refugio</span>
             <MapPin size={16} aria-hidden="true" className="shrink-0 text-ink-3" />
             <select
               value={shelterId}
               onChange={(event) => setShelterId(event.target.value)}
-              className="h-full min-h-11 cursor-pointer bg-transparent py-2 font-semibold text-ink-2 outline-none"
+              className="h-full min-h-11 min-w-0 max-w-full w-full cursor-pointer bg-transparent py-2 text-base font-semibold text-ink-2 outline-none sm:text-sm"
             >
               <option value="todos">Todos los refugios</option>
               {shelters.map((shelter) => (

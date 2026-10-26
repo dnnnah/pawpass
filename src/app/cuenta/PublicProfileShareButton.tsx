@@ -25,7 +25,7 @@ export function PublicProfileShareButton({ publicCode }: { publicCode: string })
     }
   }
 
-  return <span className="inline-flex flex-col items-start gap-1">
+  return <span className="inline-flex min-w-0 max-w-full flex-col items-start gap-1">
     <Button type="button" variant="secondary" size="sm" onClick={() => void shareProfile()} icon={<Share2 size={15} />}>
       Compartir perfil
     </Button>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { AnimatePresence, motion, MotionConfig } from "framer-motion";
 import { Camera, ChevronLeft, ChevronRight, Expand, X } from "lucide-react";
@@ -23,6 +23,21 @@ type RecentPhotosProps = {
 export function RecentPhotos({ photos, profilePhoto }: RecentPhotosProps) {
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
   const [failedPhotos, setFailedPhotos] = useState<ReadonlySet<string>>(new Set());
+  const closeRef = useRef<HTMLButtonElement>(null);
+  const dialogRef = useRef<HTMLDivElement>(null);
+  const isOpen = selectedIndex !== null;
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const previousOverflow = document.body.style.overflow;
+    const previousFocus = document.activeElement;
+    document.body.style.overflow = "hidden";
+    closeRef.current?.focus();
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      if (previousFocus instanceof HTMLElement) previousFocus.focus({ preventScroll: true });
+    };
+  }, [isOpen]);
 
   const selected =
     selectedIndex !== null ? photos[selectedIndex] : null;
@@ -52,6 +67,19 @@ export function RecentPhotos({ photos, profilePhoto }: RecentPhotosProps) {
       if (event.key === "Escape") setSelectedIndex(null);
       if (event.key === "ArrowLeft") move(-1);
       if (event.key === "ArrowRight") move(1);
+      if (event.key === "Tab") {
+        const buttons = dialogRef.current?.querySelectorAll<HTMLButtonElement>('button:not(:disabled)');
+        if (!buttons?.length) return;
+        const first = buttons[0];
+        const last = buttons[buttons.length - 1];
+        if (event.shiftKey && document.activeElement === first) {
+          event.preventDefault();
+          last.focus();
+        } else if (!event.shiftKey && document.activeElement === last) {
+          event.preventDefault();
+          first.focus();
+        }
+      }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
@@ -123,74 +151,50 @@ export function RecentPhotos({ photos, profilePhoto }: RecentPhotosProps) {
       <AnimatePresence>
         {selected && selectedIndex !== null ? (
           <motion.div
-            initial={{ opacity: 0 }}
+            ref={dialogRef}
+            initial={false}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center bg-ink/80 p-4"
+            className="fixed inset-0 z-50 grid place-items-center overflow-y-auto bg-ink/80 p-3 sm:p-6"
             onClick={() => setSelectedIndex(null)}
             role="dialog"
             aria-modal="true"
             aria-label={`Foto: ${selected.name}`}
           >
-            <button
-              onClick={() => setSelectedIndex(null)}
-              aria-label="Cerrar"
-              className="absolute right-4 top-4 grid size-11 place-items-center rounded-md bg-surface text-ink transition-colors hover:bg-canvas"
-            >
-              <X size={22} aria-hidden="true" />
-            </button>
-
-            <button
-              onClick={(event) => {
-                event.stopPropagation();
-                move(-1);
-              }}
-              aria-label="Foto anterior"
-              className="absolute left-3 top-1/2 grid size-11 -translate-y-1/2 place-items-center rounded-md bg-surface text-ink transition-colors hover:bg-canvas"
-            >
-              <ChevronLeft size={22} aria-hidden="true" />
-            </button>
-            <button
-              onClick={(event) => {
-                event.stopPropagation();
-                move(1);
-              }}
-              aria-label="Foto siguiente"
-              className="absolute right-3 top-1/2 grid size-11 -translate-y-1/2 place-items-center rounded-md bg-surface text-ink transition-colors hover:bg-canvas"
-            >
-              <ChevronRight size={22} aria-hidden="true" />
-            </button>
-
             <motion.div
-              key={selected.id}
-              initial={{ opacity: 0, scale: 0.92 }}
+              initial={false}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.96 }}
               transition={{ duration: 0.22, ease: "easeOut" }}
-              className="max-h-[85vh] w-full max-w-xl overflow-hidden rounded-lg bg-surface ring-1 ring-rule"
+              className="flex max-h-[calc(100dvh-1.5rem)] min-w-0 w-full max-w-2xl flex-col overflow-hidden rounded-lg bg-surface ring-1 ring-rule sm:max-h-[calc(100dvh-3rem)]"
               onClick={(event) => event.stopPropagation()}
             >
-              <div className="relative h-[60vh] max-h-[60vh] overflow-hidden bg-sunken">
+              <div className="flex shrink-0 items-center justify-between gap-2 border-b border-rule p-2">
+                <div className="flex items-center gap-2">
+                  <button type="button" onClick={() => move(-1)} disabled={photos.length < 2} aria-label="Foto anterior" className="grid size-11 place-items-center rounded-md text-ink hover:bg-sunken disabled:opacity-40"><ChevronLeft size={22} aria-hidden="true" /></button>
+                  <button type="button" onClick={() => move(1)} disabled={photos.length < 2} aria-label="Foto siguiente" className="grid size-11 place-items-center rounded-md text-ink hover:bg-sunken disabled:opacity-40"><ChevronRight size={22} aria-hidden="true" /></button>
+                  <span className="text-sm text-ink-2">{selectedIndex + 1} / {photos.length}</span>
+                </div>
+                <button ref={closeRef} type="button" onClick={() => setSelectedIndex(null)} aria-label="Cerrar" className="grid size-11 shrink-0 place-items-center rounded-md text-ink hover:bg-sunken"><X size={22} aria-hidden="true" /></button>
+              </div>
+              <div className="relative min-h-0 shrink-0 overflow-hidden bg-sunken">
                 <Image
                   src={failedPhotos.has(selected.id) && profilePhoto ? profilePhoto : selected.url}
                   alt={selected.name}
                   width={900}
                   height={900}
-                  sizes="(max-width: 768px) 100vw, 576px"
+                  sizes="(max-width: 768px) 100vw, 672px"
                   loading="eager"
                   unoptimized
-                  className="h-full w-full object-contain"
+                  className="max-h-[min(60dvh,max(4rem,calc(100dvh-14rem)))] w-full object-contain"
                 />
               </div>
-              <div className="p-5">
+              <div className="min-h-0 shrink overflow-y-auto p-4 sm:p-5">
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <p className="font-display text-lg leading-snug text-ink">{selected.name}</p>
                     <p className="mt-1 text-sm text-ink-2">{selected.date}</p>
                   </div>
-                  <Pill tone="muted" size="sm">
-                    {selectedIndex + 1} / {photos.length}
-                  </Pill>
                 </div>
                 {selected.description ? (
                   <p className="mt-2.5 text-sm leading-6 text-ink-2">{selected.description}</p>
