@@ -15,13 +15,18 @@ export function AdoptionPetCard({ card }: AdoptionPetCardProps) {
       className="group flex flex-col overflow-hidden rounded-lg border border-rule bg-surface transition-colors hover:border-brand-rule"
     >
       <div className="relative aspect-[4/3] overflow-hidden bg-sunken">
-        <Image
-          src={card.image}
-          alt={`Foto de ${card.name}`}
-          width={640}
-          height={480}
-          className="h-full w-full object-cover"
-        />
+        {card.image ? (
+          <Image
+            src={card.image}
+            alt={`Foto de ${card.name}`}
+            width={640}
+            height={480}
+            unoptimized
+            className="h-full w-full object-cover"
+          />
+        ) : (
+          <div className="grid h-full place-items-center text-sm text-ink-3">Foto no disponible</div>
+        )}
         <div className="absolute inset-x-0 top-0 flex flex-wrap items-center gap-1.5 p-2.5">
           <Badge tone="adoption" icon={<HeartHandshake size={14} aria-hidden="true" />}>
             En adopción

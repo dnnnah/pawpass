@@ -10,6 +10,14 @@ export type AdoptionCatalogRpcClient = {
     functionName: "listar_catalogo_publico",
     args: { p_limite: number; p_offset: number },
   ): PromiseLike<{ data: unknown; error: SupabaseRpcError | null }>;
+  storage?: {
+    from(bucket: "pawpass-fotos"): {
+      createSignedUrl(path: string, expiresIn: number): PromiseLike<{
+        data: { signedUrl: string } | null;
+        error: unknown;
+      }>;
+    };
+  };
 };
 
 type RawCatalogEntry = {
@@ -21,7 +29,7 @@ type RawCatalogEntry = {
   genero?: unknown;
   talla?: unknown;
   fechaNacimiento?: unknown;
-  fotoUrl?: unknown;
+  photoPath?: unknown;
   zona?: unknown;
   verificado?: unknown;
   shelterId?: unknown;
@@ -39,7 +47,7 @@ function unwrapRpcData(data: unknown): unknown {
   return Array.isArray(data) && data.length === 1 && Array.isArray(data[0]) ? data[0] : data;
 }
 
-function normalizeEntry(value: unknown): AdoptionCatalogEntry | null {
+function normalizeEntry(value: unknown): { entry: AdoptionCatalogEntry; photoPath: string } | null {
   if (!value || typeof value !== "object") return null;
   const row = value as RawCatalogEntry;
   const petId = typeof row.petId === "string" ? row.petId.trim() : "";
@@ -63,24 +71,40 @@ function normalizeEntry(value: unknown): AdoptionCatalogEntry | null {
   }
 
   return {
-    petId,
-    nombre,
-    especie,
-    raza,
-    genero,
-    talla,
-    fotoUrl: typeof row.fotoUrl === "string" ? row.fotoUrl.trim() : "",
-    codigoPublico,
-    fechaNacimiento,
-    zona: typeof row.zona === "string" ? row.zona.trim() : "",
-    verificado: row.verificado === true,
-    shelterId:
-      typeof row.shelterId === "string" && row.shelterId.trim() ? row.shelterId.trim() : null,
-    shelterNombre:
-      typeof row.shelterNombre === "string" && row.shelterNombre.trim()
-        ? row.shelterNombre.trim()
-        : null,
+    entry: {
+      petId,
+      nombre,
+      especie,
+      raza,
+      genero,
+      talla,
+      fotoUrl: "",
+      codigoPublico,
+      fechaNacimiento,
+      zona: typeof row.zona === "string" ? row.zona.trim() : "",
+      verificado: row.verificado === true,
+      shelterId:
+        typeof row.shelterId === "string" && row.shelterId.trim() ? row.shelterId.trim() : null,
+      shelterNombre:
+        typeof row.shelterNombre === "string" && row.shelterNombre.trim()
+          ? row.shelterNombre.trim()
+          : null,
+    },
+    photoPath: typeof row.photoPath === "string" ? row.photoPath.trim() : "",
   };
+}
+
+async function signedPrimaryPhoto(
+  client: AdoptionCatalogRpcClient,
+  photoPath: string,
+): Promise<string> {
+  if (!photoPath || !client.storage) return "";
+  try {
+    const { data } = await client.storage.from("pawpass-fotos").createSignedUrl(photoPath, 300);
+    return data?.signedUrl ?? "";
+  } catch {
+    return "";
+  }
 }
 
 export function createSupabaseAdoptionCatalog(client: AdoptionCatalogRpcClient) {
@@ -98,9 +122,14 @@ export function createSupabaseAdoptionCatalog(client: AdoptionCatalogRpcClient) 
       }
 
       const rows = unwrapRpcData(data);
-      return Array.isArray(rows)
-        ? rows.map(normalizeEntry).filter((entry): entry is AdoptionCatalogEntry => entry !== null)
-        : [];
+      if (!Array.isArray(rows)) return [];
+      const entries = rows.map(normalizeEntry).filter((row): row is NonNullable<typeof row> => row !== null);
+      return Promise.all(
+        entries.map(async ({ entry, photoPath }) => ({
+          ...entry,
+          fotoUrl: await signedPrimaryPhoto(client, photoPath),
+        })),
+      );
     },
   };
 }

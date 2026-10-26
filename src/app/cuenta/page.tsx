@@ -13,6 +13,8 @@ import { normalizeAccountPetRow, type AccountPet } from "@/lib/account/pets";
 import { LogoutButton } from "./LogoutButton";
 import { CreatePetForm } from "./CreatePetForm";
 import { LostStatusForm } from "./LostStatusForm";
+import { AdoptionPublicationForm } from "@/components/features/adoption/AdoptionPublicationForm";
+import { ShelterAdoptionSection } from "./ShelterAdoptionSection";
 
 export const metadata: Metadata = {
   title: "Mi cuenta | PawPass",
@@ -138,6 +140,12 @@ export default async function CuentaPage() {
                       <Button href={`/cuenta/mascotas/${pet.id}`} variant="secondary" className="mt-5 w-full">
                         Abrir carnet privado
                       </Button>
+                      <AdoptionPublicationForm
+                        petId={pet.id}
+                        petName={pet.name}
+                        status={pet.status}
+                        canEdit={pet.role === "administrador"}
+                      />
                       {pet.role === "administrador" ? <LostStatusForm petId={pet.id} petName={pet.name} status={pet.status} canEdit /> : null}
                     </Surface>
                   ))}
@@ -145,6 +153,7 @@ export default async function CuentaPage() {
               </section>
             )}
           </div>
+          <ShelterAdoptionSection />
         </div>
       </div>
     </AppShell>

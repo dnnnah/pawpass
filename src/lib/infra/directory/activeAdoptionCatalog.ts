@@ -20,16 +20,26 @@ async function listStaticCatalog(): Promise<AdoptionCatalogEntry[]> {
 
 /**
  * Selects the public catalog source once at the infrastructure boundary.
- * A database outage keeps the demo usable while the adapter remains replaceable.
+ * Fixtures are limited to local development and tests, never production.
  */
 export async function listActiveAdoptionCatalog(): Promise<AdoptionCatalogEntry[]> {
-  if (!hasSupabaseEnv()) return listStaticCatalog();
-
-  try {
-    return await createSupabaseAdoptionCatalog({
-      rpc: (functionName, args) => createSupabaseAnonClient().rpc(functionName, args),
-    }).listAdoptionCatalog();
-  } catch {
+  if (!hasSupabaseEnv()) {
+    if (process.env.NODE_ENV === "production") {
+      throw new SupabaseAdoptionCatalogConfigurationError("El catálogo de adopción necesita Supabase configurado.");
+    }
     return listStaticCatalog();
+  }
+
+  const client = createSupabaseAnonClient();
+  return createSupabaseAdoptionCatalog({
+    rpc: (functionName, args) => client.rpc(functionName, args),
+    storage: client.storage,
+  }).listAdoptionCatalog();
+}
+
+export class SupabaseAdoptionCatalogConfigurationError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "SupabaseAdoptionCatalogConfigurationError";
   }
 }

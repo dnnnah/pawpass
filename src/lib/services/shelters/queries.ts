@@ -7,15 +7,25 @@
 
 import type { ShelterDirectory } from "@/lib/domain/directory/types";
 import { staticShelterDirectory } from "@/lib/infra/directory/staticShelters";
+import { createSupabaseShelterDirectory } from "@/lib/infra/directory/supabaseShelters";
+import { hasSupabaseEnv } from "@/lib/infra/supabase/env";
+import { createSupabaseAnonClient } from "@/lib/infra/supabase/anon";
 import type { Shelter } from "@/types/shelter";
 
-/**
- * Fuente activa del catálogo de refugios. Sustituir aquí es el único punto de
- * cambio necesario para migrar a Supabase.
- */
-const directory: ShelterDirectory = staticShelterDirectory;
-
-/** Refugios disponibles en la fuente de datos. */
-export async function getMockShelters(): Promise<Shelter[]> {
+/** Refugios públicos reales; JSON solo en instalaciones sin Supabase. */
+export async function getShelters(): Promise<Shelter[]> {
+  if (!hasSupabaseEnv()) {
+    if (process.env.NODE_ENV === "production") {
+      throw new Error("El directorio de refugios necesita Supabase configurado.");
+    }
+    return staticShelterDirectory.listShelters();
+  }
+  const client = createSupabaseAnonClient();
+  const directory: ShelterDirectory = createSupabaseShelterDirectory({
+    rpc: (functionName, args) => client.rpc(functionName, args),
+  });
   return directory.listShelters();
 }
+
+/** Compatibilidad de nombre para los consumers del prototipo. */
+export const getMockShelters = getShelters;

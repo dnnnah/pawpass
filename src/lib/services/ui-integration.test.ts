@@ -36,17 +36,16 @@ import ProfilePage, {
 } from "@/app/perfil/[id]/page";
 import ShelterPage, {
   generateMetadata as shelterMetadata,
-  generateStaticParams as shelterStaticParams,
 } from "@/app/refugios/[id]/page";
+import AdoptionPetPage from "@/app/adopciones/[id]/page";
 import { ThemeProvider } from "@/app/providers";
 
-import { filterAdoptablePets } from "@/lib/domain/adoption";
 import {
   getAdoptionDemoPets,
   getAllPets,
   getAllProfilePets,
-  getPetByIdAny,
 } from "@/lib/services/pets/queries";
+import { getAdoptionCatalogEntries } from "@/lib/services/adoption/queries";
 import { getMockShelters } from "@/lib/services/shelters/queries";
 import { listActivePublicProfiles } from "@/lib/infra/directory/activePublicProfiles";
 
@@ -174,28 +173,13 @@ describe("perfil: la UI resuelve el identificador a través del service", () => 
   });
 });
 
-describe("perfil de adopción: el service resuelve primero perfil y luego adopción", () => {
-  it("el catálogo de adopción se puede navegar como perfil público", async () => {
-    const [demoPet] = await getAdoptionDemoPets();
-    const html = await renderAsync(ProfilePage, { id: demoPet.id });
-
-    expect(html).toContain(demoPet.mascota.nombre);
-  });
-
-  it("el mismo identificador se resuelve al catálogo de adopción cuando no es perfil propio", async () => {
-    const [demoPet] = await getAdoptionDemoPets();
-    // `getPetByIdAny` es el que hace de puente entre los dos catálogos; si
-    // devolviera otra cosa, la ruta de adopción se quedaría sin pintar.
-    expect((await getPetByIdAny(demoPet.id))?.id).toBe(demoPet.id);
-    expect((await getAllPets()).some((pet) => pet.id === demoPet.id)).toBe(false);
-  });
-
-  it("los aliases del catálogo de adopción se resuelven en los datos de demostración", async () => {
-    const prerendered = (await profileStaticParams()).map((entry) => entry.id);
-
-    for (const pet of await getAdoptionDemoPets()) {
-      expect(prerendered).toContain(pet.identificacion.codigoPublico);
-    }
+describe("ficha pública de adopción", () => {
+  it("resuelve la mascota desde el contrato público y permite iniciar una solicitud", async () => {
+    const [entry] = await getAdoptionCatalogEntries();
+    const html = await renderAsync(AdoptionPetPage, { id: entry.petId });
+    expect(html).toContain(entry.nombre);
+    expect(html).toContain("Enviar solicitud");
+    expect(html).toContain("permanecen protegidos");
   });
 });
 
@@ -206,43 +190,14 @@ describe("adopciones: la UI consume el service de adopción y el de refugios", (
     html = render(await AdopcionesPage());
   });
 
-  it("el service entrega un catálogo y el dominio decide cuáles se ofrecen", async () => {
-    const adoptionPets = await getAdoptionDemoPets();
-    const adoptable = filterAdoptablePets(adoptionPets);
-    // La ruta no pinta el catálogo entero: pinta lo que `filterAdoptablePets`
-    // deja pasar. Que esas dos cosas no coincidan es lo esperado, y por eso el
-    // contrato se comprueba contra el resultado del filtro y no contra la lista
-    // completa de la fuente.
-    expect(adoptable.length).toBeGreaterThan(0);
-    expect(adoptable.length).toBeLessThan(adoptionPets.length);
+  it("enlaza entradas del contrato público a sus fichas de adopción", async () => {
+    const entries = await getAdoptionCatalogEntries();
+    for (const entry of entries) expect(html).toContain(`href="/adopciones/${entry.petId}"`);
   });
 
-  it("enlaza al perfil de cada mascota adoptable del catálogo", async () => {
-    const adoptable = filterAdoptablePets(await getAdoptionDemoPets());
-    for (const pet of adoptable) {
-      expect(html, `falta ${pet.id} en el catálogo`).toContain(`href="/perfil/${pet.id}"`);
-    }
-  });
-
-  it("el contador coincide con las mascotas que se ofrecen", async () => {
-    const adoptable = filterAdoptablePets(await getAdoptionDemoPets());
-    expect(html).toContain(`${adoptable.length} mascotas en adopción`);
-  });
-
-  it("no ofrece las mascotas del catálogo que ya no están disponibles", async () => {
-    const adoptionPets = await getAdoptionDemoPets();
-    const adoptable = filterAdoptablePets(adoptionPets);
-    const withdrawn = adoptionPets.filter(
-      (pet) => !adoptable.some((available) => available.id === pet.id),
-    );
-
-    expect(withdrawn.length).toBeGreaterThan(0);
-
-    for (const pet of withdrawn) {
-      expect(html, `${pet.id} ya no está disponible y no debe enlazarse`).not.toContain(
-        `href="/perfil/${pet.id}"`,
-      );
-    }
+  it("el contador coincide con las mascotas publicadas", async () => {
+    const entries = await getAdoptionCatalogEntries();
+    expect(html).toContain(`${entries.length} mascotas en adopción`);
   });
 
   it("no mezcla el catálogo de perfiles propios en el de adopción", async () => {
@@ -262,12 +217,6 @@ describe("adopciones: la UI consume el service de adopción y el de refugios", (
 });
 
 describe("refugios: la UI consume el service de refugios", () => {
-  it("prerenderiza un id por refugio del service", async () => {
-    expect((await shelterStaticParams()).map((entry) => entry.id)).toEqual(
-      (await getMockShelters()).map((shelter) => shelter.id),
-    );
-  });
-
   it("la ficha del refugio muestra sus datos y sus mascotas", async () => {
     const [shelter] = await getMockShelters();
     const html = await renderAsync(ShelterPage, { id: shelter.id });
@@ -275,8 +224,8 @@ describe("refugios: la UI consume el service de refugios", () => {
     expect(html).toContain(shelter.nombre);
     expect(html).toContain(shelter.ubicacion);
 
-    for (const petId of shelter.mascotas) {
-      expect(html, `${shelter.id} no lista a ${petId}`).toContain(`href="/perfil/${petId}"`);
+    for (const pet of await getAdoptionCatalogEntries()) {
+      if (pet.shelterId === shelter.id) expect(html).toContain(`href="/adopciones/${pet.petId}"`);
     }
   });
 

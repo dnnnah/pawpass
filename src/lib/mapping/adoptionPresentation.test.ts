@@ -35,7 +35,7 @@ describe("buildCatalogCard", () => {
     expect(card.code).toBe("PC-MILA-001");
     expect(card.verified).toBe(true);
     expect(card.shelterName).toBe("Patitas con Causa");
-    expect(card.href).toBe("/perfil/mila");
+    expect(card.href).toBe("/adopciones/mila");
   });
 
   it("calcula una edad legible", () => {
@@ -61,7 +61,7 @@ describe("buildShelterPetCard", () => {
       const card = buildShelterPetCard(mila);
       expect(card.adoptable).toBe(true);
       expect(card.statusLabel).toBe("En adopción");
-      expect(card.adoptionHref).toBe("/perfil/mila/adopcion");
+      expect(card.adoptionHref).toBe("/adopciones/PC-MILA-001");
     }
   });
 

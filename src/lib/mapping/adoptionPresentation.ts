@@ -36,7 +36,7 @@ export function buildCatalogCard(entry: AdoptionCatalogEntry): AdoptionCatalogCa
     verified: entry.verificado,
     shelterId: entry.shelterId,
     shelterName: entry.shelterNombre,
-    href: `/perfil/${entry.petId}`,
+    href: `/adopciones/${entry.petId}`,
   };
 }
 
@@ -73,7 +73,7 @@ export function buildShelterPetCard(pet: PetProfile): ShelterPetCardPresentation
     statusTone: meta.tone,
     adoptable: availability.available,
     profileHref: `/perfil/${pet.id}`,
-    adoptionHref: `/perfil/${pet.id}/adopcion`,
+    adoptionHref: `/adopciones/${pet.identificacion.codigoPublico}`,
   };
 }
 
