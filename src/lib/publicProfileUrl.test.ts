@@ -34,7 +34,7 @@ describe("getVoluntaryProfilePath", () => {
   it("enlaza solo el perfil que devuelve el contrato público para un estado permitido", () => {
     expect(getVoluntaryProfilePath("PC-LUCCA-001", "en_casa", "PC-LUCCA-001")).toBe("/perfil/PC-LUCCA-001");
     expect(getVoluntaryProfilePath("PC-LUCCA-001", "en_casa", null)).toBeNull();
-    expect(getVoluntaryProfilePath("PC-LUCCA-001", "perdido", "PC-LUCCA-001")).toBeNull();
+    expect(getVoluntaryProfilePath("PC-LUCCA-001", "perdido", "PC-LUCCA-001")).toBe("/perfil/PC-LUCCA-001");
     expect(getVoluntaryProfilePath("PC-LUCCA-001", "en_casa", "PC-OTRA-001")).toBeNull();
   });
 });

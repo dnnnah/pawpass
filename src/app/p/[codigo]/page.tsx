@@ -47,7 +47,7 @@ async function getPublicCard(publicCode: string) {
 }
 
 async function getAvailableVoluntaryProfilePath(publicCode: string, status: string): Promise<string | null> {
-  if (!hasSupabaseEnv() || (status !== "en_casa" && status !== "en_adopcion")) return null;
+  if (!hasSupabaseEnv() || !["en_casa", "en_adopcion", "perdido"].includes(status)) return null;
   try {
     // This adapter calls the anonymous, privacy-filtered public RPC. A private
     // owner session never grants or implies public profile availability.
@@ -111,7 +111,7 @@ export default async function PublicPetPage({ params }: PublicPetPageProps) {
     ? buildWhatsAppHref(pet.contact.whatsapp, `Hola, encontré a ${pet.name}. Escaneé su QR de PawPass.`)
     : "";
   const isLost = pet.status === "perdido" && pet.lost !== null;
-  const voluntaryProfilePath = isLost ? null : await getAvailableVoluntaryProfilePath(pet.publicCode, pet.status);
+  const voluntaryProfilePath = await getAvailableVoluntaryProfilePath(pet.publicCode, pet.status);
   const rescueContact: FoundPetContact | null = pet.contact?.whatsapp
     ? { channel: "whatsapp", value: pet.contact.whatsapp }
     : pet.contact?.phone

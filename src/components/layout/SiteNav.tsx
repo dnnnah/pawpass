@@ -6,26 +6,24 @@ import { usePathname } from "next/navigation";
 import { AlertTriangle, Bone, HeartHandshake, LogIn, Menu, PawPrint, UserRound, X } from "lucide-react";
 import { createSupabaseBrowserClient } from "@/lib/infra/supabase/client";
 import { hasSupabaseEnv } from "@/lib/infra/supabase/env";
+import { getActiveSiteNavigationHref } from "./siteNavigation";
 
 const baseLinks = [
-  { href: "/", label: "Inicio", icon: PawPrint, match: (p: string) => p === "/" },
+  { href: "/", label: "Inicio", icon: PawPrint },
   {
     href: "/perdidas",
     label: "Mascotas perdidas",
     icon: AlertTriangle,
-    match: (p: string) => p.startsWith("/perdidas"),
   },
   {
     href: "/mascotas",
     label: "Mascotas públicas",
     icon: Bone,
-    match: (p: string) => p === "/mascotas" || p.startsWith("/mascotas/") || p.startsWith("/perfil/"),
   },
   {
     href: "/adopciones",
     label: "Adopciones",
     icon: HeartHandshake,
-    match: (p: string) => p.startsWith("/adopciones") || p.startsWith("/refugios"),
   },
 ];
 
@@ -34,6 +32,7 @@ export function SiteNav() {
   const [authenticated, setAuthenticated] = useState(false);
   const [menuOpenForPath, setMenuOpenForPath] = useState<string | null>(null);
   const menuOpen = menuOpenForPath !== null && menuOpenForPath === pathname;
+  const activeHref = getActiveSiteNavigationHref(pathname ?? "", authenticated);
 
   useEffect(() => {
     if (!hasSupabaseEnv()) return;
@@ -70,13 +69,12 @@ export function SiteNav() {
 
   const links = [
     ...baseLinks.slice(0, 1),
-    ...(authenticated ? [{ href: "/mis-mascotas", label: "Mis mascotas", icon: Bone, match: (p: string) => p.startsWith("/mis-mascotas") || p.startsWith("/cuenta/mascotas/") }] : []),
+    ...(authenticated ? [{ href: "/mis-mascotas", label: "Mis mascotas", icon: Bone }] : []),
     ...baseLinks.slice(1),
     {
       href: authenticated ? "/cuenta" : "/login",
       label: authenticated ? "Mi cuenta" : "Iniciar sesión",
       icon: authenticated ? UserRound : LogIn,
-      match: (p: string) => (authenticated ? p.startsWith("/cuenta") : p === "/login"),
     },
   ];
 
@@ -97,8 +95,8 @@ export function SiteNav() {
       </button>
 
       <ul className="hidden items-center gap-1 rounded-full border border-rule bg-surface p-1 shadow-sm xl:flex">
-        {links.map(({ href, label, icon: Icon, match }) => {
-          const active = match(pathname ?? "");
+        {links.map(({ href, label, icon: Icon }) => {
+          const active = href === activeHref;
 
           return (
             <li key={href}>
@@ -122,8 +120,8 @@ export function SiteNav() {
         id="menu-principal-movil"
         className={`${menuOpen ? "grid" : "hidden"} absolute -right-[3.25rem] top-[calc(100%+0.75rem)] z-50 max-h-[calc(100dvh-6rem)] w-[min(20rem,calc(100vw-2rem))] gap-1 overflow-y-auto rounded-2xl border border-rule bg-surface p-2 shadow-xl xl:hidden`}
       >
-        {links.map(({ href, label, icon: Icon, match }) => {
-          const active = match(pathname ?? "");
+        {links.map(({ href, label, icon: Icon }) => {
+          const active = href === activeHref;
 
           return (
             <li key={href}>

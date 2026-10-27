@@ -94,6 +94,21 @@ begin
   if not exists (select 1 from jsonb_array_elements(v_list) card where card ->> 'publicCode' = v_code) then raise exception 'published profile is missing from list'; end if;
   if exists (select 1 from jsonb_array_elements(v_list) card where card ->> 'publicCode' = v_private_code) then raise exception 'unpublished profile appeared in list'; end if;
 
+  -- An active lost alert keeps the separate rescue page available, but must
+  -- not revoke an already-enabled voluntary profile or widen its allowlist.
+  update public.pets set estado = 'perdido' where id = v_pet;
+  insert into public.pet_lost_alerts(pet_id, fecha_perdida, zona)
+  values (v_pet, current_date, 'Parque Norte');
+  select public.obtener_perfil_publico(v_code) into v_profile;
+  if v_profile ->> 'status' <> 'perdido' then raise exception 'published profile became unavailable during an active lost alert'; end if;
+  if v_profile #>> '{contact,phone}' <> '+525512345678' or v_profile #>> '{contact,email}' is not null then raise exception 'lost status changed the existing contact allowlist'; end if;
+  if v_profile ->> 'photoPath' <> v_public_photo_path or v_profile #>> '{photos,0,path}' <> v_gallery_photo_path then raise exception 'lost status changed the existing public photo consent'; end if;
+  if v_profile #>> '{documents,0,path}' <> v_public_document_path then raise exception 'lost status changed the existing public document consent'; end if;
+  if v_profile #>> '{health,allergies,0}' <> 'Pollo' or jsonb_array_length(v_profile -> 'vaccines') <> 1 then raise exception 'lost status changed existing health/vaccine consent'; end if;
+  if exists (select 1 from jsonb_array_elements(public.listar_perfiles_publicos(50, 0)) card where card ->> 'publicCode' = v_code) then
+    raise exception 'lost pets were forced into the voluntary profile directory';
+  end if;
+
   raise notice 'PASS: unpublished profiles and unselected records remain hidden from the public profile';
 end
 $test$;

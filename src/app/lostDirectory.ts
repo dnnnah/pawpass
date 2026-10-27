@@ -7,7 +7,10 @@ import { getLostPetCards } from "@/lib/services/pets/public";
 import type { PublicPetCard } from "@/types/publicPet";
 
 export async function loadPublicLostPets(): Promise<{ pets: PublicPetCard[]; error: string | null }> {
-  if (!hasSupabaseEnv()) return { pets: await getLostPetCards(staticPublicPetDirectory), error: null };
+  if (!hasSupabaseEnv()) {
+    if (process.env.NODE_ENV !== "production") return { pets: await getLostPetCards(staticPublicPetDirectory), error: null };
+    return { pets: [], error: "No pudimos cargar las alertas activas. Verifica la conexión de Supabase e intenta de nuevo." };
+  }
   const cookieStore = await cookies();
   const supabase = createSupabaseServerClient({
     getAll: () => cookieStore.getAll(),
