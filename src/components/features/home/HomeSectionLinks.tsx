@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { AlertTriangle, ArrowUpRight, Bone, HeartHandshake, PawPrint } from "lucide-react";
+import { PublicCodeAccess } from "@/components/features/home/PublicCodeAccess";
 
 const sections = [
   { href: "/mis-mascotas", label: "Mis mascotas", description: "Carnets privados y datos de tu familia.", icon: PawPrint },
@@ -12,8 +13,10 @@ export function HomeSectionLinks() {
   return <div className="mx-auto w-full max-w-3xl px-4 pb-12 sm:px-6 sm:pb-16">
     <header className="py-9 sm:py-12">
       <h1 className="font-display text-4xl leading-tight text-ink sm:text-5xl">Mascotas</h1>
-      <p className="mt-3 text-base leading-7 text-ink-2">Elige una sección para continuar.</p>
+      <p className="mt-3 max-w-2xl text-base leading-7 text-ink-2">PawPass guarda el carnet de tu mascota y permite que otras personas consulten los datos básicos que compartes en su QR para ayudarla a volver a casa.</p>
     </header>
+
+    <div className="mb-8"><PublicCodeAccess /></div>
 
     <nav aria-label="Secciones principales">
       <ul className="divide-y divide-rule border-y border-rule">

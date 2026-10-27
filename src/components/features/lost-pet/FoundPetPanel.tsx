@@ -5,7 +5,9 @@ import {
   Check,
   Copy,
   ExternalLink,
+  Mail,
   MapPin,
+  Phone,
   Send,
   X,
 } from "lucide-react";
@@ -14,9 +16,11 @@ import { Field } from "@/components/ui/Field";
 import {
   buildFoundPetMessage,
   buildMapsLocationUrl,
-  buildWhatsAppHref,
+  buildFoundPetContactHref,
   getLocationErrorKey,
   LOCATION_ERROR_COPY,
+  type FoundPetContact,
+  updateFoundPetMessageLocation,
   type LocationErrorKey,
 } from "@/lib/foundPetReport";
 import { copyTextToClipboard } from "@/lib/clipboard";
@@ -36,7 +40,9 @@ type LocationState =
 type FoundPetPanelProps = {
   petName: string;
   lastZone: string | null;
-  whatsappNumber: string;
+  contact?: FoundPetContact | null;
+  /** Compatibilidad con el asistente ya usado en alertas privadas. */
+  whatsappNumber?: string;
 };
 
 const GEOLOCATION_TIMEOUT_MS = 10000;
@@ -45,6 +51,7 @@ const GEOLOCATION_MAXIMUM_AGE_MS = 60_000;
 export function FoundPetPanel({
   petName,
   lastZone,
+  contact,
   whatsappNumber,
 }: FoundPetPanelProps) {
   const [flowOpen, setFlowOpen] = useState(false);
@@ -60,7 +67,8 @@ export function FoundPetPanel({
       ? buildMapsLocationUrl(location.lat, location.lng)
       : "";
 
-  const whatsappHref = buildWhatsAppHref(whatsappNumber, message);
+  const selectedContact = contact ?? (whatsappNumber ? { channel: "whatsapp" as const, value: whatsappNumber } : null);
+  const contactHref = buildFoundPetContactHref(selectedContact, message);
 
   useEffect(() => {
     if (flowOpen) {
@@ -101,7 +109,7 @@ export function FoundPetPanel({
         const { latitude, longitude } = position.coords;
         const url = buildMapsLocationUrl(latitude, longitude);
         setLocation({ status: "located", lat: latitude, lng: longitude });
-        setMessage(buildFoundPetMessage({ petName, lastZone, locationUrl: url }));
+        setMessage((currentMessage) => updateFoundPetMessageLocation(currentMessage, url));
         setAnnouncement("Ubicación obtenida. Revisa el mensaje antes de enviarlo.");
       },
       (error) => {
@@ -115,7 +123,7 @@ export function FoundPetPanel({
 
   function handleSkipLocation() {
     setLocation({ status: "idle" });
-    setMessage(buildFoundPetMessage({ petName, lastZone }));
+    setMessage((currentMessage) => updateFoundPetMessageLocation(currentMessage, ""));
     setAnnouncement("Puedes enviar el mensaje sin compartir tu ubicación.");
   }
 
@@ -276,15 +284,21 @@ export function FoundPetPanel({
           </Field>
 
           <div className="grid gap-3 sm:grid-cols-2">
-            {whatsappHref ? (
+            {contactHref && selectedContact?.channel === "whatsapp" ? (
               <ActionButton
-                href={whatsappHref}
-                label="Enviar por WhatsApp"
-                helper="Abre WhatsApp con el mensaje listo"
+                href={contactHref}
+                label="Abrir WhatsApp con el mensaje"
+                helper="Revisa el texto antes de enviarlo"
                 icon={Send}
                 tone="whatsapp"
                 size="large"
               />
+            ) : null}
+            {contactHref && selectedContact?.channel === "phone" ? (
+              <ActionButton href={contactHref} label="Llamar a la familia" helper="El número elegido para esta ficha" icon={Phone} tone="call" size="large" />
+            ) : null}
+            {contactHref && selectedContact?.channel === "email" ? (
+              <ActionButton href={contactHref} label="Preparar correo" helper="Abre tu correo con el mensaje revisable" icon={Mail} tone="call" size="large" />
             ) : null}
             <button
               type="button"

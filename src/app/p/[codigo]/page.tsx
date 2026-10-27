@@ -3,9 +3,11 @@ import { cookies } from "next/headers";
 import { AlertTriangle, CheckCircle2, Mail, MapPin, MessageCircle, PawPrint, Phone, ShieldCheck } from "lucide-react";
 import { notFound } from "next/navigation";
 import { AppShell } from "@/components/layout/AppShell";
+import Link from "next/link";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Surface } from "@/components/ui/Surface";
+import { FoundPetPanel } from "@/components/features/lost-pet/FoundPetPanel";
 import { getPetStatusMeta } from "@/lib/mapping/petStatusPresentation";
 import { formatPhoneForDisplay } from "@/lib/mapping/profile";
 import { buildWhatsAppHref, toE164Digits } from "@/lib/phone";
@@ -14,6 +16,9 @@ import { hasSupabaseEnv } from "@/lib/infra/supabase/env";
 import { createSupabaseServerClient } from "@/lib/infra/supabase/server";
 import { getPublicPetCard } from "@/lib/services/pets/public";
 import { staticPublicPetDirectory } from "@/lib/infra/directory/staticPublicPets";
+import { findActivePublicProfile } from "@/lib/infra/directory/activePublicProfiles";
+import { getVoluntaryProfilePath, normalizePublicProfileCode } from "@/lib/publicProfileUrl";
+import type { FoundPetContact } from "@/lib/foundPetReport";
 
 type PublicPetPageProps = {
   params: Promise<{ codigo: string }>;
@@ -41,9 +46,22 @@ async function getPublicCard(publicCode: string) {
   return getPublicPetCard(publicCode, createSupabasePublicPetDirectory(client));
 }
 
+async function getAvailableVoluntaryProfilePath(publicCode: string, status: string): Promise<string | null> {
+  if (!hasSupabaseEnv() || (status !== "en_casa" && status !== "en_adopcion")) return null;
+  try {
+    // This adapter calls the anonymous, privacy-filtered public RPC. A private
+    // owner session never grants or implies public profile availability.
+    const profile = await findActivePublicProfile(publicCode);
+    return getVoluntaryProfilePath(publicCode, status, profile?.publicCode);
+  } catch {
+    return null;
+  }
+}
+
 export async function generateMetadata({ params }: PublicPetPageProps): Promise<Metadata> {
   const { codigo } = await params;
-  const pet = await getPublicCard(codigo);
+  const normalizedCode = normalizePublicProfileCode(codigo);
+  const pet = normalizedCode ? await getPublicCard(normalizedCode) : null;
 
   if (!pet) {
     return {
@@ -78,7 +96,9 @@ function formatDate(value: string | null) {
 
 export default async function PublicPetPage({ params }: PublicPetPageProps) {
   const { codigo } = await params;
-  const pet = await getPublicCard(codigo);
+  const normalizedCode = normalizePublicProfileCode(codigo);
+  if (!normalizedCode) notFound();
+  const pet = await getPublicCard(normalizedCode);
 
   if (!pet) {
     notFound();
@@ -91,6 +111,14 @@ export default async function PublicPetPage({ params }: PublicPetPageProps) {
     ? buildWhatsAppHref(pet.contact.whatsapp, `Hola, encontré a ${pet.name}. Escaneé su QR de PawPass.`)
     : "";
   const isLost = pet.status === "perdido" && pet.lost !== null;
+  const voluntaryProfilePath = isLost ? null : await getAvailableVoluntaryProfilePath(pet.publicCode, pet.status);
+  const rescueContact: FoundPetContact | null = pet.contact?.whatsapp
+    ? { channel: "whatsapp", value: pet.contact.whatsapp }
+    : pet.contact?.phone
+      ? { channel: "phone", value: pet.contact.phone }
+      : pet.contact?.email
+        ? { channel: "email", value: pet.contact.email }
+        : null;
 
   return (
     <AppShell>
@@ -199,10 +227,22 @@ export default async function PublicPetPage({ params }: PublicPetPageProps) {
                 {pet.emergencyCareNote ? <div className="sm:col-span-2"><dt className="text-sm font-semibold text-ink">Cuidados importantes</dt><dd className="mt-1 whitespace-pre-wrap text-sm leading-6 text-ink-2">{pet.emergencyCareNote}</dd></div> : null}
               </dl>
               {pet.contact ? <div className="mt-5 flex flex-wrap gap-3">
-                {phoneDigits ? <Button href={`tel:${phoneDigits}`} variant={isLost ? "primary" : "secondary"} icon={<Phone size={17} />}>Llamar</Button> : null}
-                {whatsappHref ? <Button href={whatsappHref} variant="secondary" icon={<MessageCircle size={17} />}>WhatsApp</Button> : null}
-                {pet.contact.email ? <Button href={`mailto:${pet.contact.email}`} variant="secondary" icon={<Mail size={17} />}>Correo</Button> : null}
+                {!isLost && phoneDigits ? <Button href={`tel:${phoneDigits}`} variant="secondary" icon={<Phone size={17} />}>Llamar</Button> : null}
+                {!isLost && whatsappHref ? <Button href={whatsappHref} variant="secondary" icon={<MessageCircle size={17} />}>WhatsApp</Button> : null}
+                {!isLost && pet.contact.email ? <Button href={`mailto:${pet.contact.email}`} variant="secondary" icon={<Mail size={17} />}>Correo</Button> : null}
               </div> : null}
+            </Surface>
+          ) : null}
+
+          {isLost ? (
+            <FoundPetPanel petName={pet.name} lastZone={pet.lost?.zona ?? null} contact={rescueContact} />
+          ) : null}
+
+          {voluntaryProfilePath ? (
+            <Surface as="section" className="p-5 sm:p-6" rest={{ "aria-labelledby": "perfil-voluntario" }}>
+              <h2 id="perfil-voluntario" className="font-display text-xl text-ink">Perfil compartido por su familia</h2>
+              <p className="mt-1 text-sm leading-6 text-ink-2">Su tutor habilitó un perfil público con los datos que decidió compartir.</p>
+              <Link href={voluntaryProfilePath} className="mt-4 inline-flex min-h-11 items-center justify-center rounded-md bg-brand px-4 font-semibold text-on-solid hover:brightness-110 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand">Ver perfil público</Link>
             </Surface>
           ) : null}
 
