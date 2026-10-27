@@ -106,6 +106,27 @@ describe("createSupabasePublicPetDirectory", () => {
     expect(createSignedUrl).toHaveBeenCalledTimes(3);
   });
 
+  it("presenta primero la foto compartida más reciente", async () => {
+    const publicProfile = {
+      publicCode: "PC-LOLA-123", name: "Lola", species: "Perro", status: "en_casa",
+      photos: [
+        { visible: true, path: "lola/older-photo" },
+        { visible: true, path: "lola/newer-photo" },
+      ],
+      contact: {}, vaccines: [], documents: [],
+    };
+    const rpc = vi.fn().mockResolvedValue({ data: publicProfile, error: null });
+    const createSignedUrl = vi.fn(async (path: string) => ({ data: { signedUrl: `https://storage.test/${path}` }, error: null }));
+    const directory = createSupabasePublicPetDirectory({ rpc, storage: { from: () => ({ createSignedUrl }) } });
+
+    await expect(directory.findPublicProfile("PC-LOLA-123")).resolves.toMatchObject({
+      photos: [
+        { url: "https://storage.test/lola/newer-photo" },
+        { url: "https://storage.test/lola/older-photo" },
+      ],
+    });
+  });
+
   it("conserva la foto pública histórica que el RPC devuelve cuando falta el objeto de Storage", async () => {
     const publicProfile = {
       publicCode: "PC-LUCCA-001",

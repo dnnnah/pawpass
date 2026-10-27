@@ -63,5 +63,9 @@ describe("AdoptionPetCard", () => {
   it("incluye texto alternativo de la foto", () => {
     const html = renderCard(buildCard());
     expect(html).toContain('alt="Foto de Mila"');
+    expect(html).toContain('src="/pets/alix.jpeg"');
+    expect(html).toContain("object-contain");
+    expect(html).toContain("aspect-[4/3]");
+    expect(html).toContain('sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"');
   });
 });

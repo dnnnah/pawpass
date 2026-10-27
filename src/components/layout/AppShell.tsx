@@ -21,7 +21,7 @@ const footerLinks = [
 
 export function AppShell({ children }: AppShellProps) {
   return (
-    <div className="relative flex min-h-dvh flex-col">
+    <div className="relative flex min-h-dvh min-w-0 flex-col">
       <a
         href="#contenido"
         className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-md focus:bg-brand focus:px-4 focus:py-3 focus:text-sm focus:font-semibold focus:text-on-solid"
@@ -30,7 +30,7 @@ export function AppShell({ children }: AppShellProps) {
       </a>
 
       <header className="sticky top-0 z-40 border-b border-rule bg-canvas/95 shadow-sm backdrop-blur supports-[backdrop-filter]:bg-canvas/90">
-        <div className="relative mx-auto flex w-full max-w-5xl items-center justify-between gap-3 px-4 py-3 sm:px-6 sm:py-3.5 lg:px-8">
+        <div className="relative mx-auto flex w-full max-w-7xl items-center justify-between gap-3 px-4 py-3 sm:px-6 sm:py-3.5 lg:px-8">
           <Link
             href="/"
             className="flex min-h-11 min-w-0 items-center gap-2.5"
@@ -66,7 +66,7 @@ export function AppShell({ children }: AppShellProps) {
           cada pagina: nueve contenedores distintos terminaban con `pb-10` y sin
           padding superior, y por eso el enlace "Volver al perfil" de las paginas
           de detalle quedaba pegado al navbar. */}
-      <main id="contenido" tabIndex={-1} className="flex-1 pt-8 focus:outline-none sm:pt-10">
+      <main id="contenido" tabIndex={-1} className="min-w-0 flex-1 pt-6 focus:outline-none sm:pt-10">
         <OfflineNavGuard />
         {children}
       </main>

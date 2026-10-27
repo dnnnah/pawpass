@@ -62,7 +62,7 @@ export function AdoptionPublicationForm({
     if (result) {
       setError(result);
     } else {
-      setNotice(published ? "La publicación se retiró del catálogo." : "La mascota ya aparece en el catálogo de adopción.");
+      setNotice(published ? "Dejaste de mostrar a la mascota en adopción." : "La mascota ya está en adopción.");
       router.refresh();
     }
     setBusy(false);
@@ -88,7 +88,7 @@ export function AdoptionPublicationForm({
               <HeartHandshake size={16} className="text-adoption" aria-hidden="true" />
               Publicación de adopción
             </h4>
-            {published ? <Pill tone="adoption" size="sm">En catálogo</Pill> : null}
+            {published ? <Pill tone="adoption" size="sm">En adopción</Pill> : null}
           </div>
           <p className="text-xs leading-5 text-ink-2">
             {published
@@ -96,11 +96,11 @@ export function AdoptionPublicationForm({
               : `Al publicar, cualquier visitante verá el nombre, especie, raza, edad, sexo, talla, zona aproximada y foto principal de ${petName}. Las solicitudes se enviarán al correo responsable de ${actorLabel}.`}
           </p>
           <p className="text-xs leading-5 text-ink-3">
-            El carnet, el QR, la salud, los documentos y los teléfonos o correos privados no se muestran en el catálogo.
+            El carnet, el QR, la salud, los documentos y los teléfonos o correos privados no se muestran en la publicación.
           </p>
           {!published ? <label className="flex items-start gap-2 text-sm leading-5 text-ink">
             <input type="checkbox" checked={consent} onChange={(event) => setConsent(event.target.checked)} disabled={busy} className="mt-0.5 size-4 shrink-0 accent-brand" />
-            Quiero publicar estos datos y la foto principal en el catálogo de adopción.
+            Quiero mostrar estos datos y la foto principal para que puedan conocer a {petName}.
           </label> : null}
           {error ? <p role="alert" className="text-sm text-danger">{error}</p> : null}
           {notice ? <p role="status" className="text-sm text-success">{notice}</p> : null}
@@ -111,7 +111,7 @@ export function AdoptionPublicationForm({
             disabled={busy || (!published && !consent)}
             onClick={() => void updatePublication()}
           >
-            {busy ? "Guardando…" : published ? "Retirar del catálogo" : "Publicar en adopción"}
+            {busy ? "Guardando…" : published ? "Dejar de mostrar en adopción" : "Publicar en adopción"}
           </Button>
         </Surface>
       )}

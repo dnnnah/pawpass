@@ -208,10 +208,10 @@ export function QRShareCard({ petName, profileUrl, petCode, className }: QRShare
   ].join(" ");
 
   return (
-    <Surface className={cx("p-5", className)}>
+    <Surface className={cx("@container p-4 sm:p-5", className)}>
       {/* `min-w-0` en cada nivel: sin esto la URL larga y la rejilla de
           botones ensanchan la tarjeta y descuadran la columna de documentos. */}
-      <div className="grid min-w-0 gap-5">
+      <div className="grid min-w-0 grid-cols-1 gap-5">
         <div className="flex items-start gap-3">
           <span
             aria-hidden="true"
@@ -236,7 +236,7 @@ export function QRShareCard({ petName, profileUrl, petCode, className }: QRShare
           </div>
         ) : (
           <>
-            <div className="mx-auto flex w-fit max-w-full flex-col items-center">
+            <div className="mx-auto flex min-w-0 w-full max-w-64 flex-col items-center">
               <div
                 ref={qrRef}
                 className="grid size-44 shrink-0 place-items-center rounded-md bg-white p-2 ring-1 ring-rule sm:size-48"
@@ -257,21 +257,18 @@ export function QRShareCard({ petName, profileUrl, petCode, className }: QRShare
                     render y en cada visita. `qr_generated` solo se emite en las
                     dos descargas de abajo, que son las que producen un archivo. */}
               </div>
-              {/* `w-full`, no un ancho fijo: la linea debe medir lo mismo que el
-                  cuadro del QR en cada tamano. Con `w-48` fijo, en movil (QR de
-                  176px) la linea media 192px y empujaba el conjunto 8px a la
-                  izquierda, descentrando el codigo dentro de la tarjeta. */}
-              <p className="mt-2 flex w-full items-center justify-center gap-1 text-xs text-ink-3">
+              {/* La URL y el identificador quedan limitados por el ancho de la tarjeta. */}
+              <p className="mt-2 flex min-w-0 w-full items-center justify-center gap-1 text-xs text-ink-3">
                 <Link2 size={12} aria-hidden="true" className="shrink-0" />
-                <span className="truncate [overflow-wrap:anywhere]">{shareUrl}</span>
+                <span className="min-w-0 truncate [overflow-wrap:anywhere]">{shareUrl}</span>
               </p>
-              <p className="mt-1 w-full break-words text-center text-xs text-ink-2">ID PawPass: {petCode}</p>
-              <Link href={shareUrl} target="_blank" rel="noreferrer" className="mt-3 inline-flex min-h-11 items-center justify-center rounded-md px-3 text-sm font-semibold text-brand underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand">
+              <p className="mt-1 min-w-0 w-full text-center text-xs text-ink-2 [overflow-wrap:anywhere]">ID PawPass: {petCode}</p>
+              <Link href={shareUrl} target="_blank" rel="noreferrer" className="mt-3 inline-flex min-h-11 min-w-0 max-w-full items-center justify-center rounded-md px-3 text-center text-sm font-semibold text-brand underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand">
                 Abrir ficha QR como visitante
               </Link>
             </div>
 
-            <div className="grid grid-cols-2 gap-2 [&>*]:min-w-0">
+            <div className="grid grid-cols-1 gap-2 @min-[16rem]:grid-cols-2 [&>*]:min-w-0 [&>button>svg]:shrink-0">
               <button
                 type="button"
                 onClick={() => handleCopy("url")}

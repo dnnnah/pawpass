@@ -23,6 +23,7 @@ type PetSettingsFormProps = {
   publicCode?: string;
   canEdit: boolean;
   showPrivacySettings?: boolean;
+  initialPublished?: boolean;
 };
 
 const contactFields: Array<{ key: keyof PetContact; label: string; type?: "email" | "tel" | "text" }> = [
@@ -37,7 +38,7 @@ const contactFields: Array<{ key: keyof PetContact; label: string; type?: "email
 ];
 
 const privacyFields: Array<{ key: Exclude<keyof PetPrivacy, "showFiles" | "showHealth">; label: string; help?: string }> = [
-  { key: "published", label: "Activar perfil público voluntario", help: "La mascota aparecerá en el catálogo. Salud, vacunas y archivos se controlan por separado; cada vacuna y archivo necesita su propio permiso." },
+  { key: "published", label: "Activar perfil público voluntario", help: "La mascota aparecerá en los perfiles públicos. Salud, vacunas y archivos se controlan por separado; cada vacuna y archivo necesita su propio permiso." },
   { key: "showContactName", label: "Mostrar el nombre del contacto" },
   { key: "showPhone", label: "Mostrar también el teléfono principal", help: "Este dato solo se compartirá cuando actives su publicación." },
   { key: "showWhatsapp", label: "Mostrar también WhatsApp" },
@@ -69,7 +70,7 @@ function asSettingsClient(): PetSettingsClient {
   return createSupabaseBrowserClient() as unknown as PetSettingsClient;
 }
 
-export function PetSettingsForm({ petId, petName, publicCode, canEdit, showPrivacySettings = true }: PetSettingsFormProps) {
+export function PetSettingsForm({ petId, petName, publicCode, canEdit, showPrivacySettings = true, initialPublished = false }: PetSettingsFormProps) {
   const [open, setOpen] = useState(false);
   const [contactSectionOpen, setContactSectionOpen] = useState(true);
   const [privacySectionOpen, setPrivacySectionOpen] = useState(false);
@@ -78,13 +79,36 @@ export function PetSettingsForm({ petId, petName, publicCode, canEdit, showPriva
   const [savingPrivacy, setSavingPrivacy] = useState(false);
   const [contact, setContact] = useState<PetContact | null>(null);
   const [privacy, setPrivacy] = useState<PetPrivacy>(defaultPrivacy);
-  const [savedPublished, setSavedPublished] = useState(false);
+  const [savedPublished, setSavedPublished] = useState(initialPublished);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
 
   async function toggleEditor() {
     setOpen((value) => !value);
     if (open || contact || loading) return;
+
+    if (!hasSupabaseEnv()) {
+      setError("La configuración de la ficha necesita Supabase.");
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+    const result = await loadPetSettings(asSettingsClient(), petId);
+    if (result.error) {
+      setError(result.error);
+    } else {
+      setContact(result.contact);
+      setPrivacy(result.privacy);
+      setSavedPublished(result.privacy.published);
+    }
+    setLoading(false);
+  }
+
+  async function openPrivacyEditor() {
+    setOpen(true);
+    setPrivacySectionOpen(true);
+    if (contact || loading) return;
 
     if (!hasSupabaseEnv()) {
       setError("La configuración de la ficha necesita Supabase.");
@@ -137,7 +161,15 @@ export function PetSettingsForm({ petId, petName, publicCode, canEdit, showPriva
   }
 
   return (
-    <div className="mt-4 border-t border-rule pt-4">
+    <div id="perfil-publico" className="mt-4 min-w-0 border-t border-rule pt-4">
+      {showPrivacySettings ? <div className="mb-3 min-w-0 rounded-md bg-sunken p-3">
+        <p className="text-sm font-semibold text-ink">Perfil público voluntario · {savedPublished ? "Activo" : "Inactivo"}</p>
+        <p className="mt-1 text-xs leading-5 text-ink-2">Tú eliges qué datos, fotos y archivos autorizas. Esta opción no cambia el carnet privado ni el enlace QR.</p>
+        {savedPublished && publicCode ? <Link href={`/perfil/${encodeURIComponent(publicCode)}`} className="mt-2 flex min-h-11 min-w-0 max-w-full items-center rounded-sm text-sm font-semibold text-brand underline [overflow-wrap:anywhere]">Abrir perfil público de {petName}</Link> : null}
+        {canEdit && showPrivacySettings ? <Button type="button" variant="secondary" size="sm" className="mt-2" disabled={loading} onClick={() => void openPrivacyEditor()}>
+          {savedPublished ? "Editar qué compartes" : "Activar y elegir qué compartir"}
+        </Button> : null}
+      </div> : null}
       <Button
         type="button"
         variant="secondary"

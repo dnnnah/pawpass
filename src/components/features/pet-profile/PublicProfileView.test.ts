@@ -39,6 +39,7 @@ describe("presentación del perfil público", () => {
     expect(html).toContain('id="info"');
     expect(html).toContain('id="contacto"');
     expect(html).toContain('id="documentos"');
+    expect(html).toContain("Aún no hay fotos compartidas.");
     expect(html).toContain('aria-label="Código QR del perfil público de Lucca"');
     expect(html).not.toContain("Carnet físico");
     expect(html).not.toContain("Estudio del carnet");

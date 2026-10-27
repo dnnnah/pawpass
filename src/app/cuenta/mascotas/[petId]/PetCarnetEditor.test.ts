@@ -18,6 +18,19 @@ describe("controles de publicación del carnet", () => {
     expect(html).toContain("Mostrar el resumen de salud en el perfil público voluntario");
     expect(html).toContain("Mostrar los archivos seleccionados en el perfil público voluntario");
     expect(html).toContain("Compartir este archivo en el perfil público voluntario");
+    expect(html).toContain("Las fotos se mantienen privadas hasta que elijas compartirlas una por una.");
     expect(html).toContain("La nota del QR se controla por separado.");
+  });
+
+  it("explica que una foto se autoriza individualmente antes de compartirla", () => {
+    const html = renderToStaticMarkup(createElement(PetCarnetEditor, {
+      pet: { id: "pet-1", name: "Luna", species: "perro", birthDate: "", breed: "", gender: "", size: "", color: "", weightKg: "", sterilized: null, microchip: "", distinctiveTraits: [], identificationNotes: "" },
+      health: { allergies: [], conditions: [], medications: [], specialDiet: "", behavior: "", emergencyCareNote: "" },
+      vaccines: [],
+      documents: [{ id: "photo-1", name: "Paseo", category: "foto", type: "imagen", bucketId: "pawpass-fotos", objectPath: "photo-1/paseo.jpg", mimeType: "image/jpeg", size: 1024, date: "", description: "", signedUrl: "https://fotos.test/paseo.jpg", visiblePublic: false }],
+      canEdit: true,
+      privacy: { showHealth: false, showFiles: false },
+    }));
+    expect(html).toContain("Compartir esta foto en el perfil público voluntario");
   });
 });

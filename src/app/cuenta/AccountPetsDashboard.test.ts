@@ -16,6 +16,8 @@ describe("organización de mis mascotas", () => {
     expect(html.indexOf("EnAlerta")).toBeLessThan(html.indexOf("EnCasa"));
     expect(html.slice(html.indexOf("<article"), html.indexOf("EnAlerta"))).toContain("bg-danger-soft");
     expect(html).toContain("Alerta activa");
+    expect(html).toContain('href="/p/EnAlerta"');
+    expect(html).toContain("Ver ficha pública");
     expect(html.indexOf('id="agregar-mascota"')).toBeGreaterThan(html.indexOf("EnCasa"));
     expect(html).toContain('href="/cuenta/mascotas/EnCasa"');
     expect(html).toContain("Abrir carnet privado");
@@ -25,6 +27,36 @@ describe("organización de mis mascotas", () => {
     const html = renderToStaticMarkup(createElement(AccountPetsDashboard, { pets: [pet("Compartida", "en_casa", "tutor")], error: null }));
     expect(html).toContain("Abrir carnet privado");
     expect(html).not.toContain("Eliminar a Compartida");
+  });
+  it("permite que cualquier tutor vea la ficha pública de una mascota perdida", () => {
+    const html = renderToStaticMarkup(createElement(AccountPetsDashboard, {
+      pets: [{ ...pet("Compartida", "perdido", "tutor"), publicCode: "PC-COMPARTIDA-9" }], error: null,
+    }));
+    expect(html).toContain('href="/p/PC-COMPARTIDA-9"');
+    expect(html).toContain("Ver ficha pública");
+  });
+  it("acerca las acciones del perfil voluntario a las acciones principales de la mascota", () => {
+    const active = renderToStaticMarkup(createElement(AccountPetsDashboard, {
+      pets: [{ ...pet("Luna", "en_casa"), publicProfilePublished: true }], error: null,
+    }));
+    expect(active).toContain('href="/perfil/Luna"');
+    expect(active).toContain("Perfil público voluntario activo");
+    expect(active).toContain("Compartir perfil");
+    expect(active).not.toContain('href="/p/Luna"');
+
+    const inactive = renderToStaticMarkup(createElement(AccountPetsDashboard, {
+      pets: [{ ...pet("Luna", "en_casa"), publicProfilePublished: false }], error: null,
+    }));
+    expect(inactive).toContain('href="/cuenta/mascotas/Luna#perfil-publico"');
+    expect(inactive).toContain("Configurar perfil público");
+    expect(inactive).not.toContain('href="/perfil/Luna"');
+    expect(inactive).not.toContain("Compartir perfil");
+
+    const unknown = renderToStaticMarkup(createElement(AccountPetsDashboard, {
+      pets: [{ ...pet("Luna", "en_casa") }], error: null,
+    }));
+    expect(unknown).toContain("Estado del perfil público por revisar");
+    expect(unknown).not.toContain("Perfil público voluntario inactivo");
   });
   it("mantiene cerrado el registro hasta que la persona decide abrirlo", () => {
     const html = renderToStaticMarkup(createElement(AccountPetsDashboard, { pets: [pet("Nala", "en_casa")], error: null }));

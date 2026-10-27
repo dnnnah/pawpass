@@ -39,14 +39,19 @@ export async function getAccountPets(requireSession = true, nextPath = "/mis-mas
   const pets = (data ?? []).map(normalizeAccountPetRow).filter((pet): pet is AccountPet => pet !== null);
   if (pets.length === 0) return { authenticated: true, pets, error: null };
 
-  const { data: photos, error: photoError } = await supabase
-    .from("pet_documents")
-    .select("pet_id, object_path, created_at")
-    .in("pet_id", pets.map((pet) => pet.id))
-    .eq("bucket_id", "pawpass-fotos")
-    .eq("categoria", "foto")
-    .eq("tipo", "imagen")
-    .order("created_at", { ascending: true });
+  const [photoResult, privacyResult] = await Promise.all([
+    supabase.from("pet_documents")
+      .select("pet_id, object_path, created_at")
+      .in("pet_id", pets.map((pet) => pet.id))
+      .eq("bucket_id", "pawpass-fotos")
+      .eq("categoria", "foto")
+      .eq("tipo", "imagen")
+      .order("created_at", { ascending: true }),
+    supabase.from("pet_privacy")
+      .select("pet_id, publicado")
+      .in("pet_id", pets.map((pet) => pet.id)),
+  ]);
+  const { data: photos, error: photoError } = photoResult;
 
   if (photoError) return { authenticated: true, pets, error: "No pudimos cargar las fotos privadas de tus mascotas." };
 
@@ -55,11 +60,16 @@ export async function getAccountPets(requireSession = true, nextPath = "/mis-mas
     if (!firstPhotoByPet.has(photo.pet_id)) firstPhotoByPet.set(photo.pet_id, photo.object_path);
   }
 
+  const publishedByPet = new Map<string, boolean>();
+  if (!privacyResult.error) {
+    for (const row of privacyResult.data ?? []) publishedByPet.set(row.pet_id, row.publicado === true);
+  }
+
   const withPhotos = await Promise.all(pets.map(async (pet) => {
     const path = firstPhotoByPet.get(pet.id);
-    if (!path) return { ...pet, photoUrl: null };
+    if (!path) return { ...pet, photoUrl: null, publicProfilePublished: publishedByPet.get(pet.id) };
     const { data: signed } = await supabase.storage.from("pawpass-fotos").createSignedUrl(path, 300);
-    return { ...pet, photoUrl: signed?.signedUrl ?? null };
+    return { ...pet, photoUrl: signed?.signedUrl ?? null, publicProfilePublished: publishedByPet.get(pet.id) };
   }));
 
   return { authenticated: true, pets: prioritizeAccountPets(withPhotos), error: null };

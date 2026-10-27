@@ -83,7 +83,7 @@ export function SiteNav() {
   return (
     <nav
       aria-label="Menú principal"
-      className="relative lg:absolute lg:left-1/2 lg:top-1/2 lg:-translate-x-1/2 lg:-translate-y-1/2"
+      className="relative min-w-0"
     >
       <button
         type="button"
@@ -91,12 +91,12 @@ export function SiteNav() {
         aria-controls="menu-principal-movil"
         aria-expanded={menuOpen}
         onClick={() => setMenuOpenForPath(menuOpen ? null : (pathname ?? "/"))}
-        className="grid h-11 w-11 place-items-center rounded-xl border border-rule bg-surface text-ink transition-colors hover:border-rule-strong hover:bg-sunken focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand lg:hidden"
+        className="grid h-11 w-11 place-items-center rounded-xl border border-rule bg-surface text-ink transition-colors hover:border-rule-strong hover:bg-sunken focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand xl:hidden"
       >
         {menuOpen ? <X size={20} aria-hidden="true" /> : <Menu size={20} aria-hidden="true" />}
       </button>
 
-      <ul className="hidden items-center gap-1 rounded-full border border-rule bg-surface p-1 shadow-sm lg:flex">
+      <ul className="hidden items-center gap-1 rounded-full border border-rule bg-surface p-1 shadow-sm xl:flex">
         {links.map(({ href, label, icon: Icon, match }) => {
           const active = match(pathname ?? "");
 
@@ -106,7 +106,7 @@ export function SiteNav() {
                 href={href}
                 aria-current={active ? "page" : undefined}
                 className={[
-                  "flex min-h-11 items-center gap-2 rounded-full px-3 text-sm font-semibold transition-colors duration-150 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand xl:px-4",
+                  "flex min-h-11 items-center gap-2 rounded-full px-3 text-sm font-semibold transition-colors duration-150 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand",
                   active ? "bg-brand text-on-solid shadow-sm" : "text-ink-2 hover:bg-sunken hover:text-ink",
                 ].join(" ")}
               >
@@ -120,7 +120,7 @@ export function SiteNav() {
 
       <ul
         id="menu-principal-movil"
-        className={`${menuOpen ? "grid" : "hidden"} absolute -right-[3.25rem] top-[calc(100%+0.75rem)] z-50 max-h-[calc(100dvh-6rem)] w-[min(20rem,calc(100vw-2rem))] gap-1 overflow-y-auto rounded-2xl border border-rule bg-surface p-2 shadow-xl lg:hidden`}
+        className={`${menuOpen ? "grid" : "hidden"} absolute -right-[3.25rem] top-[calc(100%+0.75rem)] z-50 max-h-[calc(100dvh-6rem)] w-[min(20rem,calc(100vw-2rem))] gap-1 overflow-y-auto rounded-2xl border border-rule bg-surface p-2 shadow-xl xl:hidden`}
       >
         {links.map(({ href, label, icon: Icon, match }) => {
           const active = match(pathname ?? "");

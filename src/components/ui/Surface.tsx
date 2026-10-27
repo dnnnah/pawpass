@@ -31,8 +31,8 @@ const variants: Record<SurfaceVariant, string> = {
 const sizes: Record<SurfaceSize, string> = {
   none: "",
   sm: "p-3.5 sm:p-4",
-  md: "p-5 sm:p-6",
-  lg: "p-6 sm:p-8",
+  md: "p-4 sm:p-5",
+  lg: "p-4 sm:p-6 lg:p-8",
 };
 
 /**
@@ -57,7 +57,7 @@ export function Surface({
       {...rest}
       id={id}
       className={cx(
-        "rounded-lg",
+        "min-w-0 max-w-full rounded-lg",
         variants[variant],
         sizes[size],
         toneClasses?.rule,

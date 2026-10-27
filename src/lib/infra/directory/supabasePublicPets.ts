@@ -170,7 +170,8 @@ export function createSupabasePublicPetDirectory(client: PublicPetRpcClient): Pu
           return url ? { ...row, url } : null;
         })),
       ]);
-      const signedPhotos = photos.filter((item): item is { visible: true; url: string } => item !== null);
+      // The public RPC keeps a stable oldest-first order; the gallery leads with the newest share.
+      const signedPhotos = photos.filter((item): item is { visible: true; url: string } => item !== null).reverse();
       // QR's primary photo is also the identity image for the voluntary profile.
       const profile = toPublicProfile({
         ...payload,

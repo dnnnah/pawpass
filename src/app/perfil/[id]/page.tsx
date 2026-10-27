@@ -109,12 +109,7 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
   return (
     <AppShell>
       <ProfileViewTracker section="public" />
-      {/* `overflow-x: clip` recorta el nav a sangre sin crear contenedor de
-          scroll: `clip` no genera scrollport, asi que el `sticky` del nav y
-          de la tarjeta del QR siguen funcionando. Sin esto, el `w-screen` del
-          nav sumaba el ancho de la barra de scroll vertical y la pagina
-          ganaba scroll horizontal en escritorio. */}
-      <div className="mx-auto max-w-6xl overflow-x-clip px-4 pb-12 sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-6xl px-4 pb-12 sm:px-6 lg:px-8">
         <div className="space-y-12">
           <PetHeader
             pet={profile.header}
@@ -187,7 +182,7 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
               del QR marcara el ancho y descuadrara la de documentos. */}
           <div
             id="documentos"
-            className="grid scroll-mt-24 items-start gap-6 md:grid-cols-[minmax(0,1fr)_20rem]"
+            className="grid min-w-0 grid-cols-1 scroll-mt-24 items-start gap-6 lg:grid-cols-[minmax(0,1fr)_20rem]"
           >
             <DocumentsCard documents={profile.documents} documentsPath={`/perfil/${pet.id}/documentos`} />
             {/* La tarjeta del QR es mas corta que la lista de documentos, asi
@@ -202,7 +197,7 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
                 petName={pet.mascota.nombre}
                 profileUrl={publicProfileUrl}
                 petCode={pet.identificacion.codigoPublico}
-                className="md:sticky md:top-24"
+                className="lg:sticky lg:top-24"
               />
             </div>
           </div>
