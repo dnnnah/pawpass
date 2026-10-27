@@ -1,4 +1,10 @@
+import { buildWhatsAppHref } from "@/lib/phone";
+
 export type LocationErrorKey = "denied" | "unavailable" | "timeout";
+export type FoundPetContact = {
+  channel: "whatsapp" | "phone" | "email";
+  value: string;
+};
 
 export function formatCoordinate(value: number): string {
   return Number.isFinite(value) ? value.toFixed(6) : "";
@@ -46,4 +52,25 @@ export function buildFoundPetMessage({
   return lines.join("\n");
 }
 
-export { buildWhatsAppHref } from "@/lib/phone";
+export function updateFoundPetMessageLocation(message: string, locationUrl: string): string {
+  const lines = message.split("\n").filter((line) => !line.startsWith("Mi ubicación actual:"));
+  const trimmedLines = lines.join("\n").trimEnd();
+  if (!locationUrl.trim()) return trimmedLines;
+  return [trimmedLines, `Mi ubicación actual: ${locationUrl.trim()}`].filter(Boolean).join("\n");
+}
+
+export function buildFoundPetContactHref(contact: FoundPetContact | null, message: string): string {
+  const value = contact?.value.trim();
+  if (!contact || !value) return "";
+  if (contact.channel === "whatsapp") return buildWhatsAppHref(value, message);
+  if (contact.channel === "phone") {
+    const digits = value.replace(/\D/g, "");
+    return digits ? `tel:${digits}` : "";
+  }
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) return "";
+  const subject = encodeURIComponent("Encontré a tu mascota en PawPass");
+  const body = encodeURIComponent(message.trim());
+  return `mailto:${value}?subject=${subject}&body=${body}`;
+}
+
+export { buildWhatsAppHref };

@@ -2,6 +2,9 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   getPublicProfilePath,
   getPublicProfileUrl,
+  getVoluntaryProfilePath,
+  normalizePublicProfileCode,
+  resolvePublicProfileCode,
   resolvePublicProfileBaseUrl,
 } from "./publicProfileUrl";
 import mascotas from "@/data/mascotas.json";
@@ -24,6 +27,31 @@ describe("getPublicProfilePath", () => {
     expect(getPublicProfilePath("   ")).toBeNull();
     expect(getPublicProfilePath(null)).toBeNull();
     expect(getPublicProfilePath(undefined)).toBeNull();
+  });
+});
+
+describe("getVoluntaryProfilePath", () => {
+  it("enlaza solo el perfil que devuelve el contrato público para un estado permitido", () => {
+    expect(getVoluntaryProfilePath("PC-LUCCA-001", "en_casa", "PC-LUCCA-001")).toBe("/perfil/PC-LUCCA-001");
+    expect(getVoluntaryProfilePath("PC-LUCCA-001", "en_casa", null)).toBeNull();
+    expect(getVoluntaryProfilePath("PC-LUCCA-001", "perdido", "PC-LUCCA-001")).toBeNull();
+    expect(getVoluntaryProfilePath("PC-LUCCA-001", "en_casa", "PC-OTRA-001")).toBeNull();
+  });
+});
+
+describe("código público desde entrada manual o QR", () => {
+  it("normaliza el código y acepta únicamente el formato público", () => {
+    expect(normalizePublicProfileCode(" pc-lucca-001 ")).toBe("PC-LUCCA-001");
+    expect(normalizePublicProfileCode("PC-CHICHARRONA-001")).toBe("PC-CHICHARRONA-001");
+    expect(normalizePublicProfileCode("https://evil.example/p/PC-LUCCA-001")).toBeNull();
+    expect(normalizePublicProfileCode("PC-LUCCA-1")).toBeNull();
+  });
+
+  it("acepta solo enlaces a fichas de PawPass del dominio canónico o del sitio actual", () => {
+    expect(resolvePublicProfileCode("https://pet-carnet.vercel.app/p/PC-LUCCA-001")).toBe("PC-LUCCA-001");
+    expect(resolvePublicProfileCode("https://evil.example/p/PC-LUCCA-001")).toBeNull();
+    expect(resolvePublicProfileCode("https://pet-carnet.vercel.app/p/PC-LUCCA-001?next=https://evil.example")).toBeNull();
+    expect(resolvePublicProfileCode("/p/PC-LUCCA-001", "https://preview.example")).toBe("PC-LUCCA-001");
   });
 });
 
@@ -78,6 +106,12 @@ describe("getPublicProfileUrl", () => {
   it("no genera QR público con localhost en producción", () => {
     vi.stubEnv("NODE_ENV", "production");
     vi.stubEnv("NEXT_PUBLIC_APP_URL", "http://localhost:3000");
+    expect(getPublicProfileUrl(pet)).toBe("https://pet-carnet.vercel.app/p/PC-LUCCA-001");
+  });
+
+  it("usa el dominio canónico en producción si NEXT_PUBLIC_APP_URL es un preview", () => {
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("NEXT_PUBLIC_APP_URL", "https://pawpass-git-feature.vercel.app");
     expect(getPublicProfileUrl(pet)).toBe("https://pet-carnet.vercel.app/p/PC-LUCCA-001");
   });
 });
