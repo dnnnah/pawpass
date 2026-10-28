@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { validateAuthInput } from "@/lib/authValidation";
+import { validateAuthEmail, validateAuthInput, validateNewPassword } from "@/lib/authValidation";
 
 describe("validateAuthInput", () => {
   it("requiere un correo y una contraseña válidos", () => {
@@ -24,5 +24,15 @@ describe("validateAuthInput", () => {
     expect(
       validateAuthInput({ mode: "login", email: " persona@example.com ", password: "segura123" }),
     ).toEqual({});
+  });
+
+  it("valida una nueva contraseña y su confirmación antes de guardarla", () => {
+    expect(validateNewPassword("corta", "otra")).toEqual({ password: "La contraseña debe tener al menos 8 caracteres.", confirmPassword: "Las contraseñas no coinciden." });
+    expect(validateNewPassword("segura123", "segura123")).toEqual({});
+  });
+
+  it("valida el correo sin exigir contraseña para solicitar un enlace", () => {
+    expect(validateAuthEmail("persona@example.com")).toEqual({});
+    expect(validateAuthEmail("no-es-correo")).toEqual({ email: "Escribe un correo válido." });
   });
 });

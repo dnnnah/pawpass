@@ -4,6 +4,7 @@ import { ThemeProvider } from "./providers";
 import { ServiceWorkerRegistration } from "@/components/pwa/ServiceWorkerRegistration";
 import { PWA_THEME_COLOR } from "./manifest";
 import { resolvePublicProfileBaseUrl } from "@/lib/publicProfileUrl";
+import { LostDirectoryHistoryRefresh } from "@/components/pwa/LostDirectoryHistoryRefresh";
 
 const siteUrl = (() => {
   const baseUrl = resolvePublicProfileBaseUrl();
@@ -61,7 +62,10 @@ export default function RootLayout({
         />
       </head>
       <body>
-        <ThemeProvider>{children}</ThemeProvider>
+        <ThemeProvider>
+          <LostDirectoryHistoryRefresh />
+          {children}
+        </ThemeProvider>
         <ServiceWorkerRegistration />
       </body>
     </html>

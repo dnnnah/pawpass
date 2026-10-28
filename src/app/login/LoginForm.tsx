@@ -5,12 +5,27 @@ import { useRouter } from "next/navigation";
 import { Apple, Eye, EyeOff, Globe2, LogIn, UserPlus } from "lucide-react";
 import { Field, SubmitButton } from "@/components/ui/Field";
 import { Surface } from "@/components/ui/Surface";
-import { validateAuthInput, type AuthErrors, type AuthMode } from "@/lib/authValidation";
+import { validateAuthEmail, validateAuthInput, type AuthErrors, type AuthMode } from "@/lib/authValidation";
 import { createSupabaseBrowserClient } from "@/lib/infra/supabase/client";
 import { hasSupabaseEnv } from "@/lib/infra/supabase/env";
 import { replacePasswordOnPaste } from "@/lib/authPasswordInput";
 import { safeAuthNextPath } from "@/lib/authRedirect";
 import { getEnabledOAuthProviders, type EnabledOAuthProviders, type OAuthProvider } from "@/lib/infra/supabase/authProviders";
+import { buildAuthEmailCallbackUrl } from "@/lib/authEmailRedirect";
+import { requestMagicLink, requestPasswordRecovery } from "@/lib/authEmailActions";
+import { CANONICAL_PUBLIC_PROFILE_BASE_URL } from "@/lib/publicProfileUrl";
+
+type LoginScreen = AuthMode | "recovery";
+
+function getEmailCallbackUrl(query: Record<string, string>): string {
+  return buildAuthEmailCallbackUrl({
+    pathname: "/auth/callback",
+    query,
+    isProduction: process.env.NODE_ENV === "production",
+    browserOrigin: window.location.origin,
+    productionOrigin: CANONICAL_PUBLIC_PROFILE_BASE_URL,
+  });
+}
 
 async function ensureProfile(supabase: ReturnType<typeof createSupabaseBrowserClient>) {
   const {
@@ -32,7 +47,7 @@ function getNextPath(): string {
 
 export function LoginForm({ oauthProviders, initialError = null }: { oauthProviders: EnabledOAuthProviders; initialError?: string | null }) {
   const router = useRouter();
-  const [mode, setMode] = useState<AuthMode>("login");
+  const [mode, setMode] = useState<LoginScreen>("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -47,8 +62,9 @@ export function LoginForm({ oauthProviders, initialError = null }: { oauthProvid
   const [oauthProvider, setOauthProvider] = useState<OAuthProvider | null>(null);
 
   const isSignup = mode === "signup";
+  const isRecovery = mode === "recovery";
 
-  function switchMode(nextMode: AuthMode) {
+  function switchMode(nextMode: LoginScreen) {
     setMode(nextMode);
     setErrors({});
     setServerError(null);
@@ -61,7 +77,9 @@ export function LoginForm({ oauthProviders, initialError = null }: { oauthProvid
     setServerError(null);
     setNotice(null);
 
-    const nextErrors = validateAuthInput({ mode, email, password, confirmPassword });
+    const nextErrors = isRecovery
+      ? validateAuthEmail(email)
+      : validateAuthInput({ mode: isSignup ? "signup" : "login", email, password, confirmPassword });
     setErrors(nextErrors);
     if (Object.keys(nextErrors).length > 0) return;
 
@@ -73,12 +91,18 @@ export function LoginForm({ oauthProviders, initialError = null }: { oauthProvid
     setBusy(true);
     try {
       const supabase = createSupabaseBrowserClient();
+      if (isRecovery) {
+        const redirectTo = getEmailCallbackUrl({ flow: "recovery", next: getNextPath() });
+        await requestPasswordRecovery(supabase, email.trim(), redirectTo);
+        setNotice("No es posible confirmar desde aquí si se envió el enlace. Si este correo está asociado a una cuenta, recibirás instrucciones. Si no llega, espera un momento e inténtalo de nuevo.");
+        return;
+      }
       if (isSignup) {
         const { data, error } = await supabase.auth.signUp({
           email: email.trim(),
           password,
           options: {
-            emailRedirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(getNextPath())}`,
+            emailRedirectTo: getEmailCallbackUrl({ next: getNextPath() }),
           },
         });
         if (error) throw error;
@@ -103,7 +127,9 @@ export function LoginForm({ oauthProviders, initialError = null }: { oauthProvid
       }
     } catch (error) {
       const message = error instanceof Error ? error.message : "No pudimos completar el acceso.";
-      if (!isSignup && /email.*not confirmed|not confirmed/i.test(message)) {
+      if (isRecovery) {
+        setNotice("No es posible confirmar desde aquí si se envió el enlace. Si este correo está asociado a una cuenta, recibirás instrucciones. Si no llega, espera un momento e inténtalo de nuevo.");
+      } else if (!isSignup && /email.*not confirmed|not confirmed/i.test(message)) {
         setConfirmationEmailPending(true);
         setNotice("Tu correo todavía no está confirmado. Puedes reenviar el enlace de confirmación.");
       } else if (/invalid login credentials/i.test(message)) {
@@ -125,7 +151,7 @@ export function LoginForm({ oauthProviders, initialError = null }: { oauthProvid
         type: "signup",
         email: email.trim(),
         options: {
-          emailRedirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(getNextPath())}`,
+          emailRedirectTo: getEmailCallbackUrl({ next: getNextPath() }),
         },
       });
       if (error) throw error;
@@ -136,6 +162,30 @@ export function LoginForm({ oauthProviders, initialError = null }: { oauthProvid
       setServerError(error instanceof Error ? error.message : "No pudimos reenviar el correo de confirmación.");
     } finally {
       setResendingConfirmation(false);
+    }
+  }
+
+  async function handleMagicLink() {
+    setServerError(null);
+    setNotice(null);
+    const emailError = validateAuthEmail(email);
+    setErrors(emailError);
+    if (Object.keys(emailError).length > 0) return;
+    if (!hasSupabaseEnv()) {
+      setServerError("La cuenta todavía no está conectada. Configura Supabase para habilitar el acceso.");
+      return;
+    }
+
+    setBusy(true);
+    try {
+      const redirectTo = getEmailCallbackUrl({ next: getNextPath() });
+      await requestMagicLink(createSupabaseBrowserClient(), email.trim(), redirectTo);
+    } catch {
+      // Supabase Auth can return different errors for unknown users and provider limits.
+      // Keep the same response for every address to avoid revealing account existence.
+    } finally {
+      setNotice("No es posible confirmar desde aquí si se envió el enlace. Si este correo está asociado a una cuenta, recibirás instrucciones. Si no llega, espera un momento e inténtalo de nuevo.");
+      setBusy(false);
     }
   }
 
@@ -170,7 +220,7 @@ export function LoginForm({ oauthProviders, initialError = null }: { oauthProvid
 
   return (
     <Surface as="section" className="p-5 sm:p-7" rest={{ "aria-labelledby": "cuenta-titulo" }}>
-      <div className="flex flex-wrap gap-2 border-b border-rule pb-4" role="tablist" aria-label="Tipo de acceso">
+      {!isRecovery ? <div className="flex flex-wrap gap-2 border-b border-rule pb-4" role="tablist" aria-label="Tipo de acceso">
         <button
           type="button"
           role="tab"
@@ -189,21 +239,25 @@ export function LoginForm({ oauthProviders, initialError = null }: { oauthProvid
         >
           Crear cuenta
         </button>
-      </div>
+      </div> : null}
 
       <div className="mt-6">
         <h2 id="cuenta-titulo" className="font-display text-2xl text-ink">
-          {isSignup ? "Crea tu cuenta de tutor" : "Accede a tu cuenta"}
+          {isRecovery ? "Recupera tu acceso" : isSignup ? "Crea tu cuenta de tutor" : "Accede a tu cuenta"}
         </h2>
         <p className="mt-2 text-sm leading-6 text-ink-2">
-          {isSignup
+          {isRecovery
+            ? "Te enviaremos instrucciones para elegir una nueva contraseña."
+            : isSignup
             ? "Después podrás asociar mascotas, actualizar su ficha y controlar qué información se comparte."
             : "Administra tus mascotas y sus datos públicos desde un solo lugar."}
         </p>
       </div>
 
+      {isRecovery ? <button type="button" onClick={() => switchMode("login")} className="mt-4 min-h-11 rounded-sm text-left text-sm font-semibold text-brand underline underline-offset-4">Volver a iniciar sesión</button> : null}
+
       <form className="mt-6 grid gap-5" onSubmit={handleSubmit} noValidate>
-        <div>
+        {!isRecovery ? <div>
           <div className="grid gap-2 sm:grid-cols-2">
             {[
               { id: "google" as const, label: "Google", icon: Globe2 },
@@ -230,13 +284,13 @@ export function LoginForm({ oauthProviders, initialError = null }: { oauthProvid
               Puedes usar tu correo y contraseña mientras se habilitan los accesos sociales pendientes.
             </p>
           ) : null}
-        </div>
+        </div> : null}
 
-        <div className="flex items-center gap-3 text-xs text-ink-3" aria-hidden="true">
+        {!isRecovery ? <div className="flex items-center gap-3 text-xs text-ink-3" aria-hidden="true">
           <span className="h-px flex-1 bg-rule" />
           <span>o usa tu correo</span>
           <span className="h-px flex-1 bg-rule" />
-        </div>
+        </div> : null}
 
         <Field id="email" label="Correo electrónico" error={errors.email}>
           {(field) => (
@@ -252,7 +306,7 @@ export function LoginForm({ oauthProviders, initialError = null }: { oauthProvid
           )}
         </Field>
 
-        <Field
+        {!isRecovery ? <Field
           id="password"
           label="Contraseña"
           error={errors.password}
@@ -282,7 +336,7 @@ export function LoginForm({ oauthProviders, initialError = null }: { oauthProvid
               </button>
             </div>
           )}
-        </Field>
+        </Field> : null}
 
         {isSignup ? (
           <Field id="confirm-password" label="Repite la contraseña" error={errors.confirmPassword}>
@@ -343,9 +397,13 @@ export function LoginForm({ oauthProviders, initialError = null }: { oauthProvid
           </div>
         ) : null}
 
-        <SubmitButton busy={busy} busyLabel={isSignup ? "Creando cuenta…" : "Entrando…"} icon={isSignup ? <UserPlus size={17} /> : <LogIn size={17} />}>
-          {isSignup ? "Crear cuenta" : "Iniciar sesión"}
+        <SubmitButton busy={busy} busyLabel={isRecovery ? "Solicitando…" : isSignup ? "Creando cuenta…" : "Entrando…"} icon={isSignup ? <UserPlus size={17} /> : <LogIn size={17} />}>
+          {isRecovery ? "Enviar instrucciones" : isSignup ? "Crear cuenta" : "Iniciar sesión"}
         </SubmitButton>
+        {mode === "login" ? <div className="grid gap-2 text-center text-sm">
+          <button type="button" onClick={() => switchMode("recovery")} className="min-h-10 rounded-sm font-semibold text-brand underline underline-offset-4">Olvidé mi contraseña</button>
+          <button type="button" onClick={() => void handleMagicLink()} disabled={busy} className="min-h-10 rounded-sm font-semibold text-ink-2 underline decoration-rule-strong underline-offset-4 hover:text-ink disabled:opacity-60">Enviar enlace de acceso sin contraseña</button>
+        </div> : null}
       </form>
     </Surface>
   );

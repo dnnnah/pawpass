@@ -56,7 +56,7 @@ export function getVoluntaryProfilePath(
 ): string | null {
   const code = normalizePublicProfileCode(publicCode);
   const availableCode = normalizePublicProfileCode(availablePublicCode);
-  if (!code || code !== availableCode || (petStatus !== "en_casa" && petStatus !== "en_adopcion")) return null;
+  if (!code || code !== availableCode || !["en_casa", "en_adopcion", "perdido"].includes(petStatus)) return null;
   return `/perfil/${encodeURIComponent(code)}`;
 }
 

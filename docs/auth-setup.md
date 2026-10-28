@@ -13,22 +13,24 @@ Web pública temporal: `https://pet-carnet.vercel.app`.
 - El registro por correo está habilitado y requiere confirmación.
 - La única cuenta actual ya está confirmada. Puede iniciar sesión con su contraseña; solicitar su confirmación de nuevo no prueba la entrega de correo a una cuenta nueva.
 - Los registros recientes muestran registros repetidos y reenvíos con HTTP 200. Esa respuesta no acredita que un mensaje haya llegado al buzón.
-- El propietario confirmó que el correo de confirmación ya llega. Esta reparación no cambió SMTP; los registros iniciados desde localhost conservan el retorno local.
+- El propietario confirmó que el correo de confirmación ya llega. La entrega de correo depende del proveedor SMTP configurado en Supabase; las pruebas de esta fase no enviaron mensajes.
+- La Fase 7 añade recuperación de contraseña y Magic Link. El enlace de acceso no crea usuarios nuevos si el correo no corresponde a una cuenta.
+- En compilaciones de producción, confirmación, recuperación y Magic Link regresan al dominio canónico `https://pet-carnet.vercel.app`, aunque la solicitud se inicie desde una URL preview. En desarrollo local regresan al origen local abierto.
 
 La pantalla de acceso consulta los proveedores habilitados. Los botones de Google y Apple permanecen visibles, pero los proveedores pendientes aparecen deshabilitados y marcados como «No disponible». Después de activar Google o Apple, basta con recargar `/login`.
 
 ## URLs de retorno
 
-En [Supabase → Authentication → URL Configuration](https://supabase.com/dashboard/project/gjolkedvspnmueqatqyt/auth/url-configuration), establecer `https://pet-carnet.vercel.app` como Site URL y permitir las URLs de retorno:
+En [Supabase → Authentication → URL Configuration](https://supabase.com/dashboard/project/gjolkedvspnmueqatqyt/auth/url-configuration), establecer `https://pet-carnet.vercel.app` como Site URL y permitir las URLs de retorno. El comodín final acepta `next` y `flow=recovery` sin registrar cada combinación:
 
 ```text
-http://localhost:3000/auth/callback
-https://pet-carnet.vercel.app/auth/callback
 http://localhost:3000/auth/callback?next=**
+http://localhost:3000/auth/callback?flow=recovery&next=**
 https://pet-carnet.vercel.app/auth/callback?next=**
+https://pet-carnet.vercel.app/auth/callback?flow=recovery&next=**
 ```
 
-Usar el mismo origen y puerto con los que se abre la app. Añadir el dominio definitivo cuando exista. El subdominio de Vercel permite alojar la app, pero no proporciona control del DNS de un dominio remitente de correo.
+No añadir dominios de preview como retorno de correo. Para usar otro dominio productivo, cambiar `CANONICAL_PUBLIC_PROFILE_BASE_URL` en `src/lib/publicProfileUrl.ts` y actualizar el Site URL y esta allowlist de Supabase en el mismo cambio. El subdominio de Vercel permite alojar la app, pero no proporciona control del DNS de un dominio remitente de correo.
 
 La URL que Google y Apple necesitan como retorno es otra: primero devuelven el acceso a Supabase, que después redirige a la app:
 
@@ -67,6 +69,19 @@ Fuente: [Apple con Supabase](https://supabase.com/docs/guides/auth/social-sign-i
 El SMTP integrado de Supabase restringe los destinatarios a los miembros autorizados del equipo y tiene límites bajos. La entrega a usuarios reales requiere SMTP propio. Las variables de correo de adopciones del proyecto no configuran los correos de Supabase Auth.
 
 Fuente: [SMTP con Supabase](https://supabase.com/docs/guides/auth/auth-smtp).
+
+## Recuperación y Magic Link
+
+El código usa `resetPasswordForEmail` y `signInWithOtp` de Supabase Auth. La cuenta debe tener habilitado el acceso por correo; el tipo de correo de recuperación y Magic Link debe estar activo en **Authentication → Email Templates**. Los enlaces regresan por `/auth/callback`, que intercambia la sesión PKCE antes de abrir el formulario `/restablecer-contrasena`. La ruta de retorno final (`next`) se acepta solo si es interna.
+
+Para entregar enlaces a personas fuera del equipo:
+
+1. Configurar SMTP propio en **Authentication → SMTP** con host, puerto, usuario, contraseña, remitente verificado y nombre `PawPass`.
+2. Confirmar en **Authentication → URL Configuration** el Site URL canónico y las dos entradas `auth/callback**` de arriba. No registrar `*.vercel.app` ni una URL de preview como retorno de correo.
+3. En el proveedor de correo, revisar límite de envío y dominio autenticado. Supabase aplica límites a los correos; la interfaz muestra la misma respuesta para direcciones existentes y no existentes y no afirma que un correo haya sido entregado.
+4. Probar solo con una dirección controlada por el equipo. Esa verificación de entrega no se ejecutó durante esta fase.
+
+La contraseña, SMTP y la clave secreta de Supabase viven en sus respectivos paneles. La app no requiere una variable nueva de secreto para estas llamadas: utiliza la clave pública existente. En producción el destino canónico se fija en código y no se toma de `window.location`, por lo que abrir una preview no puede originar correos que vuelvan a localhost o a esa preview.
 
 ### Preparar una prueba con Brevo
 

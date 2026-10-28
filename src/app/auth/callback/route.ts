@@ -7,13 +7,17 @@ import { safeAuthNextPath } from "@/lib/authRedirect";
 export async function GET(request: Request) {
   const url = new URL(request.url);
   const nextPath = safeAuthNextPath(url.searchParams.get("next"));
+  const recoveryFlow = url.searchParams.get("flow") === "recovery";
+  const recoveryErrorUrl = new URL("/restablecer-contrasena", request.url);
+  recoveryErrorUrl.searchParams.set("error", "expired");
+  recoveryErrorUrl.searchParams.set("next", nextPath);
   const failureUrl = new URL("/login", request.url);
   failureUrl.searchParams.set("error", "callback");
   failureUrl.searchParams.set("next", nextPath);
-  if (url.searchParams.has("error")) return NextResponse.redirect(failureUrl);
+  if (url.searchParams.has("error")) return NextResponse.redirect(recoveryFlow ? recoveryErrorUrl : failureUrl);
 
   if (!hasSupabaseEnv()) {
-    return NextResponse.redirect(new URL("/login", request.url));
+    return NextResponse.redirect(recoveryFlow ? recoveryErrorUrl : failureUrl);
   }
 
   const cookieStore = await cookies();
@@ -28,7 +32,7 @@ export async function GET(request: Request) {
   if (code) {
     const { error } = await supabase.auth.exchangeCodeForSession(code);
     if (error) {
-      return NextResponse.redirect(failureUrl);
+      return NextResponse.redirect(recoveryFlow ? recoveryErrorUrl : failureUrl);
     }
   }
 
@@ -36,7 +40,13 @@ export async function GET(request: Request) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  if (!user) return NextResponse.redirect(failureUrl);
+  if (!user) return NextResponse.redirect(recoveryFlow ? recoveryErrorUrl : failureUrl);
+
+  if (recoveryFlow) {
+    const resetUrl = new URL("/restablecer-contrasena", request.url);
+    resetUrl.searchParams.set("next", nextPath);
+    return NextResponse.redirect(resetUrl);
+  }
 
   if (user) {
     const fullName = typeof user.user_metadata?.full_name === "string" ? user.user_metadata.full_name : null;

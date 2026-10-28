@@ -1,12 +1,13 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-const mocks = vi.hoisted(() => ({ authorize: vi.fn(), adminFactory: vi.fn(), deleteUser: vi.fn() }));
+const mocks = vi.hoisted(() => ({ authorize: vi.fn(), adminFactory: vi.fn(), deleteUser: vi.fn(), deletePet: vi.fn() }));
 vi.mock("@/app/api/_account", () => ({ authorizeDeletion: mocks.authorize }));
 vi.mock("@/lib/infra/supabase/admin", () => ({ createSupabaseAdminClient: mocks.adminFactory }));
 import { DELETE } from "./route";
 
 function accountAccess(count: number | null, error: object | null = null) {
-  const chain = { select: vi.fn(), eq: vi.fn(), is: vi.fn().mockResolvedValue({ count, error }) };
+  const data = count === null ? null : Array.from({ length: count }, (_, index) => ({ pet_id: `pet-${index + 1}` }));
+  const chain = { select: vi.fn(), eq: vi.fn(), is: vi.fn().mockResolvedValue({ data, error }) };
   chain.select.mockReturnValue(chain);
   chain.eq.mockReturnValue(chain);
   return { user: { id: "current-user" }, supabase: { from: vi.fn().mockReturnValue(chain), auth: { signOut: vi.fn().mockResolvedValue({ error: null }) } } };
@@ -15,8 +16,15 @@ function accountAccess(count: number | null, error: object | null = null) {
 beforeEach(() => {
   vi.resetAllMocks();
   vi.stubEnv("SUPABASE_SECRET_KEY", "test-secret");
-  mocks.adminFactory.mockReturnValue({ auth: { admin: { deleteUser: mocks.deleteUser } } });
+  mocks.adminFactory.mockReturnValue({
+    from: (table: string) => table === "pet_documents"
+      ? { select: () => ({ eq: async () => ({ data: [], error: null }) }) }
+      : { delete: () => ({ eq: () => ({ select: () => ({ maybeSingle: mocks.deletePet }) }) }) },
+    storage: { from: () => ({ remove: vi.fn().mockResolvedValue({ error: null }) }) },
+    auth: { admin: { deleteUser: mocks.deleteUser } },
+  });
   mocks.deleteUser.mockResolvedValue({ error: null });
+  mocks.deletePet.mockResolvedValue({ data: { id: "pet-1" }, error: null });
 });
 afterEach(() => vi.unstubAllEnvs());
 
@@ -26,10 +34,11 @@ describe("eliminar la cuenta autenticada", () => {
     expect((await DELETE(new Request("https://app.test/api/cuenta"))).status).toBe(401);
     expect(mocks.adminFactory).not.toHaveBeenCalled();
   });
-  it("bloquea la eliminación mientras haya mascotas asociadas", async () => {
+  it("borra las mascotas asociadas después de que la solicitud ya fue autorizada", async () => {
     mocks.authorize.mockResolvedValue(accountAccess(2));
-    expect((await DELETE(new Request("https://app.test/api/cuenta"))).status).toBe(409);
-    expect(mocks.adminFactory).not.toHaveBeenCalled();
+    expect((await DELETE(new Request("https://app.test/api/cuenta"))).status).toBe(200);
+    expect(mocks.deletePet).toHaveBeenCalledTimes(2);
+    expect(mocks.deleteUser).toHaveBeenCalledWith("current-user");
   });
   it("no elimina si no pudo comprobar las asociaciones", async () => {
     mocks.authorize.mockResolvedValue(accountAccess(null, {}));

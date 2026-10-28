@@ -67,6 +67,7 @@ const CACHEABLE_URLS = [
 /* Rutas que son páginas del producto. La lista es explícita y no un comodín:
    cachear de más significaría servir contenido que no se ha verificado. */
 const DOCUMENT_PREFIXES = ["/perfil/", "/p/", "/refugios/"];
+/* `/perdidas` is intentionally excluded: its RSC payload is live Supabase data. */
 const DOCUMENT_PATHS = ["/adopciones", "/login"];
 
 function isDocumentPath(pathname) {
