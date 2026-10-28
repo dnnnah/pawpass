@@ -30,9 +30,32 @@ export type PetVaccineInput = {
   documentId: string;
 };
 
+export type PetDewormingInput = {
+  product: string;
+  date: string;
+  nextDate: string;
+  dose: string;
+  veterinarian: string;
+  origin: string;
+  documentId: string;
+};
+
+export type PetConsultationInput = {
+  date: string;
+  reason: string;
+  diagnosis: string;
+  treatment: string;
+  medications: string;
+  veterinarian: string;
+  origin: string;
+  documentIds: string[];
+};
+
 export type PetIdentityErrors = Partial<Record<keyof PetIdentityInput, string>>;
 export type PetHealthErrors = Partial<Record<keyof PetHealthInput, string>>;
 export type PetVaccineErrors = Partial<Record<keyof PetVaccineInput, string>>;
+export type PetDewormingErrors = Partial<Record<keyof PetDewormingInput, string>>;
+export type PetConsultationErrors = Partial<Record<keyof PetConsultationInput, string>>;
 
 const PHOTO_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
 const DOCUMENT_TYPES = new Set([...PHOTO_TYPES, "application/pdf"]);
@@ -132,6 +155,42 @@ export function validatePetVaccine(input: PetVaccineInput, today: string): PetVa
   }
 
   if (trimmed(input.batch).length > 120) errors.batch = "El lote no puede superar 120 caracteres.";
+  return errors;
+}
+
+export function validatePetDeworming(input: PetDewormingInput, today: string): PetDewormingErrors {
+  const errors: PetDewormingErrors = {};
+  const product = trimmed(input.product);
+  if (!product || product.length > 200) errors.product = "Escribe el producto (máximo 200 caracteres).";
+  if (!validIsoDate(input.date)) errors.date = "Escribe una fecha de aplicación válida.";
+  else if (input.date > today) errors.date = "La fecha de aplicación no puede estar en el futuro.";
+  if (input.nextDate) {
+    if (!validIsoDate(input.nextDate)) errors.nextDate = "Escribe una fecha válida para la próxima aplicación.";
+    else if (validIsoDate(input.date) && input.nextDate < input.date) errors.nextDate = "La próxima aplicación no puede ser anterior a la fecha registrada.";
+  }
+  if (trimmed(input.dose).length > 200) errors.dose = "La dosis no puede superar 200 caracteres.";
+  if (trimmed(input.veterinarian).length > 200) errors.veterinarian = "El nombre no puede superar 200 caracteres.";
+  if (trimmed(input.origin).length > 120) errors.origin = "El origen no puede superar 120 caracteres.";
+  return errors;
+}
+
+export function validatePetConsultation(input: PetConsultationInput, today: string): PetConsultationErrors {
+  const errors: PetConsultationErrors = {};
+  if (!validIsoDate(input.date)) errors.date = "Escribe una fecha de consulta válida.";
+  else if (input.date > today) errors.date = "La fecha de consulta no puede estar en el futuro.";
+  const reason = trimmed(input.reason);
+  if (!reason || reason.length > 2000) errors.reason = "Escribe el motivo (máximo 2,000 caracteres).";
+  if (trimmed(input.diagnosis).length > 8000) errors.diagnosis = "El diagnóstico no puede superar 8,000 caracteres.";
+  if (trimmed(input.treatment).length > 8000) errors.treatment = "El tratamiento no puede superar 8,000 caracteres.";
+  if (trimmed(input.veterinarian).length > 200) errors.veterinarian = "El nombre no puede superar 200 caracteres.";
+  if (trimmed(input.origin).length > 120) errors.origin = "El origen no puede superar 120 caracteres.";
+  const medications = normalizePetList(input.medications);
+  if (medications.length > 100 || new TextEncoder().encode(JSON.stringify(medications)).length > 12000) {
+    errors.medications = "Reduce la cantidad o longitud de los medicamentos.";
+  }
+  if (input.documentIds.length > 30 || new Set(input.documentIds).size !== input.documentIds.length) {
+    errors.documentIds = "Revisa los documentos seleccionados.";
+  }
   return errors;
 }
 

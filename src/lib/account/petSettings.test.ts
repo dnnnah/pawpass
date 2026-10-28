@@ -176,4 +176,20 @@ describe("setPublicRecordVisibility", () => {
     expect(eqFirst).toHaveBeenCalledWith("pet_id", "pet-1");
     expect(eqSecond).toHaveBeenCalledWith("id", "record-1");
   });
+  it("permite el consentimiento explícito por desparasitación y consulta", async () => {
+    const setVisibility = (petSettingsModule as unknown as { setPublicRecordVisibility: (client: unknown, table: string, petId: string, recordId: string, visible: boolean) => Promise<string | null> }).setPublicRecordVisibility;
+    for (const table of ["pet_dewormings", "pet_consultations"] as const) {
+      const from = vi.fn().mockReturnValue({
+        update: vi.fn().mockReturnValue({
+          eq: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              select: vi.fn().mockReturnValue({ maybeSingle: vi.fn().mockResolvedValue({ data: { id: "record-1" }, error: null }) }),
+            }),
+          }),
+        }),
+      });
+      await expect(setVisibility({ from }, table, "pet-1", "record-1", true)).resolves.toBeNull();
+      expect(from).toHaveBeenCalledWith(table);
+    }
+  });
 });

@@ -9,10 +9,16 @@ import { Surface } from "@/components/ui/Surface";
 import {
   normalizePetList,
   validatePetFile,
+  validatePetConsultation,
+  validatePetDeworming,
   validatePetHealth,
   validatePetIdentity,
   validatePetVaccine,
   type PetHealthInput,
+  type PetConsultationErrors,
+  type PetConsultationInput,
+  type PetDewormingErrors,
+  type PetDewormingInput,
   type PetIdentityInput,
   type PetVaccineInput,
 } from "@/lib/account/petCarnet";
@@ -29,11 +35,13 @@ export type CarnetHealth = {
   allergies: string[]; conditions: string[]; medications: string[]; specialDiet: string; behavior: string; emergencyCareNote: string;
 };
 export type CarnetVaccine = { id: string; name: string; applicationDate: string; nextDose: string; batch: string; documentId: string; visiblePublic: boolean };
+export type CarnetDeworming = { id: string; product: string; date: string; nextDate: string; dose: string; veterinarian: string; origin: string; documentId: string; visiblePublic: boolean };
+export type CarnetConsultation = { id: string; date: string; reason: string; diagnosis: string; treatment: string; medications: string[]; veterinarian: string; origin: string; documentIds: string[]; visiblePublic: boolean };
 export type CarnetDocument = {
   id: string; name: string; category: string; type: "pdf" | "imagen" | "otro"; bucketId: "pawpass-fotos" | "pawpass-documentos";
   objectPath: string; mimeType: string; size: number; date: string; description: string; signedUrl: string | null; visiblePublic: boolean;
 };
-type PetCarnetEditorProps = { pet: CarnetPet; health: CarnetHealth; vaccines: CarnetVaccine[]; documents: CarnetDocument[]; canEdit: boolean; privacy: { showHealth: boolean; showFiles: boolean }; filePrivacySupported?: boolean };
+type PetCarnetEditorProps = { pet: CarnetPet; health: CarnetHealth; vaccines: CarnetVaccine[]; dewormings: CarnetDeworming[]; consultations: CarnetConsultation[]; documents: CarnetDocument[]; canEdit: boolean; privacy: { showHealth: boolean; showFiles: boolean }; filePrivacySupported?: boolean };
 
 const today = () => new Date().toISOString().slice(0, 10);
 function initialIdentity(pet: CarnetPet): PetIdentityInput {
@@ -50,6 +58,8 @@ function initialHealth(health: CarnetHealth): PetHealthInput {
   };
 }
 const emptyVaccine: PetVaccineInput = { name: "", applicationDate: "", nextDose: "", batch: "", documentId: "" };
+const emptyDeworming: PetDewormingInput = { product: "", date: "", nextDate: "", dose: "", veterinarian: "", origin: "", documentId: "" };
+const emptyConsultation: PetConsultationInput = { date: "", reason: "", diagnosis: "", treatment: "", medications: "", veterinarian: "", origin: "", documentIds: [] };
 function nullable(value: string): string | null { return value.trim() || null; }
 function categoryLabel(category: string): string {
   return ({ foto: "Foto", identificacion: "Identificación", salud: "Salud", vacunas: "Vacunas", otro: "Otro" } as Record<string, string>)[category] ?? "Documento";
@@ -62,12 +72,16 @@ function formatSize(bytes: number): string {
   return bytes < 1024 * 1024 ? `${Math.max(1, Math.round(bytes / 1024))} KB` : `${(bytes / (1024 * 1024)).toFixed(1)} MiB`;
 }
 
-export function PetCarnetEditor({ pet, health, vaccines, documents, canEdit, privacy: initialPrivacy, filePrivacySupported = true }: PetCarnetEditorProps) {
+export function PetCarnetEditor({ pet, health, vaccines, dewormings, consultations, documents, canEdit, privacy: initialPrivacy, filePrivacySupported = true }: PetCarnetEditorProps) {
   const router = useRouter();
   const [identity, setIdentity] = useState(() => initialIdentity(pet));
   const [healthInput, setHealthInput] = useState(() => initialHealth(health));
   const [vaccineInput, setVaccineInput] = useState<PetVaccineInput>(emptyVaccine);
   const [editingVaccineId, setEditingVaccineId] = useState<string | null>(null);
+  const [dewormingInput, setDewormingInput] = useState<PetDewormingInput>(emptyDeworming);
+  const [editingDewormingId, setEditingDewormingId] = useState<string | null>(null);
+  const [consultationInput, setConsultationInput] = useState<PetConsultationInput>(emptyConsultation);
+  const [editingConsultationId, setEditingConsultationId] = useState<string | null>(null);
   const [file, setFile] = useState<File | null>(null);
   const [fileKind, setFileKind] = useState<"foto" | "documento">("documento");
   const [fileCategory, setFileCategory] = useState("identificacion");
@@ -78,6 +92,8 @@ export function PetCarnetEditor({ pet, health, vaccines, documents, canEdit, pri
   const [identityErrors, setIdentityErrors] = useState<Partial<Record<keyof PetIdentityInput, string>>>({});
   const [healthErrors, setHealthErrors] = useState<Partial<Record<keyof PetHealthInput, string>>>({});
   const [vaccineErrors, setVaccineErrors] = useState<Partial<Record<keyof PetVaccineInput, string>>>({});
+  const [dewormingErrors, setDewormingErrors] = useState<PetDewormingErrors>({});
+  const [consultationErrors, setConsultationErrors] = useState<PetConsultationErrors>({});
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
@@ -169,7 +185,98 @@ export function PetCarnetEditor({ pet, health, vaccines, documents, canEdit, pri
     finally { setBusy(null); }
   }
 
-  async function toggleRecordVisibility(table: "pet_documents" | "pet_vaccines", recordId: string, visible: boolean) {
+  function editDeworming(item: CarnetDeworming) {
+    setEditingDewormingId(item.id);
+    setDewormingInput({ product: item.product, date: item.date, nextDate: item.nextDate, dose: item.dose, veterinarian: item.veterinarian, origin: item.origin, documentId: item.documentId });
+    setDewormingErrors({}); clearMessages();
+  }
+  function resetDeworming() { setEditingDewormingId(null); setDewormingInput(emptyDeworming); setDewormingErrors({}); }
+
+  async function saveDeworming(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault(); clearMessages();
+    const errors = validatePetDeworming(dewormingInput, today()); setDewormingErrors(errors);
+    if (Object.keys(errors).length || !canEdit || !ready()) return;
+    setBusy("deworming");
+    try {
+      const supabase = createSupabaseBrowserClient();
+      const payload = {
+        producto: dewormingInput.product.trim(), fecha: dewormingInput.date,
+        proxima_fecha: nullable(dewormingInput.nextDate), dosis: nullable(dewormingInput.dose),
+        veterinario: nullable(dewormingInput.veterinarian), origen: nullable(dewormingInput.origin), documento_id: nullable(dewormingInput.documentId),
+      };
+      const response = editingDewormingId
+        ? await supabase.from("pet_dewormings").update(payload).eq("id", editingDewormingId).eq("pet_id", pet.id).select("id").maybeSingle()
+        : await supabase.from("pet_dewormings").insert({ ...payload, pet_id: pet.id, visible_publico: false }).select("id").maybeSingle();
+      if (response.error || !response.data) throw new Error("No pudimos guardar la desparasitación.");
+      setNotice(editingDewormingId ? "Desparasitación actualizada." : "Desparasitación registrada."); resetDeworming(); router.refresh();
+    } catch (failure) { setError(failure instanceof Error ? failure.message : "No pudimos guardar la desparasitación."); }
+    finally { setBusy(null); }
+  }
+
+  async function deleteDeworming(item: CarnetDeworming) {
+    if (!canEdit || !ready() || !window.confirm(`¿Eliminar la desparasitación “${item.product}” del ${formatDate(item.date)}? Esta acción no se puede deshacer.`)) return;
+    clearMessages(); setBusy(`deworming:${item.id}`);
+    try {
+      const { data, error: deleteError } = await createSupabaseBrowserClient().from("pet_dewormings").delete().eq("id", item.id).eq("pet_id", pet.id).select("id").maybeSingle();
+      if (deleteError || !data) throw new Error("No pudimos eliminar la desparasitación.");
+      if (editingDewormingId === item.id) resetDeworming();
+      setNotice("Desparasitación eliminada."); router.refresh();
+    } catch (failure) { setError(failure instanceof Error ? failure.message : "No pudimos eliminar la desparasitación."); }
+    finally { setBusy(null); }
+  }
+
+  function editConsultation(item: CarnetConsultation) {
+    setEditingConsultationId(item.id);
+    setConsultationInput({ date: item.date, reason: item.reason, diagnosis: item.diagnosis, treatment: item.treatment, medications: item.medications.join("\n"), veterinarian: item.veterinarian, origin: item.origin, documentIds: item.documentIds });
+    setConsultationErrors({}); clearMessages();
+  }
+  function resetConsultation() { setEditingConsultationId(null); setConsultationInput(emptyConsultation); setConsultationErrors({}); }
+
+  async function saveConsultation(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault(); clearMessages();
+    const errors = validatePetConsultation(consultationInput, today()); setConsultationErrors(errors);
+    if (Object.keys(errors).length || !canEdit || !ready()) return;
+    setBusy("consultation");
+    const supabase = createSupabaseBrowserClient();
+    try {
+      const payload = {
+        fecha: consultationInput.date, motivo: consultationInput.reason.trim(),
+        diagnostico: nullable(consultationInput.diagnosis), tratamiento: nullable(consultationInput.treatment),
+        medicamentos: normalizePetList(consultationInput.medications), veterinario: nullable(consultationInput.veterinarian), origen: nullable(consultationInput.origin),
+      };
+      const response = editingConsultationId
+        ? await supabase.from("pet_consultations").update(payload).eq("id", editingConsultationId).eq("pet_id", pet.id).select("id").maybeSingle()
+        : await supabase.from("pet_consultations").insert({ ...payload, pet_id: pet.id, visible_publico: false }).select("id").maybeSingle();
+      if (response.error || !response.data) throw new Error("No pudimos guardar la consulta.");
+      const consultationId = String(response.data.id);
+      setEditingConsultationId(consultationId);
+      if (editingConsultationId) {
+        const { error: clearError } = await supabase.from("consultation_documents").delete().eq("pet_id", pet.id).eq("consultation_id", consultationId);
+        if (clearError) throw new Error("La consulta se guardó, pero no pudimos actualizar sus documentos. Vuelve a intentarlo.");
+      }
+      const links = consultationInput.documentIds.map((documentId) => ({ pet_id: pet.id, consultation_id: consultationId, document_id: documentId }));
+      if (links.length) {
+        const { error: linksError } = await supabase.from("consultation_documents").insert(links);
+        if (linksError) throw new Error("La consulta se guardó, pero no pudimos vincular los documentos seleccionados.");
+      }
+      setNotice(editingConsultationId ? "Consulta actualizada." : "Consulta registrada."); resetConsultation(); router.refresh();
+    } catch (failure) { setError(failure instanceof Error ? failure.message : "No pudimos guardar la consulta."); }
+    finally { setBusy(null); }
+  }
+
+  async function deleteConsultation(item: CarnetConsultation) {
+    if (!canEdit || !ready() || !window.confirm(`¿Eliminar la consulta “${item.reason}” del ${formatDate(item.date)}? Los documentos seguirán en Fotos y documentos. Esta acción no se puede deshacer.`)) return;
+    clearMessages(); setBusy(`consultation:${item.id}`);
+    try {
+      const { data, error: deleteError } = await createSupabaseBrowserClient().from("pet_consultations").delete().eq("id", item.id).eq("pet_id", pet.id).select("id").maybeSingle();
+      if (deleteError || !data) throw new Error("No pudimos eliminar la consulta.");
+      if (editingConsultationId === item.id) resetConsultation();
+      setNotice("Consulta eliminada."); router.refresh();
+    } catch (failure) { setError(failure instanceof Error ? failure.message : "No pudimos eliminar la consulta."); }
+    finally { setBusy(null); }
+  }
+
+  async function toggleRecordVisibility(table: "pet_documents" | "pet_vaccines" | "pet_dewormings" | "pet_consultations", recordId: string, visible: boolean) {
     if (!canEdit || !ready()) return;
     clearMessages(); setBusy(`visibility:${recordId}`);
     const result = await setPublicRecordVisibility(
@@ -309,6 +416,77 @@ export function PetCarnetEditor({ pet, health, vaccines, documents, canEdit, pri
         <Field id="vacuna-lote" label="Lote" error={vaccineErrors.batch}>{(f) => <input {...f} maxLength={120} value={vaccineInput.batch} disabled={!editable} onChange={(e) => setVaccineInput({ ...vaccineInput, batch: e.target.value })} />}</Field>
         <div className="sm:col-span-2"><Field id="vacuna-documento" label="Comprobante" help="Opcional. Primero carga el comprobante en Fotos y documentos.">{(f) => <select {...f} value={vaccineInput.documentId} disabled={!editable} onChange={(e) => setVaccineInput({ ...vaccineInput, documentId: e.target.value })}><option value="">Sin comprobante</option>{documents.filter((doc) => doc.category === "vacunas").map((doc) => <option key={doc.id} value={doc.id}>{doc.name}</option>)}</select>}</Field></div>
         <div className="flex flex-wrap gap-3 sm:col-span-2"><SubmitButton busy={busy === "vaccine"} busyLabel="Guardando…" icon={<Save size={16} />}>{editingVaccineId ? "Guardar cambios" : "Guardar vacuna"}</SubmitButton>{editingVaccineId ? <button type="button" className="text-sm font-semibold text-ink-2 underline" onClick={resetVaccine}>Cancelar edición</button> : null}</div>
+      </form> : null}
+    </Surface>
+
+    <Surface id="desparasitaciones" as="section" size="lg" className="scroll-mt-24" rest={{ "aria-labelledby": "desparasitaciones-titulo" }}>
+      <div className="flex flex-wrap items-end justify-between gap-3"><div><h2 id="desparasitaciones-titulo" className="font-display text-2xl text-ink">Desparasitaciones</h2><p className="mt-1 text-sm leading-6 text-ink-2">Los registros son privados por defecto. Para mostrar uno en el perfil voluntario, autorízalo aquí y activa también la sección de salud.</p></div><span className="rounded-full bg-brand-soft px-3 py-1 text-xs font-semibold text-brand-ink">{dewormings.length} {dewormings.length === 1 ? "registro" : "registros"}</span></div>
+      {dewormings.length ? (
+        <ul className="mt-5 grid gap-3">
+          {dewormings.map((item) => {
+            const document = documents.find((doc) => doc.id === item.documentId);
+            return <li key={item.id} className="rounded-md border border-rule bg-surface px-4 py-3">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <h3 className="font-semibold text-ink">{item.product}</h3>
+                  <p className="mt-1 text-sm text-ink-2">Aplicada: {formatDate(item.date)}{item.nextDate ? ` · Próxima: ${formatDate(item.nextDate)}` : " · Próxima fecha sin registrar"}</p>
+                  {item.dose ? <p className="mt-1 text-sm text-ink-2">Dosis: {item.dose}</p> : null}
+                  {item.veterinarian ? <p className="mt-1 text-xs text-ink-3">Veterinario: {item.veterinarian}</p> : null}
+                  {item.origin ? <p className="mt-1 text-xs text-ink-3">Origen: {item.origin}</p> : null}
+                  {item.documentId ? <p className="mt-1 text-xs text-ink-3">{document?.signedUrl ? <a className="font-semibold text-brand underline" href={document.signedUrl} target="_blank" rel="noreferrer">Abrir comprobante privado: {document.name}</a> : `Comprobante: ${document?.name ?? "Documento privado"}`}</p> : null}
+                  <label className="mt-3 flex items-start gap-2 text-xs text-ink-2"><input type="checkbox" checked={item.visiblePublic} disabled={!editable} onChange={(event) => void toggleRecordVisibility("pet_dewormings", item.id, event.target.checked)} className="mt-0.5 size-4 shrink-0 accent-brand" />Compartir esta desparasitación en el perfil público voluntario</label>
+                </div>
+                {canEdit ? <div className="flex gap-3"><button type="button" className="min-h-11 text-sm font-semibold text-brand underline disabled:opacity-50" disabled={Boolean(busy)} onClick={() => editDeworming(item)}>Editar</button><button type="button" className="min-h-11 text-sm font-semibold text-danger underline disabled:opacity-50" disabled={Boolean(busy)} onClick={() => void deleteDeworming(item)}>{busy === `deworming:${item.id}` ? "Eliminando…" : "Eliminar"}</button></div> : null}
+              </div>
+            </li>;
+          })}
+        </ul>
+      ) : <p className="mt-4 rounded-md bg-sunken px-4 py-3 text-sm text-ink-2">Aún no hay desparasitaciones registradas.</p>}
+      {canEdit ? <form className="mt-5 grid gap-4 border-t border-rule pt-5 sm:grid-cols-2" onSubmit={saveDeworming}><h3 className="sm:col-span-2 font-semibold text-ink">{editingDewormingId ? "Editar desparasitación" : "Registrar desparasitación"}</h3>
+        <Field id="desparasitacion-producto" label="Producto" error={dewormingErrors.product}>{(f) => <input {...f} maxLength={200} value={dewormingInput.product} disabled={!editable} onChange={(e) => setDewormingInput({ ...dewormingInput, product: e.target.value })} />}</Field>
+        <Field id="desparasitacion-fecha" label="Fecha de aplicación" error={dewormingErrors.date}>{(f) => <input {...f} type="date" max={today()} value={dewormingInput.date} disabled={!editable} onChange={(e) => setDewormingInput({ ...dewormingInput, date: e.target.value })} />}</Field>
+        <Field id="desparasitacion-proxima" label="Próxima fecha (opcional)" error={dewormingErrors.nextDate}>{(f) => <input {...f} type="date" min={dewormingInput.date || undefined} value={dewormingInput.nextDate} disabled={!editable} onChange={(e) => setDewormingInput({ ...dewormingInput, nextDate: e.target.value })} />}</Field>
+        <Field id="desparasitacion-dosis" label="Dosis (opcional)" error={dewormingErrors.dose}>{(f) => <input {...f} maxLength={200} value={dewormingInput.dose} disabled={!editable} onChange={(e) => setDewormingInput({ ...dewormingInput, dose: e.target.value })} />}</Field>
+        <Field id="desparasitacion-veterinario" label="Veterinario (opcional)" error={dewormingErrors.veterinarian}>{(f) => <input {...f} maxLength={200} value={dewormingInput.veterinarian} disabled={!editable} onChange={(e) => setDewormingInput({ ...dewormingInput, veterinarian: e.target.value })} />}</Field>
+        <Field id="desparasitacion-origen" label="Origen del registro (opcional)" error={dewormingErrors.origin}>{(f) => <input {...f} maxLength={120} value={dewormingInput.origin} disabled={!editable} onChange={(e) => setDewormingInput({ ...dewormingInput, origin: e.target.value })} placeholder="Ej. veterinario, manual" />}</Field>
+        <Field id="desparasitacion-documento" label="Comprobante privado (opcional)">{(f) => <select {...f} value={dewormingInput.documentId} disabled={!editable} onChange={(e) => setDewormingInput({ ...dewormingInput, documentId: e.target.value })}><option value="">Sin comprobante</option>{documents.filter((doc) => doc.category === "salud" || doc.category === "vacunas").map((doc) => <option key={doc.id} value={doc.id}>{doc.name}</option>)}</select>}</Field>
+        <div className="flex flex-wrap gap-3 sm:col-span-2"><SubmitButton busy={busy === "deworming"} busyLabel="Guardando…" icon={<Save size={16} />}>{editingDewormingId ? "Guardar cambios" : "Guardar desparasitación"}</SubmitButton>{editingDewormingId ? <button type="button" className="min-h-11 text-sm font-semibold text-ink-2 underline" onClick={resetDeworming}>Cancelar edición</button> : null}</div>
+      </form> : null}
+    </Surface>
+
+    <Surface id="consultas" as="section" size="lg" className="scroll-mt-24" rest={{ "aria-labelledby": "consultas-titulo" }}>
+      <div className="flex flex-wrap items-end justify-between gap-3"><div><h2 id="consultas-titulo" className="font-display text-2xl text-ink">Historial de consultas</h2><p className="mt-1 text-sm leading-6 text-ink-2">Cada consulta es privada por defecto. Compartirla requiere permiso individual y activar también la sección de salud; sus documentos asociados siguen privados.</p></div><span className="rounded-full bg-brand-soft px-3 py-1 text-xs font-semibold text-brand-ink">{consultations.length} {consultations.length === 1 ? "consulta" : "consultas"}</span></div>
+      {consultations.length ? (
+        <ul className="mt-5 grid gap-3">
+          {consultations.map((item) => <li key={item.id} className="rounded-md border border-rule bg-surface px-4 py-3">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div className="min-w-0">
+                <p className="text-xs font-semibold text-brand">{formatDate(item.date)}</p>
+                <h3 className="mt-1 font-semibold text-ink">{item.reason}</h3>
+                {item.diagnosis ? <p className="mt-2 text-sm leading-5 text-ink-2"><span className="font-semibold">Diagnóstico:</span> {item.diagnosis}</p> : null}
+                {item.treatment ? <p className="mt-2 text-sm leading-5 text-ink-2"><span className="font-semibold">Tratamiento:</span> {item.treatment}</p> : null}
+                {item.medications.length ? <p className="mt-2 text-sm leading-5 text-ink-2"><span className="font-semibold">Medicamentos:</span> {item.medications.join(", ")}</p> : null}
+                {item.veterinarian ? <p className="mt-2 text-xs text-ink-3">Veterinario: {item.veterinarian}</p> : null}
+                {item.origin ? <p className="mt-1 text-xs text-ink-3">Origen: {item.origin}</p> : null}
+                {item.documentIds.length ? <ul className="mt-2 grid gap-1 text-xs text-ink-3"><li className="font-semibold">Documentos privados</li>{item.documentIds.map((id) => { const document = documents.find((doc) => doc.id === id); return <li key={id}>{document?.signedUrl ? <a className="font-semibold text-brand underline" href={document.signedUrl} target="_blank" rel="noreferrer">Abrir {document.name}</a> : document?.name ?? "Documento privado"}</li>; })}</ul> : null}
+                <label className="mt-3 flex items-start gap-2 text-xs text-ink-2"><input type="checkbox" checked={item.visiblePublic} disabled={!editable} onChange={(event) => void toggleRecordVisibility("pet_consultations", item.id, event.target.checked)} className="mt-0.5 size-4 shrink-0 accent-brand" />Compartir esta consulta en el perfil público voluntario</label>
+                <p className="mt-1 text-xs leading-5 text-ink-3">Los documentos asociados siguen privados y no se comparten con esta opción.</p>
+              </div>
+              {canEdit ? <div className="flex gap-3"><button type="button" className="min-h-11 text-sm font-semibold text-brand underline disabled:opacity-50" disabled={Boolean(busy)} onClick={() => editConsultation(item)}>Editar</button><button type="button" className="min-h-11 text-sm font-semibold text-danger underline disabled:opacity-50" disabled={Boolean(busy)} onClick={() => void deleteConsultation(item)}>{busy === `consultation:${item.id}` ? "Eliminando…" : "Eliminar"}</button></div> : null}
+            </div>
+          </li>)}
+        </ul>
+      ) : <p className="mt-4 rounded-md bg-sunken px-4 py-3 text-sm text-ink-2">Aún no hay consultas registradas.</p>}
+      {canEdit ? <form className="mt-5 grid gap-4 border-t border-rule pt-5 sm:grid-cols-2" onSubmit={saveConsultation}><h3 className="sm:col-span-2 font-semibold text-ink">{editingConsultationId ? "Editar consulta" : "Registrar consulta"}</h3>
+        <Field id="consulta-fecha" label="Fecha de consulta" error={consultationErrors.date}>{(f) => <input {...f} type="date" max={today()} value={consultationInput.date} disabled={!editable} onChange={(e) => setConsultationInput({ ...consultationInput, date: e.target.value })} />}</Field>
+        <Field id="consulta-motivo" label="Motivo" error={consultationErrors.reason}>{(f) => <input {...f} maxLength={2000} value={consultationInput.reason} disabled={!editable} onChange={(e) => setConsultationInput({ ...consultationInput, reason: e.target.value })} />}</Field>
+        <div className="sm:col-span-2"><Field id="consulta-diagnostico" label="Diagnóstico (opcional)" error={consultationErrors.diagnosis}>{(f) => <textarea {...f} rows={3} maxLength={8000} value={consultationInput.diagnosis} disabled={!editable} onChange={(e) => setConsultationInput({ ...consultationInput, diagnosis: e.target.value })} />}</Field></div>
+        <div className="sm:col-span-2"><Field id="consulta-tratamiento" label="Tratamiento (opcional)" error={consultationErrors.treatment}>{(f) => <textarea {...f} rows={3} maxLength={8000} value={consultationInput.treatment} disabled={!editable} onChange={(e) => setConsultationInput({ ...consultationInput, treatment: e.target.value })} />}</Field></div>
+        <div className="sm:col-span-2"><Field id="consulta-medicamentos" label="Medicamentos (opcional)" help="Escribe un medicamento por línea; máximo 100." error={consultationErrors.medications}>{(f) => <textarea {...f} rows={3} value={consultationInput.medications} disabled={!editable} onChange={(e) => setConsultationInput({ ...consultationInput, medications: e.target.value })} />}</Field></div>
+        <Field id="consulta-veterinario" label="Veterinario (opcional)" error={consultationErrors.veterinarian}>{(f) => <input {...f} maxLength={200} value={consultationInput.veterinarian} disabled={!editable} onChange={(e) => setConsultationInput({ ...consultationInput, veterinarian: e.target.value })} />}</Field>
+        <Field id="consulta-origen" label="Origen del registro (opcional)" error={consultationErrors.origin}>{(f) => <input {...f} maxLength={120} value={consultationInput.origin} disabled={!editable} onChange={(e) => setConsultationInput({ ...consultationInput, origin: e.target.value })} placeholder="Ej. veterinario, manual" />}</Field>
+        {documents.some((doc) => doc.category === "salud" || doc.category === "vacunas") ? <fieldset className="sm:col-span-2"><legend className="text-sm font-medium text-ink-2">Documentos privados asociados (opcional)</legend><div className="mt-2 grid gap-2 sm:grid-cols-2">{documents.filter((doc) => doc.category === "salud" || doc.category === "vacunas").map((doc) => <label key={doc.id} className="flex min-h-11 items-center gap-2 rounded-md bg-sunken px-3 text-sm text-ink"><input type="checkbox" checked={consultationInput.documentIds.includes(doc.id)} disabled={!editable} onChange={(event) => setConsultationInput({ ...consultationInput, documentIds: event.target.checked ? [...consultationInput.documentIds, doc.id] : consultationInput.documentIds.filter((id) => id !== doc.id) })} className="size-4 shrink-0 accent-brand" />{doc.name}</label>)}</div>{consultationErrors.documentIds ? <p className="mt-1 text-xs text-danger" role="alert">{consultationErrors.documentIds}</p> : null}</fieldset> : null}
+        <div className="flex flex-wrap gap-3 sm:col-span-2"><SubmitButton busy={busy === "consultation"} busyLabel="Guardando…" icon={<Save size={16} />}>{editingConsultationId ? "Guardar cambios" : "Guardar consulta"}</SubmitButton>{editingConsultationId ? <button type="button" className="min-h-11 text-sm font-semibold text-ink-2 underline" onClick={resetConsultation}>Cancelar edición</button> : null}</div>
       </form> : null}
     </Surface>
 

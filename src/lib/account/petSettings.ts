@@ -57,7 +57,7 @@ export type PetSettingsClient = {
   from: (table: "pet_contacts" | "pet_privacy") => PetSettingsQuery & PetSettingsUpdate;
 };
 
-export type PublicRecordTable = "pet_documents" | "pet_vaccines";
+export type PublicRecordTable = "pet_documents" | "pet_vaccines" | "pet_dewormings" | "pet_consultations";
 export type PublicRecordVisibilityClient = {
   from: (table: PublicRecordTable) => {
     update: (values: { visible_publico: boolean }) => {

@@ -16,7 +16,7 @@ import { QRShareCard } from "@/components/features/pet-profile/QRShareCard";
 import { getPublicProfileUrl } from "@/lib/publicProfileUrl";
 import { getPetAgeText } from "@/lib/dateFormat";
 import { isMissingColumnError } from "@/lib/account/petSettings";
-import { PetCarnetEditor, type CarnetDocument, type CarnetHealth, type CarnetPet, type CarnetVaccine } from "./PetCarnetEditor";
+import { PetCarnetEditor, type CarnetConsultation, type CarnetDeworming, type CarnetDocument, type CarnetHealth, type CarnetPet, type CarnetVaccine } from "./PetCarnetEditor";
 
 export const metadata: Metadata = {
   title: "Carnet privado | PawPass",
@@ -65,10 +65,13 @@ export default async function PetCarnetPage({ params }: { params: Promise<{ petI
   if (ownershipError) return <CarnetLoadError />;
   if (!ownership) notFound();
 
-  const [petResult, healthResult, vaccineResult, documentResult, initialPrivacyResult] = await Promise.all([
+  const [petResult, healthResult, vaccineResult, dewormingResult, consultationResult, consultationDocumentsResult, documentResult, initialPrivacyResult] = await Promise.all([
     supabase.from("pets").select("id, codigo_publico, nombre, especie, fecha_nacimiento, raza, genero, talla, color, peso_kg, esterilizado, microchip, rasgos_distintivos, notas_identificacion").eq("id", petId).maybeSingle(),
     supabase.from("pet_health").select("alergias, condiciones_medicas, medicamentos_actuales, dieta_especial, comportamiento, nota_cuidados_emergencia").eq("pet_id", petId).maybeSingle(),
     supabase.from("pet_vaccines").select("id, nombre, fecha_aplicacion, proxima_dosis, lote, documento_id, visible_publico").eq("pet_id", petId).order("fecha_aplicacion", { ascending: false }),
+    supabase.from("pet_dewormings").select("id, producto, fecha, proxima_fecha, dosis, veterinario, origen, documento_id, visible_publico").eq("pet_id", petId).order("fecha", { ascending: false }),
+    supabase.from("pet_consultations").select("id, fecha, motivo, diagnostico, tratamiento, medicamentos, veterinario, origen, visible_publico").eq("pet_id", petId).order("fecha", { ascending: false }),
+    supabase.from("consultation_documents").select("consultation_id, document_id").eq("pet_id", petId),
     supabase.from("pet_documents").select("id, nombre, categoria, tipo, bucket_id, object_path, mime_type, tamano_bytes, fecha, descripcion, visible_publico, created_at").eq("pet_id", petId).order("created_at", { ascending: false }).limit(100),
     supabase.from("pet_privacy").select("publicado, mostrar_salud, mostrar_archivos").eq("pet_id", petId).maybeSingle(),
   ]);
@@ -85,7 +88,7 @@ export default async function PetCarnetPage({ params }: { params: Promise<{ petI
 
   if (petResult.error) return <CarnetLoadError />;
   if (!petResult.data) notFound();
-  if (healthResult.error || vaccineResult.error || documentResult.error || privacyError) return <CarnetLoadError />;
+  if (healthResult.error || vaccineResult.error || dewormingResult.error || consultationResult.error || consultationDocumentsResult.error || documentResult.error || privacyError) return <CarnetLoadError />;
 
   const petRow = record(petResult.data);
   const publicCode = text(petRow.codigo_publico);
@@ -107,6 +110,21 @@ export default async function PetCarnetPage({ params }: { params: Promise<{ petI
   const vaccines: CarnetVaccine[] = (vaccineResult.data ?? []).map((item) => {
     const row = record(item);
     return { id: text(row.id), name: text(row.nombre), applicationDate: text(row.fecha_aplicacion), nextDose: text(row.proxima_dosis), batch: text(row.lote), documentId: text(row.documento_id), visiblePublic: row.visible_publico === true };
+  });
+  const linkedDocuments = new Map<string, string[]>();
+  for (const item of consultationDocumentsResult.data ?? []) {
+    const row = record(item);
+    const consultationId = text(row.consultation_id);
+    const documentId = text(row.document_id);
+    linkedDocuments.set(consultationId, [...(linkedDocuments.get(consultationId) ?? []), documentId]);
+  }
+  const dewormings: CarnetDeworming[] = (dewormingResult.data ?? []).map((item) => {
+    const row = record(item);
+    return { id: text(row.id), product: text(row.producto), date: text(row.fecha), nextDate: text(row.proxima_fecha), dose: text(row.dosis), veterinarian: text(row.veterinario), origin: text(row.origen), documentId: text(row.documento_id), visiblePublic: row.visible_publico === true };
+  });
+  const consultations: CarnetConsultation[] = (consultationResult.data ?? []).map((item) => {
+    const row = record(item);
+    return { id: text(row.id), date: text(row.fecha), reason: text(row.motivo), diagnosis: text(row.diagnostico), treatment: text(row.tratamiento), medications: list(row.medicamentos), veterinarian: text(row.veterinario), origin: text(row.origen), documentIds: linkedDocuments.get(text(row.id)) ?? [], visiblePublic: row.visible_publico === true };
   });
   const documents: CarnetDocument[] = await Promise.all((documentResult.data ?? []).map(async (item) => {
     const row = record(item);
@@ -147,7 +165,7 @@ export default async function PetCarnetPage({ params }: { params: Promise<{ petI
           }}
           statusBadge={<Pill tone="muted">Carnet privado</Pill>}
         />
-        <ProfileNav sectionIds={["contacto", "info", "salud", "vacunas", "documentos"]} />
+        <ProfileNav sectionIds={["contacto", "info", "salud", "vacunas", "desparasitaciones", "consultas", "documentos"]} />
         <div id="contacto" className="grid min-w-0 grid-cols-1 scroll-mt-24 items-start gap-6 lg:grid-cols-[minmax(0,1fr)_20rem]">
           <div>
           <PetSettingsForm petId={petId} petName={pet.name} publicCode={publicCode} canEdit={ownership.rol === "administrador"} initialPublished={privacyData?.publicado === true} />
@@ -158,6 +176,8 @@ export default async function PetCarnetPage({ params }: { params: Promise<{ petI
           pet={pet}
           health={healthFrom(record(healthResult.data))}
           vaccines={vaccines}
+          dewormings={dewormings}
+          consultations={consultations}
           documents={documents}
           canEdit={ownership.rol === "administrador"}
           privacy={{ showHealth: privacyData?.mostrar_salud === true, showFiles: filePrivacySupported && privacyData?.mostrar_archivos === true }}
