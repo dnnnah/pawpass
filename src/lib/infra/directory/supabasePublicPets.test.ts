@@ -92,11 +92,13 @@ describe("createSupabasePublicPetDirectory", () => {
       data: [{ publicCode: "PC-LOLA-123", name: "Lola", species: "Perro", status: "en_casa", photoPath: "lola/main" }],
       error: null,
     });
-    const directory = createSupabasePublicPetDirectory({ rpc });
+    const createSignedUrls = vi.fn(async (paths: string[]) => ({ data: paths.map((path) => ({ path, signedUrl: `https://storage.test/${path}`, error: null })), error: null }));
+    const directory = createSupabasePublicPetDirectory({ rpc, storage: { from: () => ({ createSignedUrl: vi.fn(), createSignedUrls }) } });
 
     await expect(directory.listPublicProfiles()).resolves.toEqual([
-      { publicCode: "PC-LOLA-123", name: "Lola", species: "Perro", photoUrl: null, breed: null, status: "en_casa", zone: null },
+      { publicCode: "PC-LOLA-123", name: "Lola", species: "Perro", photoUrl: "https://storage.test/lola/main", breed: null, status: "en_casa", zone: null },
     ]);
+    expect(createSignedUrls).toHaveBeenCalledWith(["lola/main"], 300);
     expect(rpc).toHaveBeenCalledWith("listar_perfiles_publicos", { p_limite: 50, p_offset: 0 });
   });
 
@@ -112,15 +114,17 @@ describe("createSupabasePublicPetDirectory", () => {
     };
     const rpc = vi.fn().mockResolvedValue({ data: publicProfile, error: null });
     const createSignedUrl = vi.fn(async (path: string) => ({ data: { signedUrl: `https://storage.test/${path}` }, error: null }));
-    const directory = createSupabasePublicPetDirectory({ rpc, storage: { from: () => ({ createSignedUrl }) } });
+    const createSignedUrls = vi.fn(async (paths: string[]) => ({ data: paths.map((path) => ({ path, signedUrl: `https://storage.test/${path}`, error: null })), error: null }));
+    const directory = createSupabasePublicPetDirectory({ rpc, storage: { from: () => ({ createSignedUrl, createSignedUrls }) } });
 
     await expect(directory.findPublicProfile("PC-LOLA-123")).resolves.toMatchObject({
-      publicCode: "PC-LOLA-123", name: "Lola", contact: { phone: "+525512345678" },
+      publicCode: "PC-LOLA-123", name: "Lola", photoUrl: "https://storage.test/lola/main", contact: { phone: "+525512345678" },
       health: { allergies: ["Pollo"] }, photos: [{ url: "https://storage.test/lola/selected-photo" }],
       documents: [{ name: "Cartilla", url: "https://storage.test/lola/cartilla" }],
     });
     expect(rpc).toHaveBeenCalledWith("obtener_perfil_publico", { p_codigo: "PC-LOLA-123" });
-    expect(createSignedUrl).toHaveBeenCalledTimes(3);
+    expect(createSignedUrls).toHaveBeenCalledWith(["lola/main", "lola/selected-photo"], 300);
+    expect(createSignedUrl).toHaveBeenCalledTimes(1);
   });
 
   it("presenta primero la foto compartida más reciente", async () => {

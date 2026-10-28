@@ -101,6 +101,35 @@ async function signPhotoPaths(client: PublicPetRpcClient, entries: PublicPetEntr
   });
 }
 
+async function signPublishedPhotoPaths(client: PublicPetRpcClient, photoPaths: string[]): Promise<Map<string, string>> {
+  const signedByPath = new Map<string, string>();
+  const uniquePaths = [...new Set(photoPaths.filter(Boolean))];
+  if (!uniquePaths.length || !client.storage) return signedByPath;
+
+  try {
+    const bucket = client.storage.from("pawpass-fotos");
+    if (bucket.createSignedUrls) {
+      const result = await bucket.createSignedUrls(uniquePaths, 300);
+      for (const item of result.data ?? []) {
+        if (item.path && item.signedUrl && !item.error) signedByPath.set(item.path, item.signedUrl);
+      }
+      return signedByPath;
+    }
+  } catch {
+    // Retry each allowed photo below if the batch endpoint is unavailable.
+  }
+
+  await Promise.all(uniquePaths.map(async (path) => {
+    try {
+      const { data } = await client.storage?.from("pawpass-fotos").createSignedUrl(path, 300) ?? { data: null };
+      if (data?.signedUrl) signedByPath.set(path, data.signedUrl);
+    } catch {
+      // Keep the rest of the public profile available if one image fails.
+    }
+  }));
+  return signedByPath;
+}
+
 /**
  * Directory adapter for the anonymous QR contract.
  *
@@ -145,19 +174,15 @@ export function createSupabasePublicPetDirectory(client: PublicPetRpcClient): Pu
       const { data, error } = await client.rpc("listar_perfiles_publicos", { p_limite: 50, p_offset: 0 });
       if (error) throw new SupabasePublicPetDirectoryError(error.message ?? "No se pudo cargar el directorio público.");
       if (!Array.isArray(data)) return [];
-      return Promise.all(data.map(async (raw) => {
+      const entries = data.flatMap((raw) => {
         const card = toPublicProfileCard(raw);
-        if (!card) return null;
+        return card ? [{ raw, card }] : [];
+      });
+      const signedByPath = await signPublishedPhotoPaths(client, entries.map(({ raw }) => paths(raw, "photoPath")[0] ?? ""));
+      return entries.map(({ raw, card }) => {
         const photoPath = paths(raw, "photoPath")[0];
-        if (!photoPath) return { ...card, photoUrl: historicalPublicPhoto(raw) };
-        if (!client.storage) return { ...card, photoUrl: null };
-        try {
-          const { data: signed } = await client.storage.from("pawpass-fotos").createSignedUrl(photoPath, 300);
-          return signed?.signedUrl ? { ...card, photoUrl: signed.signedUrl } : { ...card, photoUrl: historicalPublicPhoto(raw) };
-        } catch {
-          return { ...card, photoUrl: historicalPublicPhoto(raw) };
-        }
-      })).then((cards) => cards.filter((card): card is NonNullable<typeof card> => card !== null));
+        return { ...card, photoUrl: (photoPath ? signedByPath.get(photoPath) : null) ?? card.photoUrl ?? historicalPublicPhoto(raw) };
+      });
     },
     async findPublicProfile(publicCode) {
       const normalized = publicCode.trim();
@@ -168,6 +193,11 @@ export function createSupabasePublicPetDirectory(client: PublicPetRpcClient): Pu
       if (typeof raw !== "object" || raw === null || Array.isArray(raw)) return null;
       const payload = raw as Record<string, unknown>;
       const primaryPath = paths(payload, "photoPath")[0];
+      const publicPhotoPaths = (Array.isArray(payload.photos) ? payload.photos : []).flatMap((item) => {
+        const row = typeof item === "object" && item !== null ? item as Record<string, unknown> : {};
+        return row.visible === true && typeof row.path === "string" && row.path ? [row.path] : [];
+      });
+      const signedPhotoByPath = await signPublishedPhotoPaths(client, [primaryPath ?? "", ...publicPhotoPaths]);
       const signPath = async (bucket: "pawpass-fotos" | "pawpass-documentos", path: unknown) => {
         if (typeof path !== "string" || !path || !client.storage) return null;
         try {
@@ -177,12 +207,10 @@ export function createSupabasePublicPetDirectory(client: PublicPetRpcClient): Pu
           return null;
         }
       };
-      const [photoUrl, photos, documents] = await Promise.all([
-        signPath("pawpass-fotos", primaryPath),
-        Promise.all((Array.isArray(payload.photos) ? payload.photos : []).map(async (item) => {
-          const row = typeof item === "object" && item !== null ? item as Record<string, unknown> : {};
-          const url = row.visible === true ? await signPath("pawpass-fotos", row.path) : null;
-          return url ? { visible: true, url } : null;
+      const [photos, documents] = await Promise.all([
+        Promise.resolve(publicPhotoPaths.map((path) => {
+          const url = signedPhotoByPath.get(path);
+          return url ? { visible: true as const, url } : null;
         })),
         Promise.all((Array.isArray(payload.documents) ? payload.documents : []).map(async (item) => {
           const row = typeof item === "object" && item !== null ? item as Record<string, unknown> : {};
@@ -196,7 +224,7 @@ export function createSupabasePublicPetDirectory(client: PublicPetRpcClient): Pu
       // QR's primary photo is also the identity image for the voluntary profile.
       const profile = toPublicProfile({
         ...payload,
-        photoUrl: photoUrl ?? historicalPublicPhoto(payload),
+        photoUrl: (primaryPath ? signedPhotoByPath.get(primaryPath) : null) ?? historicalPublicPhoto(payload),
         photos: signedPhotos,
         documents: documents.filter((item) => item !== null),
       });
