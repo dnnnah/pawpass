@@ -11,17 +11,28 @@ function pet(name: string, status: AccountPet["status"], role = "administrador")
 }
 
 describe("organización de mis mascotas", () => {
-  it("muestra las alertas en rojo antes de las demás y el registro después de las tarjetas", () => {
+  it("muestra las alertas en rojo y mantiene el registro por encima de las tarjetas", () => {
     const html = renderToStaticMarkup(createElement(AccountPetsDashboard, { pets: [pet("EnCasa", "en_casa"), pet("EnAlerta", "perdido")], error: null }));
     expect(html.indexOf("EnAlerta")).toBeLessThan(html.indexOf("EnCasa"));
     expect(html.slice(html.indexOf("<article"), html.indexOf("EnAlerta"))).toContain("bg-danger-soft");
     expect(html).toContain("Alerta activa");
     expect(html).toContain('href="/p/EnAlerta"');
     expect(html).toContain("Ver ficha pública");
-    expect(html.indexOf('id="agregar-mascota"')).toBeGreaterThan(html.indexOf("EnCasa"));
+    expect(html.indexOf('id="agregar-mascota"')).toBeLessThan(html.indexOf("EnCasa"));
     expect(html).toContain('href="/cuenta/mascotas/EnCasa"');
     expect(html).toContain("Abrir carnet privado");
     expect(html).not.toContain("Administrar mascota");
+  });
+  it("presenta el registro antes de las tarjetas, también cuando no hay mascotas", () => {
+    const populated = renderToStaticMarkup(createElement(AccountPetsDashboard, { pets: [pet("Nala", "en_casa")], error: null }));
+    expect(populated.indexOf("Registrar nueva mascota")).toBeLessThan(populated.indexOf("<article"));
+    const empty = renderToStaticMarkup(createElement(AccountPetsDashboard, { pets: [], error: null }));
+    expect(empty.indexOf("Registrar nueva mascota")).toBeLessThan(empty.indexOf("Aún no tienes mascotas"));
+  });
+  it("mantiene la acción de adopción visible en la tarjeta sin un panel colapsado", () => {
+    const html = renderToStaticMarkup(createElement(AccountPetsDashboard, { pets: [pet("Nala", "en_casa")], error: null }));
+    expect(html).toContain("Publicar en adopción");
+    expect(html).not.toContain("<summary class=\"cursor-pointer text-sm font-semibold text-ink\">Adopción</summary>");
   });
   it("no ofrece eliminar una mascota a un tutor sin administración", () => {
     const html = renderToStaticMarkup(createElement(AccountPetsDashboard, { pets: [pet("Compartida", "en_casa", "tutor")], error: null }));
