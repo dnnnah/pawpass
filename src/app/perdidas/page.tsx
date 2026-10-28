@@ -31,6 +31,7 @@ function OwnedLostCard({ pet }: { pet: AccountPet }) {
       <p className="text-sm text-ink-2">{pet.species === "perro" ? "Perro" : "Gato"}{pet.breed ? ` · ${pet.breed}` : ""}</p>
     </div>
     <Link href={`/cuenta/mascotas/${pet.id}`} aria-label={`Abrir carnet privado de ${pet.name}`} className="mt-5 inline-flex min-h-11 items-center rounded-sm text-sm font-semibold text-brand underline decoration-brand-rule underline-offset-4 hover:text-brand-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand">Abrir carnet privado</Link>
+    <Link href={`/p/${encodeURIComponent(pet.publicCode)}`} className="mt-2 inline-flex min-h-11 items-center rounded-sm text-sm font-semibold text-brand underline decoration-brand-rule underline-offset-4 hover:text-brand-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand">Ver ficha pública</Link>
     <Button href={`/cuenta/mascotas/${encodeURIComponent(pet.id)}/alerta`} size="sm" variant="secondary" className="mt-3 w-fit" icon={<Download size={15} />}>Generar imagen para compartir</Button>
   </Surface>;
 }

@@ -16,6 +16,10 @@ export type PublicPetRpcClient = {
   storage?: {
     from(bucket: "pawpass-fotos" | "pawpass-documentos"): {
       createSignedUrl(path: string, expiresIn: number): PromiseLike<{ data: { signedUrl: string } | null; error: unknown }>;
+      createSignedUrls?(paths: string[], expiresIn: number): PromiseLike<{
+        data: Array<{ path: string | null; signedUrl: string | null; error: string | null }> | null;
+        error: unknown;
+      }>;
     };
   };
 };
@@ -33,6 +37,8 @@ const historicalPublicPhotoByCode: Readonly<Record<string, string>> = {
   "PC-ALIX-003": "/pets/alix.jpeg",
   "PC-LOKI-001": "/pets/loki.jpeg",
   "PC-VISERYS-001": "/pets/viserys.jpeg",
+  // The bundled Bruno demo seed has the same legacy portrait URL as its static record.
+  "PC-BRUNO-001": "/pets/lucca.jpeg",
 };
 
 function unwrapRpcData(data: unknown): unknown {
@@ -48,38 +54,51 @@ function paths(raw: unknown, field: "photoPath" | "recentPhotoPaths"): string[] 
   return items.filter((item): item is string => typeof item === "string" && item.length > 0).slice(0, 6);
 }
 
-function historicalPublicPhoto(raw: unknown): string | null {
+function historicalPublicPhoto(raw: unknown, allowQrDemoFallback = false): string | null {
   if (typeof raw !== "object" || raw === null || Array.isArray(raw)) return null;
   const payload = raw as Record<string, unknown>;
   const publicCode = payload.publicCode;
   const photoUrl = payload.photoUrl;
-  if (typeof publicCode !== "string" || typeof photoUrl !== "string" || paths(payload, "photoPath").length > 0) {
+  if (typeof publicCode !== "string" || paths(payload, "photoPath").length > 0) {
     return null;
   }
-  return historicalPublicPhotoByCode[publicCode] === photoUrl ? photoUrl : null;
+  const knownPhotoUrl = historicalPublicPhotoByCode[publicCode];
+  if (!knownPhotoUrl) return null;
+  if (photoUrl === knownPhotoUrl) return knownPhotoUrl;
+  return allowQrDemoFallback && photoUrl == null ? knownPhotoUrl : null;
 }
 
-async function signPhotoPaths(client: PublicPetRpcClient, raw: unknown, card: NonNullable<ReturnType<typeof toPublicPetCard>>) {
-  if (!client.storage) return card;
-  const photoPaths = paths(raw, "photoPath");
-  const recentPaths = paths(raw, "recentPhotoPaths");
-  const sign = async (path: string) => {
+type PublicPetEntry = { raw: unknown; card: NonNullable<ReturnType<typeof toPublicPetCard>> };
+
+async function signPhotoPaths(client: PublicPetRpcClient, entries: PublicPetEntry[], allowQrDemoFallback = false) {
+  const entryPaths = entries.map(({ raw }) => ({ primary: paths(raw, "photoPath")[0] ?? null, recent: paths(raw, "recentPhotoPaths") }));
+  const uniquePaths = [...new Set(entryPaths.flatMap(({ primary, recent }) => [primary, ...recent]).filter((path): path is string => Boolean(path)))];
+  const signedUrlByPath = new Map<string, string>();
+
+  if (uniquePaths.length > 0 && client.storage) {
     try {
-      const { data } = await client.storage!.from("pawpass-fotos").createSignedUrl(path, 300);
-      return data?.signedUrl ?? null;
+      const result = await client.storage.from("pawpass-fotos").createSignedUrls?.(uniquePaths, 300);
+      for (const entry of result?.data ?? []) {
+        if (!entry.error && entry.path && entry.signedUrl) signedUrlByPath.set(entry.path, entry.signedUrl);
+      }
     } catch {
-      return null;
+      // Preserve the card if Storage is temporarily unavailable.
     }
-  };
-  const [photoUrl, recentUrls] = await Promise.all([
-    photoPaths[0] ? sign(photoPaths[0]) : Promise.resolve(null),
-    Promise.all(recentPaths.map(sign)),
-  ]);
-  return {
-    ...card,
-    photoUrl: photoUrl ?? card.photoUrl,
-    recentPhotos: recentUrls.filter((url): url is string => Boolean(url)).map((url) => ({ url })),
-  };
+  }
+
+  return entries.map(({ raw, card }, index) => {
+    const { primary, recent } = entryPaths[index];
+    return {
+      ...card,
+      photoUrl: (primary ? signedUrlByPath.get(primary) : null)
+        ?? card.photoUrl
+        ?? historicalPublicPhoto(raw, allowQrDemoFallback),
+      recentPhotos: recent
+        .map((path) => signedUrlByPath.get(path))
+        .filter((url): url is string => Boolean(url))
+        .map((url) => ({ url })),
+    };
+  });
 }
 
 /**
@@ -107,7 +126,8 @@ export function createSupabasePublicPetDirectory(client: PublicPetRpcClient): Pu
 
       const raw = unwrapRpcData(data);
       const card = toPublicPetCard(raw);
-      return card ? signPhotoPaths(client, raw, card) : null;
+      if (!card) return null;
+      return (await signPhotoPaths(client, [{ raw, card }], true))[0];
     },
     async listLostPets() {
       const { data, error } = await client.rpc("listar_mascotas_perdidas", { p_limite: 50, p_offset: 0 });
@@ -115,10 +135,11 @@ export function createSupabasePublicPetDirectory(client: PublicPetRpcClient): Pu
         throw new SupabasePublicPetDirectoryError(error.message ?? "No se pudo cargar el directorio de mascotas perdidas.");
       }
       if (!Array.isArray(data)) return [];
-      return Promise.all(data.map(async (raw) => {
+      const entries = data.flatMap((raw) => {
         const card = toPublicPetCard(raw);
-        return card?.status === "perdido" ? signPhotoPaths(client, raw, card) : null;
-      })).then((cards) => cards.filter((card): card is NonNullable<typeof card> => card !== null));
+        return card?.status === "perdido" ? [{ raw, card }] : [];
+      });
+      return signPhotoPaths(client, entries, true);
     },
     async listPublicProfiles() {
       const { data, error } = await client.rpc("listar_perfiles_publicos", { p_limite: 50, p_offset: 0 });

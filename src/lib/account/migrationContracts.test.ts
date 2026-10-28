@@ -9,6 +9,10 @@ const lostProfileMigration = readFileSync(
   new URL("../../../supabase/migrations/20261027160000_perfil_voluntario_durante_alerta.sql", import.meta.url),
   "utf8",
 );
+const rescueMigration = readFileSync(
+  new URL("../../../supabase/migrations/20261025190000_publicacion_rescate_qr.sql", import.meta.url),
+  "utf8",
+);
 
 describe("contrato SQL de privacidad y rescate", () => {
   it("requiere consentimiento por archivo y por sección para Storage público", () => {
@@ -40,5 +44,15 @@ describe("contrato SQL de privacidad y rescate", () => {
     expect(lookup).not.toMatch(/mostrar_archivos\s*=\s*true/i);
     const profileList = migration.match(/create or replace function private\.listar_perfiles_publicos[\s\S]*?\$function\$;/i)?.[0];
     expect(profileList).toMatch(/p\.estado\s*=\s*'en_casa'/i);
+  });
+
+  it("permite firmar solo la foto principal de identidad de una ficha QR", () => {
+    const policy = rescueMigration.match(/create or replace function private\.puede_leer_foto_qr[\s\S]*?\$function\$;/i)?.[0];
+    expect(policy).toMatch(/p_bucket\s*=\s*'pawpass-fotos'/i);
+    expect(policy).toMatch(/d\.categoria\s*=\s*'foto'/i);
+    expect(policy).toMatch(/d\.tipo\s*=\s*'imagen'/i);
+    expect(policy).toMatch(/d\.id\s*=\s*\(\s*select d0\.id/i);
+    expect(policy).toMatch(/order by d0\.created_at asc, d0\.id asc/i);
+    expect(rescueMigration).toMatch(/create policy pawpass_qr_photo_read[\s\S]*?using\s*\(private\.puede_leer_foto_qr\(bucket_id, name\)\)/i);
   });
 });

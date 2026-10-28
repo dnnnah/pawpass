@@ -36,8 +36,8 @@ const payload = {
 describe("createSupabasePublicPetDirectory", () => {
   it("consulta el RPC con el código normalizado y mapea su respuesta", async () => {
     const rpc = vi.fn().mockResolvedValue({ data: [payload], error: null });
-    const createSignedUrl = vi.fn(async (path: string) => ({ data: { signedUrl: `https://storage.test/${path}` }, error: null }));
-    const directory = createSupabasePublicPetDirectory({ rpc, storage: { from: () => ({ createSignedUrl }) } });
+    const createSignedUrls = vi.fn(async (paths: string[]) => ({ data: paths.map((path) => ({ path, signedUrl: `https://storage.test/${path}`, error: null })), error: null }));
+    const directory = createSupabasePublicPetDirectory({ rpc, storage: { from: () => ({ createSignedUrl: vi.fn(), createSignedUrls }) } });
 
     await expect(directory.findPublicPet("  PC-LUCCA-001 ")).resolves.toMatchObject({
       publicCode: "PC-LUCCA-001",
@@ -50,7 +50,8 @@ describe("createSupabasePublicPetDirectory", () => {
       recentPhotos: [{ url: "https://storage.test/extra-id/archivo" }],
     });
     expect(rpc).toHaveBeenCalledWith("obtener_ficha_publica", { p_codigo: "PC-LUCCA-001" });
-    expect(createSignedUrl).toHaveBeenCalledTimes(2);
+    expect(createSignedUrls).toHaveBeenCalledTimes(1);
+    expect(createSignedUrls).toHaveBeenCalledWith(["photo-id/archivo", "extra-id/archivo"], 300);
   });
 
   it("devuelve null para una respuesta vacía o un código vacío", async () => {
@@ -62,12 +63,28 @@ describe("createSupabasePublicPetDirectory", () => {
     expect(rpc).toHaveBeenCalledTimes(1);
   });
 
-  it("lista solo fichas que el mapper confirma como perdidas", async () => {
-    const rpc = vi.fn().mockResolvedValue({ data: [payload, { ...payload, status: "en_casa", lost: null }], error: null });
+  it("recupera la foto local del Bruno de demostración cuando su seed remoto no tiene archivo de Storage", async () => {
+    const rpc = vi.fn().mockResolvedValue({ data: {
+      publicCode: "PC-BRUNO-001", photoPath: null, photoUrl: null, name: "Bruno", species: "Perro", status: "perdido",
+      lost: { zona: "Parque Nacional Ixtapaluca", fechaPerdida: "2026-09-10", mensaje: "Ayuda a encontrarlo", instrucciones: [] },
+    }, error: null });
     const directory = createSupabasePublicPetDirectory({ rpc });
 
-    await expect(directory.listLostPets()).resolves.toHaveLength(1);
+    await expect(directory.findPublicPet("PC-BRUNO-001")).resolves.toMatchObject({
+      publicCode: "PC-BRUNO-001",
+      photoUrl: "/pets/lucca.jpeg",
+    });
+  });
+
+  it("lista solo fichas que el mapper confirma como perdidas", async () => {
+    const rpc = vi.fn().mockResolvedValue({ data: [payload, { ...payload, publicCode: "PC-NALA-001", status: "en_casa", lost: null }], error: null });
+    const createSignedUrls = vi.fn(async (paths: string[]) => ({ data: paths.map((path) => ({ path, signedUrl: `https://storage.test/${path}`, error: null })), error: null }));
+    const directory = createSupabasePublicPetDirectory({ rpc, storage: { from: () => ({ createSignedUrl: vi.fn(), createSignedUrls }) } });
+
+    await expect(directory.listLostPets()).resolves.toMatchObject([{ publicCode: "PC-LUCCA-001", photoUrl: "https://storage.test/photo-id/archivo" }]);
     expect(rpc).toHaveBeenCalledWith("listar_mascotas_perdidas", { p_limite: 50, p_offset: 0 });
+    expect(createSignedUrls).toHaveBeenCalledTimes(1);
+    expect(createSignedUrls).toHaveBeenCalledWith(["photo-id/archivo", "extra-id/archivo"], 300);
   });
 
   it("lista perfiles voluntarios mediante un RPC separado del catálogo de adopción", async () => {
