@@ -5,9 +5,13 @@ import {
   validatePetHealth,
   validatePetIdentity,
   validatePetVaccine,
+  validatePetDeworming,
+  validatePetConsultation,
   type PetHealthInput,
   type PetIdentityInput,
   type PetVaccineInput,
+  type PetDewormingInput,
+  type PetConsultationInput,
 } from "./petCarnet";
 
 const identity: PetIdentityInput = {
@@ -42,6 +46,27 @@ const vaccine: PetVaccineInput = {
   documentId: "",
 };
 
+const deworming: PetDewormingInput = {
+  product: "Milbemax",
+  date: "2026-03-10",
+  nextDate: "2026-06-10",
+  dose: "1 tableta",
+  veterinarian: "Dra. Pérez",
+  origin: "veterinario",
+  documentId: "",
+};
+
+const consultation: PetConsultationInput = {
+  date: "2026-03-10",
+  reason: "Revisión general",
+  diagnosis: "Sin hallazgos",
+  treatment: "",
+  medications: "",
+  veterinarian: "Dra. Pérez",
+  origin: "veterinario",
+  documentIds: [],
+};
+
 describe("carnet privado: validación de datos", () => {
   it("rechaza una fecha de nacimiento futura y un peso fuera del rango de la ficha", () => {
     expect(validatePetIdentity({ ...identity, birthDate: "2030-01-01", weightKg: "0" }, "2026-10-25")).toMatchObject({
@@ -61,6 +86,20 @@ describe("carnet privado: validación de datos", () => {
   it("rechaza una vacuna aplicada en el futuro o con próxima dosis anterior a su aplicación", () => {
     expect(validatePetVaccine({ ...vaccine, applicationDate: "2027-01-01" }, "2026-10-25").applicationDate).toBeTruthy();
     expect(validatePetVaccine({ ...vaccine, nextDose: "2025-02-09" }, "2026-10-25").nextDose).toBeTruthy();
+  });
+
+  it("valida desparasitaciones con fechas y producto requeridos", () => {
+    expect(validatePetDeworming(deworming, "2026-10-25")).toEqual({});
+    expect(validatePetDeworming({ ...deworming, product: " ", date: "2027-01-01", nextDate: "2026-01-01" }, "2026-10-25")).toMatchObject({
+      product: expect.any(String), date: expect.any(String), nextDate: expect.any(String),
+    });
+  });
+
+  it("valida consultas médicas y limita los campos opcionales", () => {
+    expect(validatePetConsultation(consultation, "2026-10-25")).toEqual({});
+    expect(validatePetConsultation({ ...consultation, reason: "", diagnosis: "x".repeat(8001), date: "no-fecha" }, "2026-10-25")).toMatchObject({
+      reason: expect.any(String), diagnosis: expect.any(String), date: expect.any(String),
+    });
   });
 
   it("acepta los extremos de tamaño permitidos para fotos y documentos y rechaza tipos o tamaños inválidos", () => {

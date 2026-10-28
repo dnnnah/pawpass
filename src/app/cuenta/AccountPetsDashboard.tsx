@@ -13,6 +13,15 @@ import { PublicProfileShareButton } from "./PublicProfileShareButton";
 export function AccountPetsDashboard({ pets, error, showHeading = true }: { pets: AccountPet[]; error: string | null; showHeading?: boolean }) {
   const ordered = prioritizeAccountPets(pets);
   return <>
+    <section aria-label="Registro de mascota" className="scroll-mt-28">
+      <details id="agregar-mascota" className="rounded-md border border-brand-rule bg-brand-soft p-4 sm:p-5">
+        <summary className="flex min-h-11 w-fit cursor-pointer list-none items-center gap-2 rounded-md bg-brand px-4 text-sm font-semibold text-on-solid shadow-1 transition-colors hover:bg-brand-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand [&::-webkit-details-marker]:hidden">
+          <Plus size={17} aria-hidden="true" />
+          Registrar nueva mascota
+        </summary>
+        <div className="mt-5 max-w-2xl"><CreatePetForm /></div>
+      </details>
+    </section>
     <section id="mis-mascotas" aria-labelledby="mis-mascotas-titulo" className="scroll-mt-28">
       <div className={showHeading ? "mb-4 flex items-baseline justify-between gap-3" : "sr-only"}>
         <h2 id="mis-mascotas-titulo" className="font-display text-2xl text-ink">Mis mascotas</h2>
@@ -47,22 +56,12 @@ export function AccountPetsDashboard({ pets, error, showHeading = true }: { pets
             <Link href={`/cuenta/mascotas/${encodeURIComponent(pet.id)}#perfil-publico`} className="mt-2 inline-flex min-h-11 items-center rounded-sm text-sm font-semibold text-brand underline decoration-brand-rule underline-offset-4">{pet.publicProfilePublished === false ? "Configurar perfil público" : "Revisar perfil público"}</Link>
           </div> : null}
           {pet.role === "administrador" ? <LostStatusForm petId={pet.id} petName={pet.name} status={pet.status} canEdit /> : null}
-          <details className="mt-4 border-t border-rule pt-4">
-            <summary className="cursor-pointer text-sm font-semibold text-ink">Adopción</summary>
-            <AdoptionPublicationForm petId={pet.id} petName={pet.name} status={pet.status} publicationActive={pet.adoptionPublished === true} canEdit={pet.role === "administrador"} />
-          </details>
+          {pet.role === "administrador" ? <div className="mt-4 border-t border-rule pt-1">
+            <AdoptionPublicationForm petId={pet.id} petName={pet.name} status={pet.status} publicationActive={pet.adoptionPublished === true} canEdit />
+          </div> : null}
           {pet.role === "administrador" ? <DeleteDataControl petId={pet.id} petName={pet.name} /> : null}
         </Surface>)}
       </div>
-    </section>
-    <section aria-label="Registro de mascota" className="border-t border-rule pt-8">
-      <details id="agregar-mascota" className="scroll-mt-28">
-        <summary className="flex min-h-11 w-fit cursor-pointer list-none items-center gap-2 rounded-md bg-brand px-4 text-sm font-semibold text-on-solid shadow-1 transition-colors hover:bg-brand-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand [&::-webkit-details-marker]:hidden">
-          <Plus size={17} aria-hidden="true" />
-          Registrar nueva mascota
-        </summary>
-        <div className="mt-5 max-w-2xl"><CreatePetForm /></div>
-      </details>
     </section>
   </>;
 }
